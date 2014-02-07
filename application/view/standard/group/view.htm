@@ -1,0 +1,21 @@
+{extends file='../_.htm'}
+
+{block name=title}Gruppe &raquo;{$obj->name}&laquo;{/block}
+{block name=css}group_view{/block}
+{block name=path}
+ &raquo; <a href="{$config->url}/group">Gruppen</a>{/block}
+{block name=content}
+{include file='../_function/bit_user.htm'}
+{if $obj->user}
+<h3>Mitglieder</h3>
+{paginate link=$config->url|cat:"/group/view/$obj" total=ceil((int)count($obj->user) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
+<ol class="users">
+{foreach name=users item=value from=$obj->user}
+{if $value@iteration > (($page - 1) * $configuration->getConfiguration($obj, 'pageentries')) && $value@iteration <= (($page) * $configuration->getConfiguration($obj, 'pageentries'))}
+{bit_user config=$config value=$value}
+{elseif $value@iteration > (($page) * $configuration->getConfiguration($obj, 'pageentries'))}{break}{/if}
+{/foreach}
+</ol>
+{paginate link=$config->url|cat:"/group/view/$obj" total=ceil((int)count($obj->user) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
+{/if}
+{/block}

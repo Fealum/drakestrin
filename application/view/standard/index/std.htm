@@ -1,0 +1,25 @@
+{extends file='../_.htm'}
+
+{block name=title}Index{/block}
+{block name=css}index{/block}
+{block name=content}
+{include file='../_function/datetime.htm'}
+<p>Herzlich Willkommen in Drachenstein!</p>
+<h3>Aktuelle Themen</h3>
+<div id="threads">
+<ol>
+{foreach name=threads item=value from=$obj->threads->data}
+{if $value@iteration <= 10}
+	<li>
+		<h4>{if $value->important}[Wichtig] {/if}<a href="{$config->url}/thread/view/{$value}">{$value->name|escape:'htmlall'}</a>{if isset($user) and $value->post__last_time >= $user->lastvisit and ((isset($viewed[1][$value->id]) and $viewed[1][$value->id] < $value->post__last_time) or !isset($viewed[1][$value->id]))} <span class="option new">(Neu)</span>{/if}</h4>
+		<p class="small">{$value->views} Aufrufe und {if $value->post__total == 1}ein Beitrag{else}{$value->post__total} Beitr&auml;ge{/if}</p>
+		<p class="small"><a href="{$config->url}/user/view/{$value->post[0]->user}">{$value->post[0]->user->name|escape:'htmlall'}</a>; {datetime value=$value->post[0]->time}<br />
+		&mdash;<a href="{$config->url}/user/view/{$value->post__last->user}">{$value->post__last->user->name|escape:'htmlall'}</a>; <a href="{$config->url}/thread/view/{$value}/last#post{$value->post__last}">{datetime value=$value->post__last_time}</a></p>
+	</li>
+{else}{break}{/if}
+{/foreach}
+</ol>
+</div>
+<h3>Statistik</h3>
+<p>{$obj->postcount24h} Beitr&auml;ge in den letzten 24 Stunden; {$obj->postcount7d} Beitr&auml;ge in den letzten sieben Tagen.</p>
+{/block}

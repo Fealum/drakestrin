@@ -1,0 +1,26 @@
+{extends file='../_.htm'}
+
+{block name=title}{if $obj->name}Neues Thema im Forum &raquo;{$obj->name|escape:'htmlall'}&laquo; erstellen{else}Zugriff nicht gestattet{/if}{/block}
+{block name=css}thread{/block}
+{block name=path}
+{include file='../_function/breadcrumbs.htm'}
+ &raquo; <a href="{$config->url}/board">Forum</a>{if $obj->name}{breadcrumbs data=$obj url='board/view' parent='board'}{/if}{/block}
+{block name=content}
+{include file='../_function/textinput.htm'}
+{if $permission->getPermission($obj, 'show') > 0}
+{if $permission->getPermission($obj, 'createthread') > 0}
+<form name="createthread" action="{$config->url}/thread/create/{$obj}" method="post">
+{textinput formname='createthread' inputname='name' displayname='Name' autofocus=true}
+<label for="important">Wichtig: </label><input type="checkbox" name="important" id="important" value="1" {if $thread['important'] == 1}checked="checked"{/if} />
+<p>Beitrag: 
+<input type="hidden" name="smilies" value="1" />
+<input type="hidden" name="signature" value="1" />
+<textarea name="message">{if isset($post['message'])}{$post['message']|escape:'htmlall'}{/if}</textarea></p>
+<input type="submit" value="Neues Thema erstellen" />
+</form>
+{/if}
+{else}
+<h3>Zugriff nicht gestattet!</h3>
+<p>Leider ist Dir der Zugriff auf diese Seite nicht gestattet. Dir fehlen die daf&uuml;r erforderlichen Rechte. Wenn Du glaubst, dass es sich dabei um einen Fehler handelt, benachrichtige bitte den Administrator.</p>
+{/if}
+{/block}

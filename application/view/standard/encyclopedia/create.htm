@@ -1,0 +1,15 @@
+{extends file='../_.htm'}
+
+{block name=title}{if $obj->name}Neue Unterseite zu &raquo;{$obj->name|escape:htmlall}&laquo;{else}Zugriff nicht gestattet{/if}{/block}
+{block name=path}
+{include file='../_function/breadcrumbs.htm'}
+&raquo; <a href="{$config->url}/encyclopedia">Kompendium</a>{if $obj->name and $obj->encyclopedia != '0'}{breadcrumbs data=$obj url='encyclopedia/view' parent='encyclopedia'}{/if}{/block}
+{block name=content}
+{include file='../_function/textinput.htm'}
+<form name="createencyclopedia" action="{$config->url}/encyclopedia/create/{$obj}" method="post">
+{textinput formname='createencyclopedia' inputname='name' displayname='Seitentitel (kurz)'}
+{textinput formname='createencyclopedia' inputname='title' displayname='Seitentitel (lang)'}
+<textarea name="text"></textarea>
+<p><input type="submit" value="Neue Seite erstellen" name="submit" /></p>
+</form>
+{/block}

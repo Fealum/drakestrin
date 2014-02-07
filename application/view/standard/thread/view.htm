@@ -1,0 +1,71 @@
+{extends file='../_.htm'}
+
+{block name=title}{if $obj->name}{$obj->name|escape:'htmlall'}{else}Zugriff nicht gestattet{/if}{/block}
+{block name=css}thread{/block}
+{block name=js}
+<!-- Elastic -->
+<script type="text/javascript" src="{$config->url}/templates/standard/_js/jquery.elastic.source.js"></script>
+<!-- markItUp! -->
+<script type="text/javascript" src="{$config->url}/templates/standard/_js/markitup/jquery.markitup.js"></script>
+<!-- markItUp! toolbar settings -->
+<script type="text/javascript" src="{$config->url}/templates/standard/_js/markitup/sets/bbcode/set.js"></script>
+<!-- markItUp! skin -->
+<link rel="stylesheet" type="text/css" href="{$config->url}/templates/standard/_js/markitup/skins/simple/style.css" />
+<!--  markItUp! toolbar skin -->
+<link rel="stylesheet" type="text/css" href="{$config->url}/templates/standard/_js/markitup/sets/bbcode/style.css" />
+<script>
+$(document).ready(function() {
+	$("[name='message']").markItUp(mySettings);
+	$("[name='message']").elastic();
+});
+</script>
+{/block}
+{block name=path}
+{include file='../_function/breadcrumbs.htm'}
+ &raquo; <a href="{$config->url}/board">Forum</a>{if $obj->name}{breadcrumbs data=$obj->board url='board/view' parent='board'}{/if}{/block}
+{block name=content}
+{include file='../_function/datetime.htm'}
+{include file='../_function/pagination.htm'}
+{if $obj->name}<p>{nocache}{$obj->views}{/nocache} Aufrufe, {$obj->post__total} Beitr&auml;ge. {if $permission->getPermission($obj, 'editthread') == 2 || ($permission->getPermission($obj, 'editthread') == 1 && $user->id == $value->user->id)}<a class="option edit" title="editieren" href="{$config->url}/thread/edit/{$obj}">editieren</a> {/if}{if $permission->getPermission($obj, 'deletethread') == 2 || ($permission->getPermission($obj, 'deletethread') == 1 && $user->id == $value->user->id)}<a class="option delete" title="l&ouml;schen" href="{$config->url}/thread/delete/{$obj}">l&ouml;schen</a> {/if}</p>
+{if isset($obj->company)}{foreach name=companies item=value from=$obj->company}
+<h3>{$value->name}</h3>
+<p>{$value->description|escape:'htmlall'}</p>
+<ol class="inventory">
+{foreach name=inventories item=value2 from=$value->inventory___owner}
+	<li><img src="img/item.img/{$value2->item->img}.png" /> {$value2->item->name|escape:'htmlall'}: {$value2->stack}, {$value2->wear}</li>
+{/foreach}
+</ol>
+{/foreach}
+{/if}
+{pagination link="/thread/view/$obj" total=ceil($obj->post__total / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
+{foreach name=posts item=value from=$obj->post}
+{if $value@iteration > (($page - 1) * $configuration->getConfiguration($obj, 'pageentries')) && $value@iteration <= (($page) * $configuration->getConfiguration($obj, 'pageentries'))}
+	<div class="post {if isset($prev_user) and $value->user == $prev_user}followpost{/if}">
+		{if (!isset($prev_user) or $value->user != $prev_user) and $value->user->avatar}<img src="{$config->url}/img/user_avatar.id/thumb/{$value->user}.jpg" />{/if}
+		<div>
+			<h4>{if !isset($prev_user) or $value->user != $prev_user}<a href="{$config->url}/user/view/{$value->user}">{$value->user->name|escape:'htmlall'}</a>; {/if}{datetime value=$value->time}</h4>
+			<p><a class="postnumber small" href="{$config->url}/thread/view/{$obj}{if $page > 1}/{$page}{/if}#post{$value}" id="post{$value}">{$smarty.foreach.posts.iteration}</a> <a class="option quote" title="zitieren" href="#">zitieren</a> {if $permission->getPermission($value, 'editpost') == 2 || ($permission->getPermission($value, 'editpost') == 1 && $user->id == $value->user->id)}<a class="option edit" title="editieren" href="{$config->url}/post/edit/{$value}">editieren</a> {/if}{if $permission->getPermission($value, 'deletepost') == 2 || ($permission->getPermission($value, 'deletepost') == 1 && $user->id == $value->user->id)}<a class="option delete" title="l&ouml;schen" href="{$config->url}/post/delete/{$value}">l&ouml;schen</a> {/if}<a class="option report" title="melden" href="#">melden</a>{if $permission->getPermission($value, 'viewip') > 0} <a class="option ip" title="IP" href="#">IP</a>{/if}</p>
+		</div>
+		<p class="postcontent">{$value->message|escape:'htmlall'|nl2br|bbcode:$bbcodes|emoticon:$emoticons}</p>
+	</div>
+	{assign var=prev_user value=$value->user}
+{elseif $value@iteration > (($page) * $configuration->getConfiguration($obj, 'pageentries'))}{break}{/if}
+{foreachelse}
+Keine Beitr&auml;ge!
+{/foreach}
+{pagination link="/thread/view/$obj" total=ceil($obj->post__total / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
+{if $permission->getPermission($obj, 'createpost') > 0}
+<div class="post">
+<form name="newpost" action="{$config->url}/post/create/{$obj}" method="post">
+<input type="hidden" name="smilies" value="1" />
+<input type="hidden" name="signature" value="1" />
+<textarea name="message"></textarea>
+<input type="submit" value="Neuen Beitrag erstellen" />
+</form>
+</div>
+{/if}
+{else}
+<h3>Zugriff nicht gestattet!</h3>
+<p>Leider ist Dir der Zugriff auf dieses Thema nicht gestattet. Dir fehlen die daf&uuml;r erforderlichen Rechte. Wenn Du glaubst, dass es sich dabei um einen Fehler handelt, benachrichtige bitte den Administrator.</p>
+{/if}
+{/block}

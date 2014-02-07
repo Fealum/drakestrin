@@ -1,0 +1,9 @@
+{function pagination borders=3}
+{if $total > 1}
+<div class="pagination">
+{for $i=1 to $total}
+{if $i <= ($borders) || ($i > $cur - $borders && $i < $cur + $borders) || $i > ($total - $borders)}{if $i != $cur}<a href="{$config->url}/{$link}{if $i > 1}/{$i}{/if}">{$i}</a>{else}<em>{$i}</em>{/if}{elseif ($i > $borders && $i == $cur - $borders) || ($i == $cur + $borders && $i < $total - $borders)}&hellip;{/if} 
+{/for}
+</div>
+{/if}
+{/function}

@@ -1,0 +1,15 @@
+{extends file='../_.htm'}
+
+{block name=title}{if $obj->name}Seite &raquo;{$obj->name|escape:htmlall}&laquo; editieren{else}Zugriff nicht gestattet{/if}{/block}
+{block name=path}
+{include file='../_function/breadcrumbs.htm'}
+&raquo; <a href="{$config->url}/encyclopedia">Kompendium</a>{if $obj->name and $obj->encyclopedia != '0'}{breadcrumbs data=$obj url='encyclopedia/view' parent='encyclopedia'}{/if}{/block}
+{block name=content}
+{include file='../_function/textinput.htm'}
+<form name="editencyclopedia" action="{$config->url}/encyclopedia/edit/{$obj}" method="post">
+{textinput formname='editencyclopedia' inputname='name' displayname='Seitentitel (kurz)' value=$obj->name}
+{textinput formname='editencyclopedia' inputname='title' displayname='Seitentitel (lang)' value=$obj->title}
+<textarea name="text">{$obj->text|escape:'htmlall'}</textarea>
+<p><input type="submit" value="Seite bearbeiten" name="submit" /></p>
+</form>
+{/block}

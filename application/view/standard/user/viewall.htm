@@ -1,0 +1,20 @@
+{extends file='../_.htm'}
+
+{block name=title}Mitglieder{/block}
+{block name=css}user{/block}
+{block name=content}
+{include file='../_function/bit_user.htm'}
+{include file='../_function/pagination.htm'}
+<h3>Sortieren</h3>
+<p>Nach: <a href="{$config->url}/user/viewall/name,a">Namen</a> <a href="{$config->url}/user/viewall/name,d">&nbsp;&darr;&nbsp;</a>, <a href="{$config->url}/user/viewall/regdate,a">Registrierungsdatum</a> <a href="{$config->url}/user/viewall/regdate,d">&nbsp;&darr;&nbsp;</a>, <a href="{$config->url}/user/viewall/lastvisit,a">letztem Besuch</a> <a href="{$config->url}/user/viewall/lastvisit,d">&nbsp;&darr;&nbsp;</a>, <a href="{$config->url}/user/viewall/post,a;name,a">Beitr&auml;gen</a> <a href="{$config->url}/user/viewall/post,d;name,d">&nbsp;&darr;&nbsp;</a>, <a href="{$config->url}/user/viewall/postsperday,a;name,a">Beitr&auml;gen pro Tag</a> <a href="{$config->url}/user/viewall/postsperday,d;name,d">&nbsp;&darr;&nbsp;</a>.</p>
+<h3>Ergebnisse</h3>
+{pagination link="/user/viewall/$order" total=ceil((int)count($obj->data) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
+<ol class="users">
+{foreach $obj->data as $value}
+{if $value@iteration > (($page - 1) * $configuration->getConfiguration($obj, 'pageentries')) && $value@iteration <= (($page) * $configuration->getConfiguration($obj, 'pageentries'))}
+{bit_user config=$config value=$value}
+{elseif $value@iteration > (($page) * $configuration->getConfiguration($obj, 'pageentries'))}{break}{/if}
+{/foreach}
+</ol>
+{pagination link="/user/viewall/$order" total=ceil((int)count($obj->data) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
+{/block}

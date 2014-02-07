@@ -1,0 +1,10 @@
+{extends file='../_.htm'}
+{block name=title}Login{/block}
+{block name=content}
+	<form action="{$config->url}/log/in" method="post">
+		<p><label for="email">eMail: </label><input type="email" name="email" maxlength=85{if isset($logemail)} value="{$logemail|escape:'htmlall'}"{/if} placeholder="email@domain.de" autofocus required> <a href="{$config->url}/register">Registrieren</a></p>
+		<p><label for="password">Passwort: </label><input type="password" name="password" maxlength=85 required> <a href="{$config->url}/log/forgotpw">Passwort vergessen?</a></p>
+		<input type="submit" value="Login" name="submit" />
+		<input type="reset" value="L&ouml;schen" />
+	</form>
+{/block}

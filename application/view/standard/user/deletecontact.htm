@@ -1,0 +1,12 @@
+{extends file='../_.htm'}
+
+{block name=title}Kontaktm&ouml;glichkeit l&ouml;schen{/block}
+{block name=path} &rarr; <a href="{$config->url}/user">Mitglieder</a> &rarr; <a href="{$config->url}/user/view/{$obj->user}">{$obj->user->name|escape:htmlall}</a>{/block}
+{block name=content}
+<h3>Sicher?</h3>
+<p>Bist Du Dir sicher, dass Du die &raquo;{$obj->protocol->name|escape:htmlall}&laquo;-Kontaktm&ouml;glichkeit &raquo;{$obj->contact|escape:htmlall}&laquo; l&ouml;schen m&ouml;chtest?</p>
+<form name="deletecontact" action="{$config->url}/user/deletecontact/{$obj}" method="post">
+<input type="hidden" name="delete" value="1" />
+<p><input type="submit" value="Kontaktm&ouml;glichkeit l&ouml;schen" name="submit" /></p>
+</form>
+{/block}

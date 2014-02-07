@@ -1,0 +1,77 @@
+{extends file='../_.htm'}
+
+{block name=title}{$obj->name}{/block}
+{block name=css}user_id{/block}
+{block name=path}
+ &raquo; <a href="{$config->url}/user">Mitglieder</a>{/block}
+{block name=content}
+{include file='../_function/datetime.htm'}
+{if $obj->avatar}<img src="{$config->url}/img/user_avatar.id/{$obj}.jpg" />{/if}
+{if $obj->usertext}<p id="usertext">{$obj->usertext|escape:'htmlall'|nl2br}</p>{/if}
+<ol class="columns">
+	<li><h4>Aktivit&auml;t</h4>
+		<ol>
+			<li><em>Mitglied seit:</em> {datetime value=$obj->regdate}</li>
+{nocache}			<li><em>Letzter Besuch:</em> {datetime value=$obj->lastvisit}</li>
+			<li><em>Beitr&auml;ge insgesamt:</em> {$obj->post__total}</li>
+			<li><em>Beitr&auml;ge pro Tag:</em> {($obj->post__total / (($smarty.now - $obj->regdate) / 86400))|round:"2"}</li>{/nocache}
+		</ol>
+	</li>
+{if $obj->group}
+	<li><h4>Gruppen</h4>
+		<ol>
+{foreach $obj->group as $group}
+			<li><a href="{$config->url}/group/view/{$group}">{$group->name}</a></li>
+{/foreach}
+		</ol>
+	</li>
+{/if}
+	<li><h4>Informationen{nocache}{if ($permission->getPermission($obj, 'edituser') == 2 || ($permission->getPermission($obj, 'edituser') == 1 && $user->id == $obj->id))} <a href="{$config->url}/user/edit/{$obj}" class="option edit" title="editieren">editieren</a>{/if}{/nocache}</h4>
+		<ol>
+		{if $obj->gender > 0}
+			<li><em>Geschlecht:</em> {if $obj->gender == 1}m&auml;nnlich{else}weiblich{/if}</li>
+		{/if}
+		{if $obj->birthday > 0}
+			<li><em>Geburtstag:</em> {$obj->birthday}</li>
+		{/if}
+		{if $obj->location}
+			<li><em>Herkunft:</em> {$obj->location|escape:'htmlall'}</li>
+		{/if}
+		{if $obj->interests}
+			<li><em>Interessen:</em> {$obj->interests|escape:'htmlall'}</li>
+		{/if}
+		{if $obj->work}
+			<li><em>Amt oder Beruf:</em> {$obj->work|escape:'htmlall'}</li>
+		{/if}
+		</ol>
+	</li>
+{if $obj->user_contact || ($permission->getPermission($obj, 'edituser') == 2 || ($permission->getPermission($obj, 'edituser') == 1 && $user->id == $obj->id))}
+	<li><h4>Kontakt{nocache}{if ($permission->getPermission($obj, 'edituser') == 2 || ($permission->getPermission($obj, 'edituser') == 1 && $user->id == $obj->id))} <a href="{$config->url}/user/createcontact/{$obj}" class="option create" title="neue Kontaktm&ouml;glichkeit hinzuf&uuml;gen">neue Kontaktm&ouml;glichkeit hinzuf&uuml;gen</a>{/if}{/nocache}</h4>
+		{if $obj->user_contact}
+		<ol>
+	{foreach name=contacts item=value from=$obj->user_contact}
+			<li><em>{$value->protocol->name}:</em> {if $value->protocol->link}<a href="{$value->protocol->link|replace:'\\1':$value->contact}">{$value->contact}</a>{else}{$value->contact}{/if}{nocache}{if ($permission->getPermission($obj, 'edituser') == 2 || ($permission->getPermission($obj, 'edituser') == 1 && $user->id == $obj->id))}{/nocache} <a href="{$config->url}/user/editcontact/{$value->id}" class="option edit" title="Kontaktm&ouml;glichkeit bearbeiten">Kontaktm&ouml;glichkeit bearbeiten</a> <a href="{$config->url}/user/deletecontact/{$value->id}" class="option delete" title="Kontaktm&ouml;glichkeit l&ouml;schen">Kontaktm&ouml;glichkeit l&ouml;schen</a>{nocache}{/if}{/nocache}</li>
+	{/foreach}
+		</ol>
+		{/if}
+	</li>
+{/if}
+</ol>
+
+{if $obj->inventory___owner}
+<h3>Besitz</h3>
+<ol class="inventory">
+{foreach name=inventories item=value from=$obj->inventory___owner}
+	<li><img src="{$config->url}/img/item.img/{$value->item->img}.png" /> {$value->item->name|escape:'htmlall'}: {$value->stack}, {$value->wear}</li>
+{/foreach}
+</ol>
+{/if}
+{if $obj->company}
+<h3>Betriebe</h3>
+<ol>
+{foreach name=companies item=value from=$obj->company}
+	<li>{$value->name|escape:'htmlall'}: {$value->description|escape:'htmlall'}</li>
+{/foreach}
+</ol>
+{/if}
+{/block}

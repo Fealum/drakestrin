@@ -1,0 +1,32 @@
+{extends file='../_.htm'}
+
+{block name=title}Statistik{/block}
+{block name=content}
+	{foreach $obj->data as $value}
+	<h3><a href="{$config->url}/user/view/{$value->user}">{$value->user->name|escape:'htmlall'}</a></h3>
+	<p><strong>{$value->time|date_format:$config->time}:</strong> 
+	{if $value->controller == 'index'}
+		{if $value->action == 'std'}<a href="{$config->url}/{$value->controller}">Index</a>
+		{elseif $value->action == 'online'}<a href="{$config->url}/{$value->controller}/{$value->action}">Wer ist online?</a>
+		{else}Index, Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$config->niceurl}/{$value->controller}/{$value->action}</a>
+		{/if}
+	{elseif $value->controller == 'board'}
+		{if $value->action == 'viewall'}<a href="{$config->url}/{$value->controller}/{$value->action}">Foren&uuml;bersicht</a>
+		{elseif $value->action == 'view'}Forum &raquo;<a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo; ansehen
+		{elseif $value->action == 'permissions'}Rechte im Forum &raquo;<a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo; ansehen
+		{else}Forum, Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$config->niceurl}/{$value->controller}/{$value->action}</a>
+		{/if}
+	{elseif $value->controller == 'thread'}
+		{if $value->action == 'view'}Thema &raquo;<a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo; ansehen
+		{elseif $value->action == 'create'}Thema im Forum &raquo;<a href="{$config->url}/board/view/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo; erstellen
+		{elseif $value->action == 'edit'}Thema &raquo;<a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo; bearbeiten
+		{elseif $value->action == 'delete'}Thema &raquo;<a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo; l&ouml;schen
+		{else}Thema, Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$config->niceurl}/{$value->controller}/{$value->action}</a>
+		{/if}
+	{else}Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$config->niceurl}/{$value->controller}/{$value->action}</a>
+	{/if}
+	</p> 
+	{foreachelse}
+	Zurzeit ist niemand online.
+	{/foreach}
+{/block}

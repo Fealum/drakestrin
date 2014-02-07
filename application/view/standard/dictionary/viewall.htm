@@ -1,0 +1,42 @@
+{extends file='../_.htm'}
+{block name=title}Diktionar{/block}
+{block name=css}dictionary{/block}
+{block name=path}{/block}
+{block name=content}
+	<p>Angezeigt werden {$obj->data|@count} W&ouml;rter.</p>
+	<p class="columns">
+{foreach $wordtypes->data as $value}
+		<em class="small">{$value->code}.</em> = {$value->name|escape:htmlall}.<br />
+{/foreach}
+	</p>
+	<h3>{$language_from->name}&nbsp;&mdash;&nbsp;{$language_to->name}{if $permission->getPermission($obj, 'createdictionary') > 0} <a href="{$config->url}/dictionary/create" class="option create" title="Neues Wort erstellen">Neues Wort erstellen</a>{/if}</h3>
+	<ul class="columns">
+{foreach $obj->data as $value}
+		<li><strong><a href="{$config->url}/dictionary/view/{$value}">{$value->word|escape:htmlall}</a>,</strong>&nbsp;<em class="small">{$value->wordtype->code}.</em>
+		{if $value->dictionarykey___from}{foreach $value->dictionarykey___from as $item}<a href="{$config->url}/dictionary/view/{$item->dictionary__to}">{$item->dictionary__to->word|escape:htmlall}</a>,&nbsp;<em class="small">{$item->dictionary__to->wordtype->code}.</em> 
+		{/foreach}{else}&mdash;&mdash;{/if}</li>
+{foreachelse}
+Keine W&ouml;rter gefunden!
+{/foreach}
+	</ul>
+	<h3><span>Historie</span></h3>
+	<p>
+10. Juli 2006 - Erste funktionsf&auml;hige Version<br />
+Gleicher Tag, Sp&auml;tabends - Darstellung in TMTe eingebaut<br />
+11. Juli 2006 - Nun gibt es eine einzelne Seite mit weiteren Informationen f&uuml;r jedes Wort und f&uuml;r Verben eine Konjugationstabelle. <br />
+Gleicher Tag, 17 Uhr 11 - Der zwanzigste Eintrag wurde hinzugef&uuml;gt! <br />
+Gleicher Tag, 23 Uhr 34 - Der f&uuml;nfzigste Eintrag wurde hinzugef&uuml;gt! <br />
+17. Dezember 2006 - M&ouml;glichkeit f&uuml;r den User, selbst ein Wort einzutragen<br />
+Gleicher Tag, 14 Uhr 06 - Freischaltm&ouml;glichkeit dieser Worte f&uuml;r den Admin durch die Seite<br />
+Gleicher Tag, 19 Uhr 30 - M&ouml;glichkeit f&uuml;r den User, mehrere Worte gleichzeitig einzutragen<br />
+Gleicher Tag, 19 Uhr 53 - Der f&uuml;nfundsiebzigste Eintrag wurde hinzugef&uuml;gt! <br />
+Gleicher Tag, 23 Uhr 42 - Der hundertste Eintrag wurde hinzugef&uuml;gt! <br />
+11. Juni 2007 - Der zweihundertste Eintrag wurde hinzugef&uuml;gt! <br />
+12. Juni 2007 - Generelle Um&auml;nderung der Darstellung in W&ouml;rterbuchform <br />
+27. August 2011 - General&uuml;berarbeitung
+	</p>
+	<h3><span>Geplant</span></h3>
+	<p>
+ - Anzeige nur bestimmter Buchstaben m&ouml;glich
+	</p>
+{/block}

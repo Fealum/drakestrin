@@ -1,0 +1,26 @@
+{extends file='../_.htm'}
+
+{block name=title}Wort &raquo;{$obj->word|escape:htmlall}&laquo; l&ouml;schen{/block}
+{block name=path}
+&rarr; <a href="{$config->url}/dictionary">Diktionar</a>{/block}
+{block name=content}
+<h3>Sicher?</h3>
+<p>Bist Du Dir sicher, dass Du dieses Wort l&ouml;schen m&ouml;chtest?</p>
+<p>Bei einer L&ouml;schung werden folgende Verkn&uuml;pfungen ebenfalls gel&ouml;scht:</p>
+<ul>
+{if $obj->dictionarykey___from}	<li>Von &raquo;{$obj->word|escape:htmlall}&laquo; zu &hellip;
+		<ul>
+{foreach $obj->dictionarykey___from as $i}			<li><a href="{$config->url}/dictionary/view/{$i->dictionary__to}">{$i->dictionary__to->word}</a></li>{/foreach}
+		</ul>
+	</li>{/if}
+{if $obj->dictionarykey___to}	<li>Zu &raquo;{$obj->word|escape:htmlall}&laquo; von &hellip;
+		<ul>
+{foreach $obj->dictionarykey___to as $i}			<li><a href="{$config->url}/dictionary/view/{$i->dictionary__from}">{$i->dictionary__from->word}</a></li>{/foreach}
+		</ul>
+	</li>{/if}
+</ul>
+<form name="deletedictionary" action="{$config->url}/dictionary/delete/{$obj}" method="post">
+<input type="hidden" name="delete" value="1" />
+<p><input type="submit" value="Wort l&ouml;schen" name="submit" /></p>
+</form>
+{/block}

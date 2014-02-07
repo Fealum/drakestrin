@@ -1,0 +1,27 @@
+{extends file='../_.htm'}
+
+{block name=title}{if $obj->name}Rechte des Forums &raquo;{$obj->name|escape:'htmlall'}&laquo;{else}Zugriff nicht gestattet{/if}{/block}
+{block name=css}thread{/block}
+{block name=path}
+{include file='../_function/breadcrumbs.htm'}
+&raquo; <a href="board.php">Forum</a>{if $obj->name and $obj->board != '0'}{breadcrumbs data=$obj url='board' parent='board'}{/if}{/block}
+{block name=content}
+{if $obj->name}
+{if _permissions::getPermission($obj, 'createpermission') > 0}<a href="permission.php?type=board&id={$obj}&mode=create" class="option create" title="neues Recht anlegen">Neues Recht anlegen</a>{/if}
+<p>Du kannst das Forum {if _permissions::getPermission($obj, 'show') == 0}nicht {/if}sehen.</p>
+<p>Du kannst {if _permissions::getPermission($obj, 'createboard') == 0}keine {/if}Unterforen erstellen.</p>
+<p>Du kannst {if _permissions::getPermission($obj, 'editboard') == 0}keine {/if}Unterforen bearbeiten.</p>
+<p>Du kannst {if _permissions::getPermission($obj, 'deleteboard') == 0}keine {/if}Unterforen l&ouml;schen.</p>
+
+<p>Du kannst {if _permissions::getPermission($obj, 'createthread') == 0}keine {/if}Themen erstellen.</p>
+<p>Du kannst {if _permissions::getPermission($obj, 'editthread') == 0}keine {/if}Themen bearbeiten.</p>
+<p>Du kannst {if _permissions::getPermission($obj, 'deletethread') == 0}keine {/if}Themen l&ouml;schen.</p>
+
+<p>Du kannst {if _permissions::getPermission($obj, 'createpost') == 0}keine {/if}Beitr&auml;ge erstellen.</p>
+<p>Du kannst {if _permissions::getPermission($obj, 'editpost') == 0}keine {/if}Beitr&auml;ge bearbeiten.</p>
+<p>Du kannst {if _permissions::getPermission($obj, 'deletepost') == 0}keine {/if}Beitr&auml;ge l&ouml;schen.</p>
+{else}
+<h3>Zugriff nicht gestattet!</h3>
+<p>Leider ist Dir der Zugriff auf diese Rechte&uuml;bersicht nicht gestattet. Dir fehlen die daf&uuml;r erforderlichen Rechte. Wenn Du glaubst, dass es sich dabei um einen Fehler handelt, benachrichtige bitte den Administrator.</p>
+{/if}
+{/block}

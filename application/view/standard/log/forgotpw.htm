@@ -1,0 +1,9 @@
+{extends file='../_.htm'}
+{block name=title}Passwort vergessen{/block}
+{block name=content}
+	<p>Um ein neues Passwort zu erhalten, gib unten die eMail-Adresse ein, auf welche Dein Account registriert wurde. An diese wird sodann ein Link geschickt, mit dem Du ein neues Passwort beantragen kannst.</p>
+	<form action="{$config->url}/log/forgotpw" method="post">
+		<p><label for="email">eMail: </label><input type="email" name="email" maxlength=85{if isset($logemail)} value="{$logemail|escape:'htmlall'}"{/if} placeholder="email@domain.de" autofocus required></p>
+		<input type="submit" value="Link anfordern" name="submit" />
+	</form>
+{/block}

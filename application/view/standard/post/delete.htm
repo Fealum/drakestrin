@@ -1,0 +1,14 @@
+{extends file='../_.htm'}
+
+{block name=title}{if $permission->getPermission($obj, 'show') > 0}Beitrag im Thema &raquo;{$obj->thread->name|escape:'htmlall'}&laquo; l&ouml;schen{else}Zugriff nicht gestattet{/if}{/block}
+{block name=path}
+{include file='../_function/breadcrumbs.htm'}
+&raquo; <a href="{$config->url}/board">Forum</a>{if $permission->getPermission($obj, 'show') > 0 and $obj->thread->board != '0'}{breadcrumbs data=$obj->thread->board url='board/view' parent='board'} &raquo; <a href="{$config->url}/thread/view/{$obj->thread}">{$obj->thread->name}</a>{/if}{/block}
+{block name=content}
+<h3>Sicher?</h3>
+<p>Bist Du Dir sicher, dass Du diesen Beitr&auml;g l&ouml;schen m&ouml;chtest?</p>
+<form name="deletepost" action="{$config->url}/post/delete/{$obj}" method="post">
+<input type="hidden" name="delete" value="1" />
+<p><input type="submit" value="Thema l&ouml;schen" name="submit" /></p>
+</form>
+{/block}

@@ -1,0 +1,14 @@
+{extends file='../_.htm'}
+
+{block name=title}{if $obj->name}Thema &raquo;{$obj->name|escape:htmlall}&laquo; l&ouml;schen{else}Zugriff nicht gestattet{/if}{/block}
+{block name=path}
+{include file='../_function/breadcrumbs.htm'}
+&raquo; <a href="{$config->url}/board">Forum</a>{if $obj->name and $obj->board != '0'}{breadcrumbs data=$obj url='board/view' parent='board'}{/if}{/block}
+{block name=content}
+<h3>Sicher?</h3>
+<p>Bist Du Dir sicher, dass Du dieses Thema und all seine Beitr&auml;ge l&ouml;schen m&ouml;chtest?</p>
+<form name="deletethread" action="{$config->url}/thread/delete/{$obj}" method="post">
+<input type="hidden" name="delete" value="1" />
+<p><input type="submit" value="Thema l&ouml;schen" name="submit" /></p>
+</form>
+{/block}

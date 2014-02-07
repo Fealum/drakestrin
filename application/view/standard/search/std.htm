@@ -1,0 +1,9 @@
+{extends file='../_.htm'}
+{block name=title}Suche{/block}
+{block name=content}
+<form method=post action="{$config->url}/search/query">
+	<input type="text" name="query" size="30"><br>
+	<p><input type="submit" name="submit" value="Suchen"></p>
+	<p><input type="reset" name="reset" value="L&ouml;schen" /></p>
+</form>
+{/block}

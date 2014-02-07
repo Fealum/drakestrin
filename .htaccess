@@ -1,0 +1,9 @@
+RewriteEngine On
+RewriteBase /
+RewriteRule ^templates/(.*)$ /application/view/$1 [L]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+DirectoryIndex /public/index.php
+RewriteRule ^(.*)$ /public/index.php?url=$1 [L]

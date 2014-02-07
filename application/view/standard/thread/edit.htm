@@ -1,0 +1,22 @@
+{extends file='../_.htm'}
+
+{block name=title}{if $obj->name}Thema &raquo;{$obj->name|escape:'htmlall'}&laquo; bearbeiten{else}Zugriff nicht gestattet{/if}{/block}
+{block name=css}thread{/block}
+{block name=path}
+{include file='../_function/breadcrumbs.htm'}
+ &raquo; <a href="{$config->url}/board">Forum</a>{if $obj->name}{breadcrumbs data=$obj->board url='board/view' parent='board'}{/if}{/block}
+{block name=content}
+{include file='../_function/textinput.htm'}
+{if $permission->getPermission($obj, 'show') > 0}
+{if $permission->getPermission($obj, 'editthread') > 0}
+<form name="editthread" action="{$config->url}/thread/edit/{$obj}" method="post">
+{textinput formname='editthread' inputname='name' displayname='Name' autofocus=true value=$obj->name}
+<label for="important">Wichtig: </label><input type="checkbox" name="important" id="important" value="1" {if $thread['important'] == 1}checked="checked"{/if} />
+<input type="submit" value="Thema bearbeiten" />
+</form>
+{/if}
+{else}
+<h3>Zugriff nicht gestattet!</h3>
+<p>Leider ist Dir der Zugriff auf diese Seite nicht gestattet. Dir fehlen die daf&uuml;r erforderlichen Rechte. Wenn Du glaubst, dass es sich dabei um einen Fehler handelt, benachrichtige bitte den Administrator.</p>
+{/if}
+{/block}

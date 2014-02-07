@@ -1,0 +1,14 @@
+{extends file='../_.htm'}
+
+{block name=title}{if $obj->name}Seite &raquo;{$obj->name|escape:htmlall}&laquo; l&ouml;schen{else}Zugriff nicht gestattet{/if}{/block}
+{block name=path}
+{include file='../_function/breadcrumbs.htm'}
+&raquo; <a href="{$config->url}/encyclopedia">Kompendium</a>{if $obj->name and $obj->encyclopedia != '0'}{breadcrumbs data=$obj url='encyclopedia/view' parent='encyclopedia'}{/if}{/block}
+{block name=content}
+<h3>Sicher?</h3>
+<p>Bist Du Dir sicher, dass Du diesen Eintrag l&ouml;schen m&ouml;chtest?</p>
+<form name="deleteencyclopedia" action="{$config->url}/encyclopedia/delete/{$obj}" method="post">
+<input type="hidden" name="delete" value="1" />
+<p><input type="submit" value="Eintrag l&ouml;schen" name="submit" /></p>
+</form>
+{/block}

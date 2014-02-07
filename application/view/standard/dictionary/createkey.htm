@@ -1,0 +1,27 @@
+{extends file='../_.htm'}
+{block name=title}Neue Verkn&uuml;pfung erstellen{/block}
+{block name=morecss}<link rel="stylesheet" type="text/css" href="{$config->url}/templates/standard/_js/tokeninput/styles/token-input.css" />{/block}
+{block name=js}<script type="text/javascript" src="{$config->url}/templates/standard/_js/tokeninput/src/jquery.tokeninput.js"></script>
+<script type="text/javascript">
+$(document).ready(function () {
+	$("#word").tokenInput("{$config->url}/dictionary/ajax__getwords/", {
+		method: "post",
+		preventDuplicates: true,
+		hintText: "Bitte geben Sie Namen oder ID eines Wortes ein.",
+		noResultsText: "Nichts gefunden!",
+		searchingText: "Sucht &hellip;",
+		propertyToSearch: "word",
+		resultsFormatter: function(item) { return '<li><img src="{$config->url}/img/language.id/' + item.language + '.png" /> ' + item.word + ', <i>' + item.wordtype + '.</i></li>' },
+		tokenFormatter: function(item) { return '<li><img src="{$config->url}/img/language.id/' + item.language + '.png" /> ' + item.word + ', <i>' + item.wordtype + '.</i></li>' }
+    });
+});
+</script>{/block}
+{block name=path} &rarr; <a href="{$config->url}/dictionary">Diktionar</a> &rarr; <a href="{$config->url}/dictionary/view/{$obj}">{$obj->word|escape:htmlall}</a>{/block}
+{block name=content}
+{include file='../_function/textinput.htm'}
+<form name="createdictionarykey" action="{$config->url}/dictionary/createkey/{$obj}" method="post">
+{textinput formname='createdictionarykey' inputname='word' displayname='Zu verkn&uuml;pfende Wort-ID' autofocus=true}
+<label for="bijective">Bijektiv: </label><input type="checkbox" name="bijective" id="bijective" value="1" checked="checked" />
+<p><input type="submit" value="Neue Verkn&uuml;pfung erstellen" name="submit" /></p>
+</form>
+{/block}

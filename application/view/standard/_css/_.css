@@ -1,0 +1,351 @@
+@charset "utf-8";
+
+@font-face {
+	font-family: "Linux Libertine Display";
+	src: url(fonts/linlibertine_display.ttf) format("truetype");
+}
+
+@font-face {
+	font-family: "Linux Biolinum";
+	src: url(fonts/linbiolinum.ttf) format("truetype");
+}
+
+* {
+}
+
+html {
+	min-height: 100%;
+}
+
+body {
+	margin: 0px;
+	padding: 0px;
+	border: none;
+	width: 100%;
+	height: 100%;
+	background-repeat:no-repeat !important;
+	position: relative;
+	background: #000000; /* Old browsers */
+	background: -moz-linear-gradient(top,  #000000 0px, #000000 300px, #181818 600px); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#000000), color-stop(50%,#000000), color-stop(100%,#181818)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top,  #000000 0%,#000000 50%,#181818 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top,  #000000 0%,#000000 50%,#181818 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  #000000 0%,#000000 50%,#181818 100%); /* IE10+ */
+	background: linear-gradient(to bottom,  #000000 0px,#000000 300px,#181818 600px); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#000000', endColorstr='#181818',GradientType=0 ); /* IE6-9 */
+	background-attachment: fixed;
+	font: 15px georgia, times new roman, serif;
+	line-height: 30px;
+	color: #000;
+}
+
+#wrapper {
+	background: #FFF;
+	width: 100%;
+	max-width: 960px;
+	padding: 120px;
+	min-height: 100%;
+	position: relative;
+	margin: 0% auto;
+}
+
+#ornament {
+	position: fixed;
+	display: block;
+	background: url('../_img/ornament.png') no-repeat;
+	right: 0px;
+	bottom: 0px;
+	height: 258px;
+	width: 963px;
+}
+
+h1, h2 {
+	font-family: Linux Libertine Display;
+	font-size: 40px;
+	line-height: 40px;
+	font-weight: 400;
+}
+
+h1 {
+	height: 120px;
+	position: relative;
+	margin-left: -195px;
+	padding-left: 195px;
+	margin-top: -30px;
+	padding-top: 30px;
+	background: url(../_img/logo.png) no-repeat;
+	text-transform: uppercase;
+}
+
+h1 > aa:link, h1 > a:visited, h1 > a:hover {
+	color: black;
+	background: none;
+}
+
+h2 {
+	color: #d40000;
+	line-height: 60px;
+}
+
+h3, h4, #topoptions a {
+	color: #d40000;
+	padding-top: 15px;
+	position: relative;
+	clear: both;
+	font-weight: normal;
+	font-style: italic;
+	font-size: 20px;
+	line-height: 30px;
+}
+
+h4 {
+	font-size: 15px;
+	font-style: normal;
+	margin: 0px;
+	padding: 0px;
+	font-weight: bold;
+}
+
+#wrapper > ul {
+	padding: 0px;
+	margin: 0px;
+	margin-top: -75px;
+	margin-bottom: 45px;
+	font-family: Linux Libertine Display;
+	font-size: 20px;
+	word-spacing: 15px;
+	line-height: 30px;
+	position:relative;
+	display:block;
+	list-style-type:none;
+	color: #000;
+}
+
+#wrapper > ul li {
+	display: inline-block;
+}
+
+#userbar {
+	position: fixed;
+	left: 0px;
+	bottom: 0px;
+	width: 100%;
+	display: block;
+	height: 75px;
+	background-color: rgba(242, 242, 242, 0.9);
+	font-family: Linux Libertine Display;
+	font-size: 20px;
+	padding: auto;
+	z-index: 2;
+}
+
+#userbarcontent {
+	width: 100%;
+	max-width: 960px;
+	padding: 15px 120px;
+	min-height: 100%;
+	position: relative;
+	margin: 0% auto;
+}
+
+#userbar img {
+	position: absolute;
+	top: 7.5px;
+	left: 45px;
+}
+
+#content {
+	width: 720px;
+	float:left;
+	position: relative;
+	display: block;
+	-webkit-hyphens: auto;
+	-moz-hyphens: auto;
+	-ms-hyphens: auto;
+	hyphens: auto;
+}
+
+#sidebar {
+	width: 210px;
+	min-height: 240px;
+	margin-left: 14px;
+	border-left: 1px solid #f2f2f2;
+	padding-left: 15px;
+	float:left;
+	position: relative;
+	display: block;
+	font-family: Linux Biolinum;
+	font-size: 12px;
+	line-height: 15px;
+}
+
+#online {
+	padding-top: 15px;
+}
+
+#online span {
+	display: block;
+	margin-left: 35px;
+	min-height: 30px;
+	margin-bottom: 5px;
+}
+
+#online img {
+	height: 30px;
+	width: 30px;
+	margin-left: -35px;
+	position: absolute;
+}
+
+#online br {
+	clear: both;	
+}
+
+small, .small {
+	font-family: Linux Biolinum;
+	font-size: 12px;
+	line-height: 15px;
+}
+
+img {
+	max-width: 100%;
+}
+
+a:link, a:visited {
+	color: #006600; 
+	text-decoration: none;
+}
+
+a:hover, a:focus, a:active {
+	background-color: #d7ebd7;
+}
+
+#topoptions {
+	text-align: right;
+	word-spacing: 1.8em;
+}
+
+#topoptions a {
+	padding: 0.4em;
+	margin: -0.4em;
+}
+
+p {
+	margin: 0px;
+	padding: 0px;
+	position: relative; 
+	clear: both;
+}
+
+p + p {
+	border-top: 0px;
+	padding-top:8px;
+}
+
+img {
+	border: 0px;
+}
+
+.columns {
+	display:block; 
+	column-width:210px; 
+	-moz-column-width:210px; 
+	-webkit-column-width:210px; 
+	column-rule: 1px solid #aaa; 
+	-moz-column-rule: 1px solid #aaa; 
+	-webkit-column-rule: 1px solid #aaa;
+	padding: 0px;
+}
+
+.disclaimer {
+	padding-top: 15px;
+	text-align: center;
+	font-family: Linux Biolinum;
+	font-size: 12px;
+	line-height: 15px;
+}
+
+.notice {
+	padding: 0.5em;
+	margin: 0.5em;
+	border: 3px solid #ff3333;
+	background: #ffcccc;
+}
+
+.notice_success {
+	padding: 0.5em;
+	margin: 0.5em;
+	border: 3px solid #46C72C;
+	background: #8BE879;
+}
+
+.pagination {
+	clear: both;
+	width: 100%;
+	text-align: center;
+	font-size: 1.2em;
+	padding: 5px 0em;
+	margin: 5px 0em;
+	border: 1px solid #aaa;
+	border-width: 1px 0px;
+}
+
+.pagination a, .pagination em {
+	display: inline-block;
+	padding: 0em 0.5em;
+}
+
+input {
+	width: 50%;
+	border: 1px solid #006600;
+	font-size: 1em; 
+	line-height: 2em;
+	font-family: georgia, times new roman, serif;
+	color: #000;
+}
+
+input[type=submit] {
+	width: 100%;
+}
+
+input[type=checkbox], input[type=radio] {
+	width: auto;
+}
+
+.labelradio {
+	width: auto;
+	text-align: left;
+	display: inline;
+}
+
+label {
+	display: inline-block;
+	width: 40%;
+	text-align: right;
+	padding-right: 15px;
+}
+
+textarea {
+	width: 100%;
+	min-height: 10em;
+	border: 1px solid #006600;
+	font-size: 1em; 
+	line-height: 2em;
+	font-family: georgia, times new roman, serif;
+	color: #000;
+}
+
+span.post {
+	margin-left: 2em;
+	padding-left: 0.5em;
+	border-left: 1px dotted grey;
+	display: inline-block;
+	margin-top: 0em;
+	margin-bottom: 0em;
+}
+
+span.post > span {
+	color: grey;
+	font-weight: bold;
+	padding-right: 0.5em;
+}
