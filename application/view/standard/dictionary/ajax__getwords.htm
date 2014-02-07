@@ -1,0 +1,9 @@
+[
+{foreach $obj->data as $i}	{literal}{{/literal}
+		"id": "{$i}",
+		"word": "{$i->word}", 
+		"wordtype": "{$i->wordtype->code}",
+		"language": "{$i->language}"
+	{literal}}{/literal}{if !$i@last},{/if}
+{/foreach}
+]

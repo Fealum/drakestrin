@@ -1,0 +1,22 @@
+{extends file='../_.htm'}
+
+{block name=title}{if _permissions::getPermission($obj, 'show') > 0}Beitrag im Thema &raquo;{$obj->thread->name|escape:'htmlall'}&laquo; bearbeiten{else}Zugriff nicht gestattet{/if}{/block}
+{block name=css}thread{/block}
+{block name=path}
+{function name=breadcrumbs}
+{if $data->board != '0'}{breadcrumbs data=$data->board}{/if} &raquo; {if $data->name}<a href="board.php?id={$data}">{$data->name|htmlentities}{else}&hellip;{/if}</a>
+{/function}
+ &raquo; <a href="board.php">Forum</a>{if $obj->name}{breadcrumbs data=$obj->thread->board} &raquo; <a href="board.php?id={$obj}">{$obj->name}</a>{/if}{/block}
+{block name=content}
+{if _permissions::getPermission($obj, 'show') > 0 && (_permissions::getPermission($obj, 'editpost') == 2 || (_permissions::getPermission($obj, 'editpost') == 1 && $user->id == $obj->user->id))}
+<form name="editpost" action="post.php" method="post">
+<input type="hidden" name="mode" value="edit" />
+<input type="hidden" name="id" value="{$obj}" />
+<textarea name="message">{$obj->message|escape:'htmlall'|utf8ify}</textarea>
+<input type="submit" value="Beitrag bearbeiten" />
+</form>
+{else}
+<h3>Zugriff nicht gestattet!</h3>
+<p>Leider ist Dir der Zugriff auf diese Seite nicht gestattet. Dir fehlen die daf&uuml;r erforderlichen Rechte. Wenn Du glaubst, dass es sich dabei um einen Fehler handelt, benachrichtige bitte den Administrator.</p>
+{/if}
+{/block}

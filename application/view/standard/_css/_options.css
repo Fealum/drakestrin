@@ -1,0 +1,90 @@
+@charset "utf-8";
+
+div#content .option {
+	height: 13px;
+	width: 13px;
+	display: inline-block;
+	background-image: url('../_img/sprites.png');
+	overflow: hidden;
+	text-indent: 9999px;
+}
+
+div#content .option.edit {
+	background-position: 0px 0px;
+}
+
+div#content .option.edit:hover {
+	background-position: 0px -15px;
+}
+
+div#content .option.quote {
+	background-position: -15px 0px;
+}
+
+div#content .option.quote:hover {
+	background-position: -15px -15px;
+}
+
+div#content .option.report {
+	background-position: -30px 0px;
+}
+
+div#content .option.report:hover {
+	background-position: -30px -15px;
+}
+
+div#content .option.ip {
+	background-position: -45px 0px;
+}
+
+div#content .option.ip:hover {
+	background-position: -45px -15px;
+}
+
+div#content .option.create {
+	background-position: -60px 0px;
+}
+
+div#content .option.create:hover {
+	background-position: -60px -15px;
+}
+
+div#content .option.delete {
+	background-position: -75px 0px;
+}
+
+div#content .option.delete:hover {
+	background-position: -75px -15px;
+}
+
+div#content .option.permission {
+	background-position: -90px 0px;
+}
+
+div#content .option.permission:hover {
+	background-position: -90px -15px;
+}
+
+div#content .option.expand {
+	background-position: -105px 0px;
+}
+
+div#content .option.expand:hover {
+	background-position: -105px -15px;
+}
+
+div#content .option.contract {
+	background-position: -120px 0px;
+}
+
+div#content .option.contract:hover {
+	background-position: -120px -15px;
+}
+
+div#content .option.new {
+	background-position: -135px 0px;
+}
+
+div#content .option.new:hover {
+	background-position: -135px 0px;
+}

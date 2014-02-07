@@ -1,0 +1,20 @@
+{extends file='../_.htm'}
+{block name=title}Wort: &raquo;{$obj->word|escape:htmlall}&laquo;{/block}
+{block name=css}dictionary{/block}
+{block name=path} &rarr; <a href="{$config->url}/dictionary">Diktionar</a>{/block}
+{block name=content}
+<p>{$obj->wordtype->name|escape:htmlall}.{if $permission->getPermission($obj, 'editdictionary') > 0} <a href="{$config->url}/dictionary/edit/{$obj}" class="option edit" title="Wort bearbeiten">Wort bearbeiten</a>{/if}{if $permission->getPermission($obj, 'deletedictionary') > 0} <a href="{$config->url}/dictionary/delete/{$obj}" class="option delete" title="Wort l&ouml;schen">Wort l&ouml;schen</a>{/if}</p> 
+{if $obj->wordtype->code == 'sw'}
+<h3>Derivation</h3>
+<p>Substantivierung: tay:{$obj->word}, tay:{$obj->word}&middot;{if in_array($obj->word[strlen($obj->word)-1], array('a', 'e', 'o', 'u'))}d{/if}ae</p>
+<p>Adjektivierung: {$obj->word}&middot;is</p>
+<p>Verbisierung: la {$obj->word}&middot;la</p>
+{/if}
+{if $obj->dictionarykey___from || $permission->getPermission($obj, 'createdictionary') > 0}
+<h3>&Uuml;bersetzungen</h3>
+<ol>
+{if $obj->dictionarykey___from}{foreach $obj->dictionarykey___from as $item}	<li><a href="{$config->url}/dictionary/view/{$item->dictionary__to}">{$item->dictionary__to->word|escape:htmlall}</a>, <em>{$item->dictionary__to->wordtype->name|escape:htmlall}</em>.{if $permission->getPermission($obj, 'deletedictionary') > 0} <a href="{$config->url}/dictionary/deletekey/{$item}" class="option delete" title="Verkn&uuml;pfung l&ouml;schen">Verkn&uuml;pfung l&ouml;schen</a>{/if}</li>{/foreach}{/if}
+{if $permission->getPermission($obj, 'createdictionary') > 0}	<li><a href="{$config->url}/dictionary/createkey/{$obj}" class="option create" title="Neue Verkn&uuml;pfung erstellen">Neue Verkn&uuml;pfung erstellen</a></li>{/if}
+</ol> 
+{/if}
+{/block}

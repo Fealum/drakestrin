@@ -1,0 +1,22 @@
+{extends file='../_.htm'}
+{block name=css}encyclopedia{/block}
+{block name=title}{if $obj->name}{$obj->name|escape:htmlall}{else}Zugriff nicht gestattet{/if}{/block}
+{block name=path}
+{include file='../_function/breadcrumbs.htm'}
+&raquo; <a href="{$config->url}/encyclopedia">Kompendium</a>{if $obj->name and $obj->encyclopedia != '0'}{breadcrumbs data=$obj->encyclopedia url='encyclopedia/view' parent='encyclopedia'}{/if}{/block}
+{block name=content}
+{function name=encyclopedia}
+<ol>
+{foreach $data as $page}	<li><a href="{$config->url}/encyclopedia/view/{$page}">{$page->name|escape:htmlall}</a>
+	{if $page->encyclopedia__1}{encyclopedia data=$page->encyclopedia__1}{/if}
+	</li>
+{/foreach}
+</ol>
+{/function}
+<h3>{$obj->title|escape:'htmlall'}{nocache}{if $permission->getPermission($obj, 'createencyclopedia') > 0} <a href="{$config->url}/encyclopedia/create/{$obj}" class="option create" title="Unterseite erstellen">Unterseite erstellen</a>{/if}{if (Permission::getPermission($obj, 'editencyclopedia') == 2 || (Permission::getPermission($obj, 'editencyclopedia') == 1 && $user->id == $obj->user->id))} <a href="{$config->url}/encyclopedia/edit/{$obj}" class="option edit" title="bearbeiten">bearbeiten</a>{/if}{if (Permission::getPermission($obj, 'deleteencyclopedia') == 2 || (Permission::getPermission($obj, 'deleteencyclopedia') == 1 && $user->id == $obj->user->id))} <a href="{$config->url}/encyclopedia/delete/{$obj}" class="option delete" title="l&ouml;schen">l&ouml;schen</a>{/if}{/nocache}</h3>
+<p>{$obj->text|escape:'htmlall'|nl2br|bbcode:$bbcodes|emoticon:$emoticons}</p>
+{if $obj->encyclopedia__1}
+<h3>Unterseiten</h3>
+{encyclopedia data=$obj->encyclopedia__1}
+{/if}
+{/block}

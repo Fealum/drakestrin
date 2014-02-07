@@ -1,0 +1,26 @@
+<?php
+class Source {
+	public static $instance = array();
+	private static $sources = array(
+		'mysql1' => array(
+			'type' => 'MySQL',
+			'host' => 'sql1.udmedia.de',
+			'user' => 'l3s658',
+			'password' => 'Qo32Ip',
+			'database' => 'usr_l3s658_1',
+			'prefix' => 'dra_'
+		)
+	);
+
+	private function __construct() {
+	}
+
+	// singleton pattern
+	static function getInstance($instance) {
+		if(!isset(self::$instance[$instance])) {
+			$classname = 'Source_'.self::$sources[$instance]['type'];
+			self::$instance[$instance] = new $classname(self::$sources[$instance]);
+		}
+		return self::$instance[$instance];
+	}
+}

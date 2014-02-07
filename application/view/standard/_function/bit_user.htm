@@ -1,0 +1,8 @@
+{function bit_user}
+{include file='../_function/datetime.htm'}
+<li>
+	<img src="{$config->url}/img/user_avatar.id/thumb/{if $value->avatar}{$value}{else}0{/if}.jpg" />
+	<a href="{$config->url}/user/view/{$value}">{$value->name|escape:'htmlall'}</a> 
+	<p class="small">{$value->post__total} Beitr&auml;ge seit {datetime value=$value->regdate}</p>
+</li>
+{/function}

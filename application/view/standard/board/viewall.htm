@@ -1,0 +1,24 @@
+{extends file='../_.htm'}
+
+{block name=title}Forum{/block}
+{block name=css}board{/block}
+{block name=path}{/block}
+{block name=content}
+{include file='../_function/datetime.htm'}
+{function name=boards}
+<ol>
+{foreach $data as $board}	<li>
+		<h4><a href="{$config->url}/board/view/{$board}">{$board->name|escape:'htmlall'}</a>{if isset($viewed[$board->id])} <span class="option new">(Neu)</span>{/if}{if $board->board__1 && isset($user)} <a href="{$config->url}/board/changeshow/{$board}" class="option {if $configuration->getConfiguration($board, 'show') != '0'}contract">verk&uuml;rzen{else}expand">erweitern{/if}</a>{/if}</h4>
+{if !$board->cat}
+			<p class="small">
+				{if $board->post__last}<span><img src="{$config->url}/img/user_avatar.id/thumb/{if $board->post__last->user->avatar}{$board->post__last->user}{else}0{/if}.jpg" /><a href="{$config->url}/thread/view/{$board->post__last->thread}/last#post{$board->post__last}">{$board->post__last->thread->name|escape:'htmlall'}</a><br /><a href="{$config->url}/user/view/{$board->post__last->user}">{$board->post__last->user->name|escape:'htmlall'}</a>; {datetime value=$board->post__last->time}</span>{/if}
+				{$board->description|escape:'htmlall'}<br /><em>{$board->thread__total} Themen, {$board->post__total} Beitr&auml;ge</em>
+			</p>
+{/if}
+{if $board->board__1 && $configuration->getConfiguration($board, 'show') != '0'}{boards data=$board->board__1}{/if}
+	</li>
+{/foreach}
+</ol>
+{/function}
+{boards data=$obj->data}
+{/block}

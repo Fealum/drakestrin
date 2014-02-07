@@ -1,0 +1,16 @@
+{extends file='../_.htm'}
+{block name=title}Wort &raquo;{$obj->word|escape:htmlall}&laquo; bearbeiten{/block}
+{block name=path} &rarr; <a href="{$config->url}/dictionary">Diktionar</a> &rarr; <a href="{$config->url}/dictionary/view/{$obj}">Wort: &raquo;{$obj->word|escape:htmlall}&laquo;</a>{/block}
+{block name=content}
+{include file='../_function/textinput.htm'}
+<form name="editdictionary" action="{$config->url}/dictionary/edit/{$obj}" method="post">
+<p><label for="language">Sprache: </label><select name="language">
+{foreach $languages->data as $i}	<option label="{$i->name} ({$i->code})" value="{$i}"{if $obj->language->id == $i->id} selected="selected"{/if}>{$i->name} ({$i->code})</option>{/foreach}
+</select></p>
+<p><label for="wordtype">Wortart: </label><select name="wordtype">
+{foreach $wordtypes->data as $i}	<option label="{$i->name} ({$i->code})" value="{$i}"{if $obj->wordtype->id == $i->id} selected="selected"{/if}>{$i->name} ({$i->code})</option>{/foreach}
+</select></p>
+{textinput formname='editdictionary' inputname='word' displayname='Wort' value=$obj->word}
+<p><input type="submit" value="Wort bearbeiten" name="submit" /></p>
+</form>
+{/block}

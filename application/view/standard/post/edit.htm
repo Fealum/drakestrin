@@ -1,0 +1,18 @@
+{extends file='../_.htm'}
+
+{block name=title}{if $permission->getPermission($obj, 'show') > 0}Beitrag im Thema &raquo;{$obj->thread->name|escape:'htmlall'}&laquo; bearbeiten{else}Zugriff nicht gestattet{/if}{/block}
+{block name=css}thread{/block}
+{block name=path}
+{include file='../_function/breadcrumbs.htm'}
+ &raquo; <a href="{$config->url}/board">Forum</a>{if $permission->getPermission($obj, 'show') > 0 and $obj->thread->board != '0'}{breadcrumbs data=$obj->thread->board url='board/view' parent='board'} &raquo; <a href="{$config->url}/thread/view/{$obj->thread}">{$obj->thread->name}</a>{/if}{/block}
+{block name=content}
+{if $permission->getPermission($obj, 'show') > 0 && ($permission->getPermission($obj, 'editpost') == 2 || ($permission->getPermission($obj, 'editpost') == 1 && $user->id == $obj->user->id))}
+<form name="editpost" action="{$config->url}/post/edit/{$obj}" method="post">
+<textarea name="message">{$obj->message|escape:'htmlall'}</textarea>
+<input type="submit" value="Beitrag bearbeiten" />
+</form>
+{else}
+<h3>Zugriff nicht gestattet!</h3>
+<p>Leider ist Dir der Zugriff auf diese Seite nicht gestattet. Dir fehlen die daf&uuml;r erforderlichen Rechte. Wenn Du glaubst, dass es sich dabei um einen Fehler handelt, benachrichtige bitte den Administrator.</p>
+{/if}
+{/block}

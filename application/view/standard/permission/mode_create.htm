@@ -1,0 +1,15 @@
+{extends file='../_.htm'}
+{block name=title}{if $obj->name}Neues Recht f&uuml;r &raquo;{$obj->name|escape:'htmlall'}&laquo; erstellen{else}Zugriff nicht gestattet{/if}{/block}
+{block name=path}
+{include file='../_function/breadcrumbs.htm'}
+&raquo; <a href="board.php">Forum</a>{if $obj->name and $obj->board != '0'}{breadcrumbs data=$obj url='board' parent='board'}{/if}{/block}
+{block name=content}
+{include file='../_function/textinput.htm'}
+<form name="createpermission">
+{textinput formname='createpermission' inputname='tablerecipient' displayname='Art des Rechteempf&auml;ngers'}
+{textinput formname='createpermission' inputname='recipient' displayname='ID des Rechteempf&auml;ngers'}
+{textinput formname='createpermission' inputname='permit' displayname='Recht'}
+{textinput formname='createpermission' inputname='value' displayname='Wert'}
+<input type="submit" value="Neues Recht erstellen"/>
+</form>
+{/block}

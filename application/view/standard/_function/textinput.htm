@@ -1,0 +1,3 @@
+{function textinput type='text' maxlength=false autofocus=false required=true}
+<p><label for="{$inputname}">{$displayname}: </label><input type="{$type}" name="{$inputname}" id="{$inputname}"{if $maxlength} maxlength="{$maxlength}"{/if}{if isset($value)} value="{$value|escape:'htmlall'}"{elseif isset(${$formname|cat:$inputname})} value="{${$formname|cat:$inputname}|escape:'htmlall'}"{/if}{if isset($placeholder)} placeholder="{$placeholder}"{/if}{if $autofocus} autofocus{/if}{if $required} required{/if} /></p>
+{/function}

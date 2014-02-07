@@ -1,0 +1,42 @@
+@charset "utf-8";
+@import url('_.css');
+@import url('_inventory.css');
+@import url('_options.css');
+
+div#content ol {
+	list-style-type: none;
+	padding:0px;
+	margin:0px;
+}
+
+div#content > ol.columns {
+	width: 100%;
+}
+
+div#content > ol.columns > li {
+	display: inline-block;
+	width: 100%;
+}
+
+div#content > ol.columns > li li {
+	margin-left: 15px;
+}
+
+div#content > ol.columns em {
+	display: block;
+	margin-left: -15px;
+}
+
+div#content img {
+	max-width: 140px;
+}
+
+#usertext {
+	float:right;
+	clear: none;
+	padding-top: 0px;
+	font-size: 2em;
+	padding-bottom: 20px;
+	max-width: 80%;
+	text-align: right;
+}

@@ -1,0 +1,16 @@
+{extends file='../_.htm'}
+
+{block name=title}Kompendium{/block}
+
+{block name=path}{/block}
+{block name=content}
+{function name=encyclopedia}
+<ol>
+{foreach $data as $page}	<li><a href="{$config->url}/encyclopedia/view/{$page}">{$page->name|escape:htmlall}</a>
+	{if $page->encyclopedia__1}{encyclopedia data=$page->encyclopedia__1}{/if}
+	</li>
+{/foreach}
+</ol>
+{/function}
+{encyclopedia data=$obj->data}
+{/block}

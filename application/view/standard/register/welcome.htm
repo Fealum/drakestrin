@@ -1,0 +1,13 @@
+{extends file='../_.htm'}
+{block name=title}Registrieren{/block}
+{block name=content}
+	<h3>Geschafft!</h3>
+	<p>Die Registrierung war erfolgreich! Herzlich Willkommen im {$config->title}. Was Du jetzt machen kannst?</p>
+	<p>
+		<ul>
+			<li>Dein <a href="{$config->url}/user/view/{$user}">Profil</a> versch&ouml;nern &hellip;</li>
+			<li>Deine Einstellungen an Deine W&uuml;nsche anpassen &hellip;</li>
+			<li>Einen ersten Beitrag schreiben &hellip;</li>
+		</ul>
+	</p>
+{/block}
