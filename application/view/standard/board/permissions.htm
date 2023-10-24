@@ -6,6 +6,12 @@
 {include file='../_function/breadcrumbs.htm'}
 &raquo; <a href="{$config->url}/board">Forum</a>{if $obj->name and $obj->board != '0'}{breadcrumbs data=$obj url='board/view' parent='board'}{/if}{/block}
 {block name=content}
+{assign var=pathdata value=$obj}
+{while $pathdata}
+{append var=path value=$pathdata->name index=join('/', array('board/view', $pathdata))}
+{assign var=pathdata value=$pathdata->board}
+{/while}
+{append var=path value='Forum' index='board'}
 {if $obj->name}
 {if $permission->getPermission($obj, 'createpermission') > 0}<a href="{$config->url}/permission/create/board/{$obj}" class="option create" title="neues Recht anlegen">Neues Recht anlegen</a>{/if}
 <p>Du kannst das Forum {if $permission->getPermission($obj, 'show') == 0}nicht {/if}sehen.</p>

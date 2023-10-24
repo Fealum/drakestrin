@@ -1,0 +1,34 @@
+{extends file='../_.htm'}
+{block name=title}Konversation mit {$convuser->name|escape:'htmlall'}{/block}
+{block name=path}
+{append var=path value='Konversationen' index='conversation'}
+{/block}
+{block name=js}
+<!-- SCEditor -->
+<script type="text/javascript" src="{$config->url}/templates/standard/_js/sceditor/minified/jquery.sceditor.bbcode.min.js"></script>
+<script type="text/javascript" src="{$config->url}/templates/standard/_js/sceditor/languages/de.js"></script>
+<!-- SCEditor skin -->
+<link rel="stylesheet" type="text/css" href="{$config->url}/templates/standard/_js/sceditor/development/themes/square.css" />
+<script type="text/javascript">
+configurl = "{$config->url}";
+</script>
+<script type="text/javascript" src="{$config->url}/templates/standard/_js/sceditor/jquery.sceditor.drakestrin.js"></script>
+{/block}
+{block name=content}
+{include file='../_function/datetime.htm'}
+<form name="newmessage" action="{$config->url}/conversation/create/{$convuser}" method="post">
+<textarea class="textarea-bbcode" name="message"></textarea>
+<input type="submit" value="Neue Nachricht erstellen" />
+</form>
+{if $obj->data}
+<ol>
+{foreach $obj->data as $conversation}
+	<li><h4>{if $conversation->user__sender->id != $user->id}<a href="{$config->url}/user/view/{$conversation->user__sender->id}">{$conversation->user__sender->name|escape:'htmlall'}</a>{else}Du{/if}, {call datetime value=$conversation->time}</h4>
+	<div class="postcontent">{$conversation->message|bbcode:$bbcodes}</div>
+	</li>
+{/foreach}
+</ol>
+{else}
+<p>Diese Konversation ist noch leer! Verfasse oben die erste Nachricht.</p>
+{/if}
+{/block}

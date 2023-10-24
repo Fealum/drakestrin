@@ -1,0 +1,12 @@
+.env
+
+/img/character_avatar.id
+
+/public/cache/**
+/public/templates_c/**
+
+/backup
+
+/vendor
+
+/devop

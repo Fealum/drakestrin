@@ -5,21 +5,14 @@ class IndexController extends Controller {
 
 	function std() {
 		$this->obj = new stdClass();
-		$this->obj->threads = new _list('thread', NULL, array('lastpost,d', array('lastpost' => 'post__last_time')), 50);
 		$this->obj->postcount24h = new _list('post', 'time >= '.(time() - 86400));
-		$this->obj->postcount24h = count($this->obj->postcount24h->data);
+		$this->obj->postcount24h = (is_null($this->obj->postcount24h->data)) ? 0 : count($this->obj->postcount24h->data);
 		$this->obj->postcount7d = new _list('post', 'time >= '.(time() - 604800));
-		$this->obj->postcount7d = count($this->obj->postcount7d->data);
-		$this->set('viewed', $this->session->viewed);
+		$this->obj->postcount7d = (is_null($this->obj->postcount7d->data)) ? 0 : count($this->obj->postcount7d->data);
+		$this->obj->word = new _list('dictionary', 'language = 2', array('rand,a', array('rand' => 'RAND()')), array(1, ''));
+		$this->obj->word = $this->obj->word->data[0];
+		$this->obj->news = new _list('post', 'thread = 2108', array('time,d', array('time' => 'time')), array(1, ''));
+		$this->obj->news = $this->obj->news->data[0];
 		$this->set('obj', $this->obj);
-	}
-
-	function online() {
-		$this->obj = new _list('online');
-		$this->set('obj', $this->obj);
-	}
-
-	function statistics() {
-		
 	}
 }

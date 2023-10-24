@@ -20,11 +20,14 @@ div#content > ol.columns > li {
 
 div#content > ol.columns > li li {
 	margin-left: 15px;
+	line-height: 1.4em;
+	margin-bottom: 0.4em;
 }
 
 div#content > ol.columns em {
 	display: block;
 	margin-left: -15px;
+	font: 0.75em/1em Linux Biolinum;
 }
 
 div#content img {
@@ -34,9 +37,118 @@ div#content img {
 #usertext {
 	float:right;
 	clear: none;
-	padding-top: 0px;
+	padding-top: 1em;
 	font-size: 2em;
 	padding-bottom: 20px;
 	max-width: 80%;
 	text-align: right;
+}
+
+#usertext.usertext_long {
+	text-align: left;
+	font-size: 1em;
+	padding-top: 0;
+}
+
+div#content ol#user_characters {
+	list-style-type: none;
+	padding:0px;
+	margin:0px;
+	display: inline-block;
+	clear: both;
+	overflow: hidden;
+	width: 100%;
+	position: relative;
+}
+
+div#content ol#user_characters li {
+	width: 100%;
+	padding-bottom: 5px;
+	border-bottom: 1px solid #aaa;
+	margin-bottom: 5px;
+	margin-left: 0;
+	display: inline-block;
+	height: 30px;
+
+}
+
+div#content ol#user_characters li:last-child {
+	border-bottom: none;
+	margin-bottom: 0;
+	padding-bottom: 0;
+}
+
+div#content ol#user_characters img {
+	position: absolute;
+	left: -35px;
+	height: 30px;
+	width: 30px;
+}
+
+div#content ol#user_characters p {
+	clear: none;
+	padding-top: 0px;
+	margin-left: 35px;
+}
+
+div#content ol#user_characters li#morecharacters {
+	position: absolute;
+	bottom: 0;
+	background: #ddd;
+	background: linear-gradient(to bottom, rgba(255,255,255,0) 0%,rgba(255,255,255,1) 50%,rgba(255,255,255,1) 100%);
+	text-align: center;
+	font: 0.75em/1em Linux Biolinum, FontAwesome;
+	color: #36731B;
+	height: 15px;
+	padding-top: 30px;
+	text-transform: lowercase;
+	cursor: pointer;
+	transition: opacity .7s, color .7s;
+}
+
+div#content ol#user_characters li#morecharacters:hover {
+	opacity: 0.8;
+	color: #000;
+}
+
+div#content ol#user_characters li#createchar input[type="text"] {
+	background: none;
+	color: #1a1a1a;
+	width: 60%;
+	font: 1em/1.25em Linux Biolinum, FontAwesome;
+	border: none;
+	border-bottom: 2px solid #aaa;
+	margin-right: 5px;
+}
+
+div#content ol#user_characters li#createchar input[type="submit"] {
+	width: auto;
+	background: none;
+	font: 1em/1.25em Linux Biolinum, FontAwesome;
+	border: 2px solid #aaa;
+	color: #aaa;
+	transition: border .7s, color .7s;
+}
+
+div#content ol#user_characters li#createchar:hover input[type="submit"] {
+	width: auto;
+	background: none;
+	font: 1em/1.25em Linux Biolinum, FontAwesome;
+	border: 2px solid #1a1a1a;
+	color: #1a1a1a;
+}
+
+.territory_info {
+	padding-top: 0;
+}
+
+.territory_info img {
+	width: 1em;
+	position: relative;
+	top: 0.2em;
+}
+
+div#content ol.columns > li > ol.inventory > li {
+	margin-left: 0px;
+	margin-bottom: 5px;
 }

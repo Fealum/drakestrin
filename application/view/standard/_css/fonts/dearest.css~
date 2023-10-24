@@ -1,0 +1,10 @@
+@font-face {
+    font-family: 'dearestregular';
+    src: url('fonts/dearest.eot');
+    src: url('fonts/dearest.eot?#iefix') format('embedded-opentype'),
+         url('fonts/dearest.woff2') format('woff2'),
+         url('fonts/dearest.woff') format('woff'),
+         url('fonts/dearest.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}

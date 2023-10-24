@@ -2,8 +2,14 @@
 
 {block name=title}{if $obj->name}Thema &raquo;{$obj->name|escape:htmlall}&laquo; l&ouml;schen{else}Zugriff nicht gestattet{/if}{/block}
 {block name=path}
-{include file='../_function/breadcrumbs.htm'}
-&raquo; <a href="{$config->url}/board">Forum</a>{if $obj->name and $obj->board != '0'}{breadcrumbs data=$obj url='board/view' parent='board'}{/if}{/block}
+{assign var=path value=[join('/', array('thread/view', $obj)) => $obj->name]}
+{assign var=pathdata value=$obj->board}
+{while $pathdata}
+{append var=path value=$pathdata->name index=join('/', array('board/view', $pathdata))}
+{assign var=pathdata value=$pathdata->board}
+{/while}
+{append var=path value='Forum' index='board'}
+{/block}
 {block name=content}
 <h3>Sicher?</h3>
 <p>Bist Du Dir sicher, dass Du dieses Thema und all seine Beitr&auml;ge l&ouml;schen m&ouml;chtest?</p>

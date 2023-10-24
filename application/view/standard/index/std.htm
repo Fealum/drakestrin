@@ -1,25 +1,21 @@
 {extends file='../_.htm'}
 
-{block name=title}Index{/block}
+{block name=title}Sali Vuz!{/block}
 {block name=css}index{/block}
 {block name=content}
 {include file='../_function/datetime.htm'}
-<p>Herzlich Willkommen in Drachenstein!</p>
-<h3>Aktuelle Themen</h3>
-<div id="threads">
-<ol>
-{foreach name=threads item=value from=$obj->threads->data}
-{if $value@iteration <= 10}
-	<li>
-		<h4>{if $value->important}[Wichtig] {/if}<a href="{$config->url}/thread/view/{$value}">{$value->name|escape:'htmlall'}</a>{if isset($user) and $value->post__last_time >= $user->lastvisit and ((isset($viewed[1][$value->id]) and $viewed[1][$value->id] < $value->post__last_time) or !isset($viewed[1][$value->id]))} <span class="option new">(Neu)</span>{/if}</h4>
-		<p class="small">{$value->views} Aufrufe und {if $value->post__total == 1}ein Beitrag{else}{$value->post__total} Beitr&auml;ge{/if}</p>
-		<p class="small"><a href="{$config->url}/user/view/{$value->post[0]->user}">{$value->post[0]->user->name|escape:'htmlall'}</a>; {datetime value=$value->post[0]->time}<br />
-		&mdash;<a href="{$config->url}/user/view/{$value->post__last->user}">{$value->post__last->user->name|escape:'htmlall'}</a>; <a href="{$config->url}/thread/view/{$value}/last#post{$value->post__last}">{datetime value=$value->post__last_time}</a></p>
-	</li>
-{else}{break}{/if}
-{/foreach}
-</ol>
+<p class="initial">Herzlich Willkommen in Drachenstein! Vielleicht fragt Ihr Euch nun, wo Ihr hier gelandet seid, doch das ist schnell erkl&auml;rt: Drachenstein ist eine sogenannte Mikronation, ein virtueller Staat im Internet, und gleichzeitig ein Browserrollenspiel. Wir simulieren ein Kaiserreich in einer Fantasiewelt, seine Politik, seine Wirtschaft, und natürlich auch sein allt&auml;gliches Leben. M&ouml;chtet Ihr mitmachen? Nichts leichter als das! Registriert Euch, denkt Euch einen Charakter aus, und stellt im Forum einen Antrag auf Staatsb&uuml;rgerschaft. Wir freuen uns auf Euch!</p>
+<div id="index-tiles">
+	<div id="index-stats"><a href="{$config->url}/board/filter/date_last:1d"><em>{$obj->postcount24h}</em> Beitr&auml;ge in den letzten 24 Stunden;</a> <a href="{$config->url}/board/filter/date_last:7d"><em>{$obj->postcount7d}</em> Beitr&auml;ge in den letzten sieben Tagen.</a></div>
+	<div id="index-news">
+		<img src="{$config->url}/img/static/eksnor.png" />
+		<p>{call datetime value=$obj->news->time}</p>
+		<p>{$obj->news->message|escape:htmlall}</p>
+	</div>
+	<div id="index-word">
+		<a href="{$config->url}/dictionary/view/{$obj->word}">{$obj->word->word}</a>
+		{if $obj->word->dictionarykey___from}{foreach $obj->word->dictionarykey___from as $item}<p>{$item->dictionary__to->word|escape:htmlall},&nbsp;<em class="small">{$item->dictionary__to->wordtype->code}.</em></p> 
+		{/foreach}{else}&mdash;&mdash;{/if}
+	</div>
 </div>
-<h3>Statistik</h3>
-<p>{$obj->postcount24h} Beitr&auml;ge in den letzten 24 Stunden; {$obj->postcount7d} Beitr&auml;ge in den letzten sieben Tagen.</p>
 {/block}

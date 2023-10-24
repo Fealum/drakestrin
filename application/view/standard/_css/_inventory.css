@@ -7,23 +7,41 @@ div#content ol.inventory {
 }
 
 div#content ol.inventory li {
-	min-width:345px;
-	width: auto;
-	float:left;
-	padding-right: 15px;
-	padding-bottom: 5px;
-	border-bottom: 1px solid #aaa;
-	margin-bottom: 5px;
-}
-
-div#content ol.inventory img {
-	float: left;
-	height: 60px;
 	width: 60px;
+	height: 60px;
+	padding: 0;
 	margin-right: 5px;
+	margin-bottom: 5px;
+	position: relative;
+	display: inline-block;
+	float: left;
+	border: 1px solid #ddd;
+	transition: border-color .7s;
 }
 
-div#content ol.inventory p {
-	clear: none;
-	padding-top: 0px;
+div#content ol.inventory li:hover {
+	border: 1px solid #aaa;
+}
+
+div#content ol.inventory li img {
+	width: 60px;
+	height: 60px;
+	position: absolute;
+	top: 1px;
+	left: 1px;
+}
+
+div#content ol.inventory li div {
+	z-index: 2;
+	position: absolute;
+	bottom: 2px;
+	right: 2px;
+	font: 0.6em/1em Linux Biolinum;
+	text-align: right;
+	min-width: 20px;
+	border: none;
+	padding: 0;
+	line-height: 1em;
+	background: rgba(255, 255, 255, 0.5);
+	text-shadow: 0 0 3px white;
 }

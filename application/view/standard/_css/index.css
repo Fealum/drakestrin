@@ -1,4 +1,88 @@
 @charset "utf-8";
 @import url('_.css');
-@import url('_options.css');
-@import url('_thread.css');
+
+.initial {
+	padding-top: 1em;
+	clear: both;
+}
+
+.initial::first-letter {
+	font: 4em/1em Dearest;
+	margin-top: -0.04em;
+	color: #36731B;
+	float: left;
+	padding: 0em 0.05em 0em 0;
+}
+
+#index-tiles {
+	padding-top: 30px;
+	clear: both;
+}
+
+#index-tiles div {
+	width: 100%;
+	max-width: 290px;
+	min-height: 186px;
+	padding: 10px;
+	padding-top: 2em;
+	margin-right: 10px;
+	background: #e7e7e7;
+	display: block;
+	float: left; 
+	font: 1em/1.875em Linux Biolinum;
+}
+
+#index-stats {
+	text-align: center;
+	transition: color .7s;
+}
+
+#index-stats em {
+	font: 4em/0.8em Georgia;
+	display: block;
+	color: #777;
+	font-style: italic;
+	padding-right: 1.5em;
+	transition: color .7s;
+}
+
+#index-stats a {
+	transition: color .7s;
+}
+
+#index-stats a:hover, #index-stats a:hover em {
+	background: none;
+	color: black;
+}
+
+#index-stats em:nth-child(2) {
+	padding-right: 0;
+	padding-left: 1.5em;
+}
+
+#index-news p:nth-child(2) {
+	text-align: right;
+	font: 0.875em/1.25em Linux Biolinum;
+}
+
+#index-word {
+	text-align: center;
+}
+
+#index-word > a:nth-child(1) {
+	font: 4em/0.8em Georgia;
+	color: #777;
+	font-style: italic;
+	display: block;
+	padding-bottom: 0.2em;
+	transition: color .7s;
+}
+
+#index-word > a:nth-child(1):hover {
+	background: none;
+	color: black;
+}
+
+#index-word p {
+	line-height: 1em;
+}

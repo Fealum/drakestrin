@@ -1,0 +1,13 @@
+{extends file='../_.htm'}
+{block name=title}Neuen Charakter erstellen{/block}
+{block name=path}
+{append var=path value=$obj->name index=join('/', array('user/view', $obj))}
+{append var=path value='Mitglieder' index='user'}
+{/block}
+{block name=content}
+{include file='../_function/textinput.htm'}
+<form name="createcharacter" action="{$config->url}/user/createcharacter/{$obj}" method="post">
+{textinput formname='createcharacter' inputname='name' displayname='Name'}
+<p><input type="submit" value="Neuen Charakter erstellen" name="submit" /></p>
+</form>
+{/block}

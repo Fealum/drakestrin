@@ -1,0 +1,82 @@
+{extends file='../_.htm'}
+{block name=title}{$obj->name|escape:'htmlall'}{/block}
+{block name=css}company_view{/block}
+{block name=path}
+{append var=path value='Kontor' index='company'}
+{/block}
+{block name=content}
+{include file='../_function/datetime.htm'}
+{function workerbit}
+	<li><img src="{$config->url}/img/company_worker.type/{$data->type}.png"/><a href="{$config->url}/company/worker/{$data}">{$data->name|escape:'htmlall'}</a>{if $obj->character->user == $user} (<a href="{$config->url}/company/fire/{$data}">entlassen</a>){/if}
+	<p>Eingestellt am {call datetime value=$data->hired}; Lohn gezahlt am {call datetime value=$data->paid}{if (floor(($smarty.now - $data->paid) / 2592000) > 4)} &mdash; {floor(($smarty.now - $data->paid) / 2592000)} Monate ohne Gehalt{elseif (floor(($smarty.now - $data->paid) / 2592000) > 3)} &mdash; im Streik{elseif (floor(($smarty.now - $data->paid) / 2592000) > 2)} &mdash; &uuml;berf&auml;llig{elseif (floor(($smarty.now - $data->paid) / 2592000) > 1)} &mdash; f&auml;llig{/if}</p>
+	{if $data->type == 5}
+	<p><a href="{$config->url}/company/pay/{$obj}">L&ouml;hne auszahlen</a></p>
+	{elseif $data->labour_active}
+	{foreach name=activelabours item=val from=$data->labour_active}
+	<p>Arbeit: {$val->labour->name|escape:'htmlall'} ({call datetime value=$val->since} &mdash; {call datetime value=$val->until})</p>
+	{/foreach}
+	{/if}
+	</li>
+{/function}
+<ol>
+	<li class="owner_info">Eigent&uuml;mer: <a href="{$config->url}/user/character/{$obj->character}"><img src="{$config->url}/img/character_avatar.id/thumb/{if $obj->character->avatar}{$obj->character}{elseif ctype_alpha($obj->character->name[0])}i/{$obj->character->name[0]|lower}{else}i/_{/if}.jpg" title="{$obj->character->name|escape:'htmlall'}" /> {$obj->character->name|escape:'htmlall'}</a></li>
+	<li class="territory_info">Ort: <a href="{$config->url}/territory/view/{$obj->territory}"><img src="{$config->url}/img/territory.id/{$obj->territory}.png" alt="Wappen von {$obj->territory->name|escape:'htmlall'}" /> {$obj->territory->name|escape:'htmlall'}</a></li>
+	<li>Beschreibung: {$obj->description|escape:'htmlall'}</li>
+	<li>{if $obj->company_worker}{if count($obj->company_worker) > 1}{$obj->company_worker|@count} Angestellte{else}Ein Angestellter{/if}{else}Keine Angestellten{/if}</li>
+</ol>
+<h3>Angestellte</h3>
+<h4>Schreiber</h4>
+<ol class="workers">
+{if $obj->company_worker}{foreach name=company_workers item=value from=$obj->company_worker}{if $value->type == 5}
+{workerbit data=$value}
+{/if}{/foreach}{/if}
+</ol>
+{if $obj->type < 5}
+<h4>Lieferanten</h4>
+<ol class="workers">
+{if $obj->company_worker}{foreach name=company_workers item=value from=$obj->company_worker}{if $value->type == 4}
+{workerbit data=$value}
+{/if}{/foreach}{/if}
+	{if $obj->character->user == $user}<li><a href="{$config->url}/company/hire/{$obj}/4"><img src="{$config->url}/img/company_worker.type/0.png"/>Neuen Lieferanten einstellen</a></li>{/if}
+</ol>
+{/if}
+{if $obj->type < 4}
+<h4>Handwerker</h4>
+<ol class="workers">
+{if $obj->company_worker}{foreach name=company_workers item=value from=$obj->company_worker}{if $value->type == 3}
+{workerbit data=$value}
+{/if}{/foreach}{/if}
+	{if $obj->character->user == $user}<li><a href="{$config->url}/company/hire/{$obj}/3"><img src="{$config->url}/img/company_worker.type/0.png"/>Neuen Handwerker einstellen</a></li>{/if}
+</ol>
+{/if}
+{if $obj->type < 3}
+<h4>{if $obj->type == 1}Bergm&auml;nner{else}Knechte{/if}</h4>
+<ol class="workers">
+{if $obj->company_worker}{foreach name=company_workers item=value from=$obj->company_worker}{if $value->type < 3}
+{workerbit data=$value}
+{/if}{/foreach}{/if}
+	{if $obj->character->user == $user}<li><a href="{$config->url}/company/hire/{$obj}/{if $obj->type == 1}1{else}2{/if}"><img src="{$config->url}/img/company_worker.type/0.png"/>Neuen {if $obj->type == 1}Bergmann{else}Knecht{/if} einstellen</a></li>{/if}
+</ol>
+{/if}
+{if $obj->inventory___owner}
+<h3>Inventar</h3>
+<h4>Produktionsgut</h4>
+<ol class="inventory">
+{foreach name=inventories item=value from=$obj->inventory___owner}{if $value->wear == -2}
+	<li><img src="{$config->url}/img/item.img/{$value->item->img}.png" title="{$value->item->name|escape:'htmlall'}" />{if $value->stack > 0}<div>{$value->makeunitary()}</div>{/if}</li>
+{/if}{/foreach}
+</ol>
+<h4>Vorbehaltsgut</h4>
+<ol class="inventory">
+{foreach name=inventories item=value from=$obj->inventory___owner}{if $value->wear == -1}
+	<li><img src="{$config->url}/img/item.img/{$value->item->img}.png" title="{$value->item->name|escape:'htmlall'}" />{if $value->stack > 0}<div>{$value->makeunitary()}</div>{/if}</li>
+{/if}{/foreach}
+</ol>
+<h4>Verkaufsgut</h4>
+<ol class="inventory">
+{foreach name=inventories item=value from=$obj->inventory___owner}{if $value->wear >= 0}
+	<li><img src="{$config->url}/img/item.img/{$value->item->img}.png" title="{$value->item->name|escape:'htmlall'}" />{if $value->stack > 0}<div>{$value->makeunitary()}</div>{/if}</li>
+{/if}{/foreach}
+</ol>
+{/if}
+{/block}

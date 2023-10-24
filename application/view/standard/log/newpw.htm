@@ -4,8 +4,8 @@
 {include file='../_function/textinput.htm'}
 	<p>Bitte trage nun Dein neues Passwort ein.</p>
 	<form action="{$config->url}/log/newpw/{$logemail}/{$logkey}" method="post">
-		{textinput formname='register' inputname='password' displayname='Passwort' type='password' autofocus=true}
-		{textinput formname='register' inputname='passwordcheck' displayname='Passwort wiederholen' type='password'}
+		{call textinput formname='register' inputname='password' displayname='Passwort' type='password' autofocus=true}
+		{call textinput formname='register' inputname='passwordcheck' displayname='Passwort wiederholen' type='password'}
 		<input type="submit" value="Link anfordern" name="submit" />
 	</form>
 {/block}

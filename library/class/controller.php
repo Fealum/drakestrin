@@ -6,6 +6,7 @@ abstract class Controller {
 
 	function __construct($model, $controller, $action) {
 		global $config;
+		date_default_timezone_set($config->timezone);
 		if ($action == 'std') $action = $this->stdaction;
 		$this->_model = $model;
 		$this->_controller = $controller;
@@ -21,12 +22,14 @@ abstract class Controller {
 		if ($this->session->userid && $this->session->userpw) {
 			$this->user = Cache::_('UserModel', $this->session->userid);
 			$this->set('user', $this->user);
+			$newconv = new _list('conversation', '`view` = 0 AND `user__recipient` = '.$this->user->id);
+			$this->set('newconv', $newconv);
 			if (!$this->user->check_password($this->session->userpw)) $this->user = NULL;
 			// Initialize online
 			if ($this->setonline == TRUE) {
 				$this->online = new OnlineModel();
 				if (!$this->online->id_from_unique('user', $this->user->id)) $this->online = new OnlineModel(NULL, array('time' => time(), 'ip' => $_SERVER['REMOTE_ADDR'], 'user' => $this->user->id, 'browser' => $_SERVER['HTTP_USER_AGENT'], 'controller' => $this->_controller, 'action' => $this->_action));
-				else $this->online->update(array('time' => time(), 'ip' => $_SERVER['REMOTE_ADDR'], 'user' => $this->user->id, 'browser' => $_SERVER['HTTP_USER_AGENT'], 'controller' => $this->_controller, 'action' => $this->_action));
+				elseif ($this->user) $this->online->update(array('time' => time(), 'ip' => $_SERVER['REMOTE_ADDR'], 'user' => $this->user->id, 'browser' => $_SERVER['HTTP_USER_AGENT'], 'controller' => $this->_controller, 'action' => $this->_action, 'table__location' => NULL, 'location' => NULL));
 			}
 		}
 		// Delete old onlines
@@ -47,8 +50,9 @@ abstract class Controller {
 		$this->set('configuration', Configuration::getInstance());
 		
 		// Initialize BBCode
-		$bbcodes = new _list('bbcode');
-		$this->set('bbcodes', $bbcodes->data);
+		//$bbcodes = new _list('bbcode');
+		$bbcodes = BBCode::getInstance();
+		$this->set('bbcodes', $bbcodes);
 
 		// Initialize emoticons
 		$emoticons = new _list('emoticon');
@@ -64,9 +68,11 @@ abstract class Controller {
 		if ($this->user) $this->online->update(array('table__location' => (int)$table, 'location' => (int)$location));
 	}
 	
-	function setnotice($notice, $type = 'info') {
-		$pusharray = $this->session->notice;
-		$this->session->notice = is_array($pusharray) ? array_push($pusharray, array('notice' => $notice, 'type' => $type)) : array(array('notice' => $notice, 'type' => $type));
+	function setnotice($notice, $type = 'info', $vars = NULL) {
+		if ($notice != '') {
+			$pusharray = $this->session->notice;
+			$this->session->notice = is_array($pusharray) ? array_push($pusharray, array('notice' => $notice, 'type' => $type, 'vars' => $vars)) : array(array('notice' => $notice, 'type' => $type, 'vars' => $vars));
+		}
 	}
 	
 	function move($path) {

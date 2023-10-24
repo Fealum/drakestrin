@@ -25,14 +25,15 @@ abstract class Model {
 			}
 			// insert into database
 			Source::getInstance($this->source)->query("
-				INSERT INTO dra_".$this->table." (".join(', ', $querynames).")
+				INSERT INTO dra_".$this->table." (`".join('`, `', $querynames)."`)
 				VALUES (".join(', ', $queryvalues).") 
 			");
 			// declare id
 			$this->__set('id', Source::getInstance($this->source)->insert_id());
 		}
 		elseif (!is_null($id)) {
-			$this->__set('id', $id);
+			if (is_numeric($id)) $this->__set('id', $id);
+			else $this->id_from_order(NULL, $id);
 			// check if permission allows object to be shown.
 			if (isset($this->permission)) if (Permission::getPermission($this, 'show') == 0) unset($this->datatypes);
 		}
@@ -46,7 +47,10 @@ abstract class Model {
 	public function __set($name, $value) {
 		if ($name == 'id') $this->id = (int)$value;
 		elseif (in_array($this->datatypes[$name], array('int', 'string'))) settype($value, $this->datatypes[$name]);
-		if ($name != 'id' && isset($this->datatypes[$name])) $this->data[$name] = $value;
+		if ($name != 'id' && isset($this->datatypes[$name])) {
+			if ($this->datatypes[$name] == 'geom') $this->data[$name] = ($value != NULL) ? geo::load($value,'wkb') : NULL;
+			else $this->data[$name] = $value;
+		}
 	}
 
 	public function __get($name) {
@@ -56,7 +60,7 @@ abstract class Model {
 		elseif ($name == 'permission' && isset($this->permission)) return $this->permission;
 		elseif (!isset($this->datatypes[$name])) return FALSE;
 		elseif (!isset($this->data[$name]) && !in_array($this->datatypes[$name], array('relation', 'children', 'mchildren', 'custom'))) $this->select();
-		if ($this->datatypes[$name] == 'hidden') return md5($this->data[$name]);
+		if ($this->datatypes[$name] == 'hidden') return $this->data[$name];
 		elseif ($this->datatypes[$name] == 'relation' && !isset($this->data[$name])) isset($this->dataorder[$name]) ? $this->initrelations($name, $this->dataorder[$name]) : $this->initrelations($name);
 		elseif ($this->datatypes[$name] == 'children' && !isset($this->data[$name])) isset($this->dataorder[$name]) ? $this->initchildren($name, $this->dataorder[$name]) : $this->initchildren($name);
 		elseif ($this->datatypes[$name] == 'mchildren' && !isset($this->data[$name])) $this->initmchildren($name);
@@ -96,7 +100,7 @@ abstract class Model {
 	protected function createorder($order) {
 		$allowed = $order[1];
 		$order = $order[0];
-		$order = explode('/', $order);
+		$order = explode(';', $order);
 		foreach ($order as $key => $value) {
 			$value = explode(',', $value);
 			if (!array_key_exists($value[0], $allowed)) unset($order[$key]);
@@ -127,7 +131,7 @@ abstract class Model {
 			$underscores = '__'.$this->stripprefix($name);
 		}
 		else $underscores = '';
-		$query = Source::getInstance($this->source)->select($this->stripsuffix($name), $this->table.$underscores." = ".$this->id, array('id'), $order);
+		$query = Source::getInstance($this->source)->select($this->stripsuffix($name), "`".$this->table.$underscores."` = ".$this->id, array('id'), $order);
 		if ($query) foreach ($query as $result) $array[] = (int)$result['id'];
 		if(isset($array)) $this->init($name, $array);
 		else $this->init($name, FALSE);
@@ -210,15 +214,23 @@ abstract class Model {
 	 */
 	protected function select() {
 		// check if data are set
-		if (!isset($this->data)) break;
+		if (!isset($this->data)) return;
 		// get column names
 		$queryarray = $this->data;
-		foreach ($queryarray as $key => $value)
+		$geomarray = array();
+		foreach ($queryarray as $key => $value) {
 			if (in_array($this->datatypes[$key], array('relation', 'children', 'mchildren', 'custom'))) unset($queryarray[$key]);
+			if ($this->datatypes[$key] == 'geom') {
+				$geomarray[$key] = $value;
+				unset($queryarray[$key]);
+			}
+		}
 		// get data from database
-		$query = Source::getInstance($this->source)->select($this->table, $this->id, array_keys($queryarray));
-		$query = $query[0];
-		foreach ($query AS $name => $value) $this->__set($name, $value);
+		$query = Source::getInstance($this->source)->select($this->table, $this->id, array_keys($queryarray), NULL, NULL, NULL, (empty($geomarray)) ? NULL : array_keys($geomarray));
+		if (isset($query[0])) {
+			$query = $query[0];
+			foreach ($query AS $name => $value) $this->__set($name, $value);
+		}
 	}
 
 	/**
@@ -230,7 +242,8 @@ abstract class Model {
 			$query = array();
 			foreach ($objects as $name => $value) {
 				$this->__set($name, $value);
-				$query[] = $name." = '".Source::getInstance($this->source)->escape($this->__get($name))."'";
+				if (!is_null($value)) $query[] = "`".$name."` = '".Source::getInstance($this->source)->escape($this->__get($name))."'";
+				else $query[] = "`".$name."` = NULL";
 			}
 
 			// update database

@@ -1,3 +1,130 @@
 @charset "utf-8";
 @import url('_.css');
 @import url('_options.css');
+
+#content ol {
+	list-style-type: none;
+}
+
+#content > ol {
+	padding: 0px;
+}
+
+#content > ol:hover > li {
+	opacity: 0.5;
+	transition: opacity .25s ease-in-out;
+	-moz-transition: opacity .25s ease-in-out;
+	-webkit-transition: opacity .25s ease-in-out;
+}
+
+#content > ol > li:hover {
+	opacity: 1;
+}
+
+#content > ol > li {
+	color: #d40000;
+	margin: 0;
+	padding-bottom: 30px;
+	position: relative;
+	clear: both;
+	font-weight: normal;
+	font-style: italic;
+	font-size: 20px;
+	line-height: 30px;
+	width: 100%;
+	transition: opacity .25s ease-in-out;
+	-moz-transition: opacity .25s ease-in-out;
+	-webkit-transition: opacity .25s ease-in-out;
+	min-height: 270px;
+	background-size: contain;
+}
+
+#content > ol > li > a {
+	display: block;
+	color: white;
+	text-shadow: 0px 0px 4px rgba(0, 0, 0, 1);
+	border-top: 1px solid #aaa;
+	padding: 5%;
+}
+
+#content > ol a:hover {
+	background: none;
+	text-decoration: underline;
+}
+
+#content > ol > li > ol {
+	margin-left: 20%;
+	column-width: 210px;
+	-moz-column-width: 210px;
+	-webkit-column-width: 210px;
+	column-rule: 1px solid #aaa;
+	-moz-column-rule: 1px solid #aaa;
+	-webkit-column-rule: 1px solid #aaa;
+	padding: 0px;
+	font-size: 1rem;
+	font-style: normal;
+	text-shadow: 0px 0px 2px rgba(255, 255, 255, 1);
+}
+
+#content > ol > li > ol > li {
+	font-weight: bold;
+	display: inline-block;
+	width: 100%;
+}
+
+#content > ol > li > ol > li ol {
+	font-weight: normal;
+	padding: 0;
+}
+
+#content > ol > li > ol > li ol ol {
+	padding-left: 1em;
+}
+
+.notext {
+	opacity: 0.5;
+}
+
+.encyclopedia-1 {
+	background: url('../../../img/static/encyclopedia_1.jpg') no-repeat;
+}
+
+.encyclopedia-2 {
+	background: url('../../../img/static/encyclopedia_2.jpg') no-repeat;
+}
+
+.encyclopedia-3 {
+	background: url('../../../img/static/encyclopedia_3.jpg') no-repeat;
+}
+
+.encyclopedia-4 {
+	background: url('../../../img/static/encyclopedia_4.jpg') no-repeat;
+}
+
+.encyclopedia-6 {
+	background: url('../../../img/static/encyclopedia_6.jpg') no-repeat;
+}
+
+.encyclopedia-7 {
+	background: url('../../../img/static/encyclopedia_7.jpg') no-repeat;
+}
+
+.encyclopedia-42 {
+	background: url('../../../img/static/encyclopedia_42.jpg') no-repeat;
+}
+
+.encyclopedia-53 {
+	background: url('../../../img/static/encyclopedia_53.jpg') no-repeat;
+}
+
+.encyclopedia-66 {
+	background: url('../../../img/static/encyclopedia_66.jpg') no-repeat;
+}
+
+.encyclopedia-67 {
+	background: url('../../../img/static/encyclopedia_67.jpg') no-repeat;
+}
+
+.encyclopedia-68 {
+	background: url('../../../img/static/encyclopedia_68.jpg') no-repeat;
+}

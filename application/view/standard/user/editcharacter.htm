@@ -1,0 +1,55 @@
+{extends file='../_.htm'}
+
+{block name=title}&raquo;{$obj->name|escape:'htmlall'}&laquo; bearbeiten{/block}
+{block name=alttitle}Charakter bearbeiten{/block}
+{block name=css}user_edit{/block}
+{block name=path}
+{append var=path value=$obj->name index=join('/', array('user/character', $obj))}
+{append var=path value=$obj->user->name index=join('/', array('user/view', $obj->user))}
+{append var=path value='Mitglieder' index='user'}
+{/block}
+
+{block name=content}
+{include file='../_function/textinput.htm'}
+<form name="editcharacter" action="{$config->url}/user/editcharacter/{$obj}" method="post" enctype="multipart/form-data">
+<h3>Avatar</h3>
+{if $obj->avatar}<img src="{$config->url}/img/character_avatar.id/{$obj}.jpg" id="user_avatar" />{/if}
+<input type="radio" name="changeavatar" id="avatar-0" value="0" checked="checked" /><label for="avatar-0" class="labelradio">Avatar nicht &auml;ndern</label><br />
+<input type="radio" name="changeavatar" id="avatar-1" value="1" /><label for="avatar-1" class="labelradio">Folgendes Bild als Avatar verwenden (maximal {$config->avatarsize / 1000} kB): <input type="file" name="avatar" id="avatar" accept="image/jpeg, image/gif" /></label>
+<input type="hidden" name="MAX_FILE_SIZE" value="{$config->avatarsize}" /> 
+
+<h3>Informationen</h3>
+<p><textarea name="usertext">{if $obj->usertext}{$obj->usertext|escape:'htmlall'}{/if}</textarea></p>
+<p><label for="gender">Geschlecht: </label><select name="gender" id="gender">
+	<option label="keine Angabe" value="0"{if $obj->gender == 0} selected="selected"{/if}>keine Angabe</option>
+	<option label="m&auml;nnlich" value="1"{if $obj->gender == 1} selected="selected"{/if}>m&auml;nnlich</option>
+	<option label="weiblich" value="2"{if $obj->gender == 2} selected="selected"{/if}>weiblich</option>
+</select></p>
+{call textinput formname='editcharacter' inputname='birthday' displayname='Geburtsjahr' value=$obj->birthday}
+{call textinput formname='editcharacter' inputname='location' displayname='Herkunft' value=$obj->location}
+{call textinput formname='editcharacter' inputname='interests' displayname='Interessen' value=$obj->interests}
+{call textinput formname='editcharacter' inputname='work' displayname='Amt oder Beruf' value=$obj->work}
+<input type="hidden" name="edit" value="1" />
+<input type="submit" value="&Auml;ndern" />
+</form>
+<h3>Nutzerkonto</h3>
+	<em>Beitr&auml;ge:</em> {$obj->post__total}<br />
+	<em>Mitglied seit:</em> {$obj->regdate|date_format:$config->datetime}<br />
+
+{if $obj->inventory___owner}
+<h3>Besitz</h3>
+<ol class="inventory">
+{foreach name=inventories item=value from=$obj->inventory___owner}
+	<li><img src="{$config->url}/img/item.img/{$value->item->img}.png" /> {$value->item->name|escape:'htmlall'}: {$value->stack}, {$value->wear}</li>
+{/foreach}
+</ol>
+{/if}
+{if $obj->company}
+<h3>Betriebe</h3>
+<ol>
+{foreach name=companies item=value from=$obj->company}
+	<li>{$value->name|escape:'htmlall'}: {$value->description|escape:'htmlall'}</li>
+{/foreach}
+</ol>
+{/if}
+{/block}

@@ -2,19 +2,48 @@
 
 {block name=title}Mitglieder{/block}
 {block name=css}user{/block}
+{block name=js}
+<script type="text/javascript">
+$(document).ready(function() {
+	$("div#content ol.users ol").each(function (index) {
+		if ($(this).children().length > 7) {
+			$(this).children().slice(6).hide();
+			$(this).append("<li class=\"morecharacters fa-chevron-down\"></li>");
+		}
+	});
+	
+	$(".morecharacters").click(function() {
+		$(this).parent().children().slice(6).slideDown();
+		$(this).remove();
+	});
+});
+</script>
+{/block}
 {block name=content}
-{include file='../_function/bit_user.htm'}
 {include file='../_function/pagination.htm'}
+{include file='../_function/datetime.htm'}
 <h3>Sortieren</h3>
 <p>Nach: <a href="{$config->url}/user/viewall/name,a">Namen</a> <a href="{$config->url}/user/viewall/name,d">&nbsp;&darr;&nbsp;</a>, <a href="{$config->url}/user/viewall/regdate,a">Registrierungsdatum</a> <a href="{$config->url}/user/viewall/regdate,d">&nbsp;&darr;&nbsp;</a>, <a href="{$config->url}/user/viewall/lastvisit,a">letztem Besuch</a> <a href="{$config->url}/user/viewall/lastvisit,d">&nbsp;&darr;&nbsp;</a>, <a href="{$config->url}/user/viewall/post,a;name,a">Beitr&auml;gen</a> <a href="{$config->url}/user/viewall/post,d;name,d">&nbsp;&darr;&nbsp;</a>, <a href="{$config->url}/user/viewall/postsperday,a;name,a">Beitr&auml;gen pro Tag</a> <a href="{$config->url}/user/viewall/postsperday,d;name,d">&nbsp;&darr;&nbsp;</a>.</p>
 <h3>Ergebnisse</h3>
-{pagination link="/user/viewall/$order" total=ceil((int)count($obj->data) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
+{call pagination link="/user/viewall/$order" total=ceil((int)count($obj->data) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
 <ol class="users">
 {foreach $obj->data as $value}
 {if $value@iteration > (($page - 1) * $configuration->getConfiguration($obj, 'pageentries')) && $value@iteration <= (($page) * $configuration->getConfiguration($obj, 'pageentries'))}
-{bit_user config=$config value=$value}
+<li>
+	<div>
+	<p><a href="{$config->url}/user/view/{$value}"><img src="{$config->url}/img/character_avatar.id/thumb/{if $value->character__avatar}{$value->character__avatar}{elseif ctype_alpha($value->name[0])}i/{$value->name[0]|lower}{else}i/_{/if}.jpg" />{$value->name|escape:'htmlall'}</a></p> 
+	<p class="small"><a href="{$config->url}/board/filter/user_contains:{$value}">{$value->post__total|number_format:0:",":"."} Beitr&auml;ge</a> seit {call datetime value=$value->regdate onlydate=1} ({($value->post__total / (($smarty.now - $value->regdate) / 86400))|number_format:2:",":"."} / Tag)</p>
+	<p class="small">Letzter Besuch: {call datetime value=$value->lastvisit}</p>
+	</div>{if $value->character}
+	<ol>{foreach $value->character as $char}
+		<li>
+			<p class="small"><a href="{$config->url}/user/character/{$char}"><img src="{$config->url}/img/character_avatar.id/thumb/{if $char->avatar}{$char}{elseif ctype_alpha($char->name[0])}i/{$char->name[0]|lower}{else}i/_{/if}.jpg" />{$char->name|escape:'htmlall'}</a></p>
+			<p class="small"><a href="{$config->url}/board/filter/char_contains:{$char}">{$char->post__total|number_format:0:",":"."} Beitr&auml;ge</a> seit {call datetime value=$char->regdate onlydate=1}</p>
+		</li>
+{/foreach}	</ol>
+</li>{/if}
 {elseif $value@iteration > (($page) * $configuration->getConfiguration($obj, 'pageentries'))}{break}{/if}
 {/foreach}
 </ol>
-{pagination link="/user/viewall/$order" total=ceil((int)count($obj->data) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
+{call pagination link="/user/viewall/$order" total=ceil((int)count($obj->data) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
 {/block}

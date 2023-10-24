@@ -10,7 +10,7 @@
 <p><label for="wordtype">Wortart: </label><select name="wordtype">
 {foreach $wordtypes->data as $i}	<option label="{$i->name} ({$i->code})" value="{$i}">{$i->name} ({$i->code})</option>{/foreach}
 </select></p>
-{textinput formname='createdictionary' inputname='word' displayname='Wort' required=false}
+{call textinput formname='createdictionary' inputname='word' displayname='Wort' required=false}
 <h3>Erweiterter Modus: </h3>
 <p><label for="language">Von: </label><select name="advanced-language-from">
 {foreach $languages->data as $i}	<option label="{$i->name} ({$i->code})" value="{$i}">{$i->name} ({$i->code})</option>{/foreach}

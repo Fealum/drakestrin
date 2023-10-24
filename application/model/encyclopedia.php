@@ -12,4 +12,8 @@ class EncyclopediaModel extends Model {
 		'activated' => 'int',
 		'encyclopedia__1' => 'children'
 	);
+	
+	protected $dataorder = array(
+			'encyclopedia__1' => array('sort,a;name,a', array('sort' => 'sort', 'name' => 'LOWER(name)'))
+	);
 }

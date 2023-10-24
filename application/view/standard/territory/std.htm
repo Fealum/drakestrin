@@ -1,5 +1,10 @@
 {extends file='../_.htm'}
+{block name=css}territory{/block}
 {block name=title}Lehen{/block}
 {block name=content}
-<em>In Arbeit!</em>
+{foreach $obj->data as $territory}
+<h3><a href="{$config->url}/territory/view/{$territory}">Provinz {$territory->name|escape:'htmlall'}</a></h3>
+{if $territory->character}<p>K&ouml;nig{if $territory->character->gender == 2}in{/if}: <a href="{$config->url}/user/character/{$territory->character}">{$territory->character->name|escape:'htmlall'}</a></p>{/if}
+<img src="{$config->url}/img/territory.id/{$territory}.png" alt="Wappen von {$territory->name|escape:'htmlall'}" />
+{/foreach}
 {/block}

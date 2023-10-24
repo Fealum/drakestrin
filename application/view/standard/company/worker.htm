@@ -1,0 +1,71 @@
+{extends file='../_.htm'}
+{block name=title}{$obj->name|escape:'htmlall'}{/block}
+{block name=css}company_view{/block}
+{block name=path}
+{append var=path value=$obj->company->name index=join('/', array('company/view', $obj->company))}
+{append var=path value='Kontor' index='company'}
+{/block}
+{block name=content}
+{include file='../_function/datetime.htm'}
+{include file='../_function/bit_item.htm'}
+<ol>
+	<li>Betrieb: {$obj->company->name|escape:'htmlall'}</li>
+	<li><a href="{$config->url}/company/fire/{$obj}">entlassen</a>
+	<p>Eingestellt am {datetime value=$obj->hired}; Lohn gezahlt am {datetime value=$obj->paid}{if (floor(($smarty.now - $obj->paid) / 2592000) > 4)} &mdash; {floor(($smarty.now - $obj->paid) / 2592000)} Monate ohne Gehalt{elseif (floor(($smarty.now - $obj->paid) / 2592000) > 3)} &mdash; im Streik{elseif (floor(($smarty.now - $obj->paid) / 2592000) > 2)} &mdash; &uuml;berf&auml;llig{elseif (floor(($smarty.now - $obj->paid) / 2592000) > 1)} &mdash; f&auml;llig{/if}</p>
+	{if $obj->type == 5}
+	<p><a href="{$config->url}/company/pay/{$obj->company}">L&ouml;hne auszahlen</a></p>
+	{elseif $obj->labour_active}
+	{foreach name=activelabours item=val from=$obj->labour_active}
+	<b>{if $val->instances > 1}{$val->instances} mal {/if}{$val->labour->name|escape:'htmlall'}{if $val->nextinsta != 0} (danach {$val->nextinsta} Instanzen){/if}</b><br />
+Seit: {datetime value=$val->since}.<br />
+Bis: {datetime value=$val->until}.<br />
+Anzahl: {if $val->quantity == -1}&infin;{else}Noch {if $val->quantity == 0}dieses{else}{$val->quantity}{/if} Mal.{/if}<br>
+Zuweisung: {if $val->prodas == -2}Produktionsgut{elseif $val->prodas == -1}Vorbehaltsgut{else}Verkaufsgut zum Preis von {$val->prodas} Ten{/if}.<p>
+{foreach name=labourcomponents item=comp from=$val->labour->labour_component}{if $comp->type == 0}{bit_item value=$comp}{/if}{/foreach}
+<img src="{$config->url}/templates/standard/_img/arrow_back.png" alt="wird mit Hilfe von">
+{foreach name=labourcomponents item=comp from=$val->labour->labour_component}{if $comp->type == 1}{bit_item value=$comp}{/if}{/foreach}
+<img src="{$config->url}/templates/standard/_img/arrow_front.png" alt="zu">
+{foreach name=labourcomponents item=comp from=$val->labour->labour_component}{if $comp->type == 2}{bit_item value=$comp}{/if}{/foreach}
+<p>
+<a href="taetigkeiten.php?task=$task[id]&mode=2">Arbeit sofort abbrechen</a> (Hierbei gehen alle eventuell benutzten Rohstoffe verloren!)<br>
+<a href="taetigkeiten.php?task=$task[id]&mode=3">Arbeit nach diesem Vorgang abbrechen</a><p>
+	{/foreach}
+	{/if}
+{if $user->id == $obj->company->character->user->id && $workload < 1}
+<b>Arbeit zuweisen:</b><p>
+<form name="assignlabour" action="{$config->url}/company/worker/{$obj}" method="post" enctype="multipart/form-data">
+<ul>
+{foreach name=labours item=value from=$labours}
+<li>
+<input name="labour" value="{$value}" id="labour-{$value}" type="radio"{if $smarty.foreach.labours.first} checked="checked"{/if}/>
+<label for="labour-{$value}"><p>{$value->name|escape:'htmlall'}</p>
+<p>(Dauert {$value->duration} Sekunden, maximal {floor((1 - $workload) * $value->workload)} Instanzen.)</p>
+<p>
+{foreach name=labourcomponents item=comp from=$value->labour_component}{if $comp->type == 0}{bit_item value=$comp}{/if}{/foreach}
+<img src="{$config->url}/templates/standard/_img/arrow_back.png" alt="wird mit Hilfe von">
+{foreach name=labourcomponents item=comp from=$value->labour_component}{if $comp->type == 1}{bit_item value=$comp}{/if}{/foreach}
+<img src="{$config->url}/templates/standard/_img/arrow_front.png" alt="zu">
+{foreach name=labourcomponents item=comp from=$value->labour_component}{if $comp->type == 2}{bit_item value=$comp}{/if}{/foreach}
+</p>
+</label>
+</li>
+{/foreach}
+</ul>
+<p>
+Wie häufig soll diese Tätigkeit durchgeführt werden? <br>
+<input type="radio" name="quantity" value="0" checked> <input type="text" name="quantity_count" value="1"> Mal. <br>
+<input type="radio" name="quantity" value="-1"> Bis sie abgebrochen wird. </p>
+<p>Wie viele Instanzen sollen ausgeführt werden? <br>
+<input type "text" name="instances" value="1"> Instanzen.</p>
+<p>Als was soll das Produkt erschaffen werden? <br>
+<input type="radio" name="prodas" value="-2" checked> Produktionsgut. <br>
+<input type="radio" name="prodas" value="-1"> Vorbehaltsgut. <br>
+<input type="radio" name="prodas" value="0"> Verkaufsgut zum Preis von <input type="text" name="prodas_value" value=""> Tuk. </p>
+<input type="hidden" name="assignlabour" value="1" />
+<input type="hidden" name="worker" value="{$obj}">
+<input type="submit" value="Zuweisen">
+</form>
+{/if}
+	</li>
+</ol>
+{/block}

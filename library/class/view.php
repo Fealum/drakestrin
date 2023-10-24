@@ -1,5 +1,4 @@
 <?php
-require_once(createPath(array('library', 'ext', 'smarty', 'libs', 'Smarty.class.php')));
 class View extends Smarty {
 
 	protected $_controller, $_action;
@@ -10,6 +9,8 @@ class View extends Smarty {
 		$this->setTemplateDir(createPath(array('application', 'view')));
 		$this->setCompileDir(createPath(array('public', 'templates_c')));
 		$this->setCacheDir(createPath(array('public', 'cache')));
+
+		$this->addPluginsDir(createPath(array('plugins', 'smarty')));
 		
 		$this->_controller = $controller;
 		$this->_action = $action;
@@ -31,8 +32,8 @@ class View extends Smarty {
 		parent::display(createPath(array('application', 'view', 'standard', $this->_controller, $this->_action.'.htm')), $cacheid);
 	}
 
-	function clear($action, $cacheid = NULL) {
-		parent::clearCache(createPath(array('application', 'view', 'standard', $this->_controller, $action.'.htm')), $cacheid);
+	function clear($action, $cacheid = NULL, $controller = NULL) {
+		parent::clearCache(createPath(array('application', 'view', 'standard', ($controller != NULL) ? $controller : $this->_controller, $action.'.htm')), $cacheid);
 	}
 	
 	function getdisplay($controller, $action) {

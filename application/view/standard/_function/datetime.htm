@@ -1,6 +1,7 @@
-{function datetime objvalue=$obj}
-{if $value >= mktime(0, 0, 0)}<strong>heute,</strong> {$value|date_format:$configuration->getConfiguration($objvalue, 'time')}
-{elseif $value >= (mktime(0, 0, 0) - 86400)}<strong>gestern,</strong> {$value|date_format:$configuration->getConfiguration($objvalue, 'time')}
-{elseif $value >= (mktime(0, 0, 0) - 604800)}<strong>{if $value|date_format:"%w" == 1}Montag{elseif $value|date_format:"%w" == 2}Dienstag{elseif $value|date_format:"%w" == 3}Mittwoch{elseif $value|date_format:"%w" == 4}Donnerstag{elseif $value|date_format:"%w" == 5}Freitag{elseif $value|date_format:"%w" == 6}Samstag{elseif $value|date_format:"%w" == 0}Sonntag{/if},</strong> {$value|date_format:$configuration->getConfiguration($objvalue, 'time')}
-{else}{$value|date_format:$configuration->getConfiguration($objvalue, 'date')}, {$value|date_format:$configuration->getConfiguration($objvalue, 'time')}{/if}
+{function datetime objvalue=0 onlydate=0}
+{$today = strtotime('today')}
+{if $value >= ($today - 604800)}<strong>{/if}
+{if $value >= $today}heute{elseif $value >= ($today - 86400)}gestern{elseif $value >= ($today - 604800)}{if $value|date_format:"%w" == 1}Montag{elseif $value|date_format:"%w" == 2}Dienstag{elseif $value|date_format:"%w" == 3}Mittwoch{elseif $value|date_format:"%w" == 4}Donnerstag{elseif $value|date_format:"%w" == 5}Freitag{elseif $value|date_format:"%w" == 6}Samstag{elseif $value|date_format:"%w" == 0}Sonntag{/if}
+{else}{$value|date_format:$configuration->getConfiguration($objvalue, 'date')}{/if}
+{if !$onlydate},{/if}{if $value >= ($today - 604800)}</strong>{/if}{if !$onlydate} {$value|date_format:$configuration->getConfiguration($objvalue, 'time')}{/if}
 {/function}

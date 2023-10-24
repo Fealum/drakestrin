@@ -1,0 +1,91 @@
+@charset "utf-8";
+@import url('_.css');
+@import url('_options.css');
+
+#content > img {
+	position: absolute;
+	width: 100px;
+	margin-top: 15px;
+}
+
+#content > p {
+	font: 0.75em/1em Linux Biolinum;
+}
+
+#content ol {
+	list-style-type: none;
+}
+
+#content > ol{
+	margin-left: 130px;
+	min-height: 125px;
+	padding: 0px;
+}
+
+#content > ol#territory_children {
+	column-width: 210px;
+	-moz-column-width: 210px;
+	-webkit-column-width: 210px;
+	column-rule: 1px solid #aaa;
+	-moz-column-rule: 1px solid #aaa;
+	-webkit-column-rule: 1px solid #aaa;
+}
+
+#territory_info_ruler > a > img {
+	height: 1em;
+	border: 1px solid #ccc;
+	position: relative;
+	top: 0.2em;
+}
+
+.map_landmass {
+	fill: #eee;
+	stroke: #666;
+	stroke-width: 1px;
+}
+
+.map_territory {
+	fill: #999;
+	stroke: #666;
+	stroke-width: 1px;
+	transition: fill .7s ease;
+	filter:url(#umrisse);
+}
+
+.map_territory:hover {
+	fill: #d3c9c4;
+}
+
+#settlements path {
+	fill: #d40000;
+	pointer-events: none;
+}
+
+.place-label {
+	font: 0.75em/1em Linux Biolinum;
+	filter: drop-shadow(0px 0px 2px #FFF);
+	pointer-events: none;
+}
+
+.capital {
+	text-decoration: underline;
+	font-size: 0.8em;
+}
+
+div.tooltip {
+	position: absolute;
+	line-height: 1em;
+	border: 1px solid #666;
+	background-color: rgba(255, 255, 255, 0.7);
+	padding: 2px;
+	padding-left: 19px;
+	margin-left: 10px;
+	display: none;
+}
+
+div.tooltip img {
+	width: 30px;
+	position: absolute;
+	top: 4px;
+	left: -15px;
+}

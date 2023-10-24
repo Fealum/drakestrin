@@ -1,7 +1,9 @@
 {extends file='../_.htm'}
 {block name=title}Wort: &raquo;{$obj->word|escape:htmlall}&laquo;{/block}
 {block name=css}dictionary{/block}
-{block name=path} &rarr; <a href="{$config->url}/dictionary">Diktionar</a>{/block}
+{block name=path}
+{append var=path value='Diktionar' index='dictionary'}
+{/block}
 {block name=content}
 <p>{$obj->wordtype->name|escape:htmlall}.{if $permission->getPermission($obj, 'editdictionary') > 0} <a href="{$config->url}/dictionary/edit/{$obj}" class="option edit" title="Wort bearbeiten">Wort bearbeiten</a>{/if}{if $permission->getPermission($obj, 'deletedictionary') > 0} <a href="{$config->url}/dictionary/delete/{$obj}" class="option delete" title="Wort l&ouml;schen">Wort l&ouml;schen</a>{/if}</p> 
 {if $obj->wordtype->code == 'sw'}

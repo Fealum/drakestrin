@@ -1,0 +1,32 @@
+@charset "utf-8";
+@import url('_.css');
+@import url('_options.css');
+
+.permitcat, .permitcat ol {
+	list-style-type: none;
+	margin: 0px;
+	padding: 0px;
+}
+
+.permitcat {
+	font-family: Linux Biolinum;
+	font-size: 12px;
+	line-height: 15px;
+	display: block;
+	float: left;
+	color: #666;
+	width: 210px;
+	margin-left: -60px;
+	background: #F2F2F2;
+	padding: 10px;
+}
+
+.permitcat ol {
+	margin-left: 10px;
+	padding-left: 4px;
+	border-left: 1px solid #AAA;
+}
+
+.permission {
+	list-style-type: none;
+}

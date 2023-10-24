@@ -2,14 +2,41 @@
 
 {block name=title}{if $obj->name}Seite &raquo;{$obj->name|escape:htmlall}&laquo; editieren{else}Zugriff nicht gestattet{/if}{/block}
 {block name=path}
-{include file='../_function/breadcrumbs.htm'}
-&raquo; <a href="{$config->url}/encyclopedia">Kompendium</a>{if $obj->name and $obj->encyclopedia != '0'}{breadcrumbs data=$obj url='encyclopedia/view' parent='encyclopedia'}{/if}{/block}
+{assign var=pathdata value=$obj}
+{while $pathdata}
+{append var=path value=$pathdata->name index=join('/', array('encyclopedia/view', $pathdata))}
+{assign var=pathdata value=$pathdata->encyclopedia}
+{/while}
+{append var=path value='Kompendium' index='encyclopedia'}
+{/block}
+{block name=js}
+<!-- SCEditor -->
+<script type="text/javascript" src="{$config->url}/templates/standard/_js/sceditor/development/jquery.sceditor.bbcode.js"></script>
+<script type="text/javascript" src="{$config->url}/templates/standard/_js/sceditor/languages/de.js"></script>
+<!-- SCEditor skin -->
+<link rel="stylesheet" type="text/css" href="{$config->url}/templates/standard/_js/sceditor/development/themes/square.css" />
+<script type="text/javascript">
+configurl = "{$config->url}";
+</script>
+<script type="text/javascript" src="{$config->url}/templates/standard/_js/sceditor/jquery.sceditor.drakestrin.js"></script>
+{/block}
 {block name=content}
 {include file='../_function/textinput.htm'}
+{function bit_page level=0}
+{foreach $data as $page}
+		<option value="{$page}"{if $page->id == $obj->id} disabled="disabled"{/if}{if $obj->encyclopedia && $page->id == $obj->encyclopedia->id} selected="selected"{/if}>{for $foo=1 to $level}&mdash;{forelse}{/for}{$page->name}</option>
+{if $page->encyclopedia__1 && $page->id != $obj->id}{bit_page data=$page->encyclopedia__1 level=($level+1)}{/if}
+{/foreach}
+{/function}
 <form name="editencyclopedia" action="{$config->url}/encyclopedia/edit/{$obj}" method="post">
-{textinput formname='editencyclopedia' inputname='name' displayname='Seitentitel (kurz)' value=$obj->name}
-{textinput formname='editencyclopedia' inputname='title' displayname='Seitentitel (lang)' value=$obj->title}
-<textarea name="text">{$obj->text|escape:'htmlall'}</textarea>
+{call textinput formname='editencyclopedia' inputname='name' displayname='Seitentitel (kurz)' value=$obj->name}
+{call textinput formname='editencyclopedia' inputname='title' displayname='Seitentitel (lang)' value=$obj->title}
+{call textinput formname='editencyclopedia' inputname='sort' displayname='Sortierungsrang' value=$obj->sort}
+<p><label for="encyclopedia">&Uuml;bergeordnete Seite: </label><select name="encyclopedia" id="encyclopedia">
+	<option value="0"{if !isset($obj->encyclopedia)} selected="selected"{/if}>(keine)</option>
+	{bit_page data=$pages->data}
+</select></p>
+<textarea class="textarea-bbcode" name="text">{$obj->text|escape:'htmlall'}</textarea>
 <p><input type="submit" value="Seite bearbeiten" name="submit" /></p>
 </form>
 {/block}

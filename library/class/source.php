@@ -1,25 +1,24 @@
 <?php
 class Source {
-	public static $instance = array();
-	private static $sources = array(
-		'mysql1' => array(
-			'type' => 'MySQL',
-			'host' => '',
-			'user' => '',
-			'password' => '',
-			'database' => '',
-			'prefix' => ''
-		)
-	);
+	private static $instance = [];
 
-	private function __construct() {
+	private function __construct(String $instance) {
+
 	}
 
 	// singleton pattern
-	static function getInstance($instance) {
+	public static function getInstance(String $instance) {
 		if(!isset(self::$instance[$instance])) {
-			$classname = 'Source_'.self::$sources[$instance]['type'];
-			self::$instance[$instance] = new $classname(self::$sources[$instance]);
+			$sources['mysql1'] = array(
+				'type' => 'MySQL',
+				'host' => $_ENV['DB_HOST'],
+				'user' => $_ENV['DB_USER'],
+				'password' => $_ENV['DB_PW'],
+				'database' => $_ENV['DB_NAME'],
+				'prefix' => 'dra_'
+			);
+			$classname = 'Source_'.$sources[$instance]['type'];
+			self::$instance[$instance] = new $classname($sources[$instance]);
 		}
 		return self::$instance[$instance];
 	}

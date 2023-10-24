@@ -1,0 +1,22 @@
+{extends file='../_.htm'}
+
+{block name=title}Forum &raquo;{$obj->name|escape:'htmlall'}&laquo; bearbeiten{/block}
+{block name=path}
+{assign var=path value=[join('/', array('board/view', $obj)) => $obj->name]}
+{assign var=pathdata value=$obj->board}
+{while $pathdata}
+{append var=path value=$pathdata->name index=join('/', array('board/view', $pathdata))}
+{assign var=pathdata value=$pathdata->board}
+{/while}
+{append var=path value='Forum' index='board'}
+{/block}
+{block name=content}
+{include file='../_function/textinput.htm'}
+<form name="editboard" action="{$config->url}/board/edit/{$obj}" method="post">
+{textinput formname='editboard' inputname='name' displayname='Name' autofocus=true value=$obj->name}
+{textinput formname='editboard' inputname='description' displayname='Beschreibung' value=$obj->description}
+{textinput formname='editboard' inputname='sort' displayname='Sortierung' value=$obj->sort}
+<label for="cat">Kategorie: </label><input type="checkbox" name="cat" id="cat" value="1" {if $obj->cat == 1}checked="checked"{/if} />
+<input type="submit" value="Forum bearbeiten" />
+</form>
+{/block}

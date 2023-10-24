@@ -1,26 +1,51 @@
 {extends file='../_.htm'}
 
-{block name=title}{if $obj->name}Neues Thema im Forum &raquo;{$obj->name|escape:'htmlall'}&laquo; erstellen{else}Zugriff nicht gestattet{/if}{/block}
-{block name=css}thread{/block}
+{block name=title}Neues Thema erstellen{/block}
 {block name=path}
-{include file='../_function/breadcrumbs.htm'}
- &raquo; <a href="{$config->url}/board">Forum</a>{if $obj->name}{breadcrumbs data=$obj url='board/view' parent='board'}{/if}{/block}
+{append var=path value='Forum' index='board'}
+{/block}
+{block name=css}thread{/block}
+{block name=js}
+<!-- SCEditor -->
+<script type="text/javascript" src="{$config->url}/templates/standard/_js/sceditor/development/jquery.sceditor.bbcode.js"></script>
+<script type="text/javascript" src="{$config->url}/templates/standard/_js/sceditor/languages/de.js"></script>
+<!-- SCEditor skin -->
+<link rel="stylesheet" type="text/css" href="{$config->url}/templates/standard/_js/sceditor/development/themes/square.css" />
+<script type="text/javascript">
+configurl = "{$config->url}";
+</script>
+<script type="text/javascript" src="{$config->url}/templates/standard/_js/sceditor/jquery.sceditor.drakestrin.js"></script>
+{/block}
 {block name=content}
 {include file='../_function/textinput.htm'}
-{if $permission->getPermission($obj, 'show') > 0}
-{if $permission->getPermission($obj, 'createthread') > 0}
-<form name="createthread" action="{$config->url}/thread/create/{$obj}" method="post">
-{textinput formname='createthread' inputname='name' displayname='Name' autofocus=true}
+{function bit_board level=0}
+{foreach $data as $board}
+		<option value="{$board}" {if $board->cat > 0 || $permission->getPermission($board, 'createthread') == 0}disabled="disabled"{/if}>{for $foo=1 to $level}&mdash;{forelse}{/for}{$board->name}</option>
+{if $board->board__1}{bit_board data=$board->board__1 level=($level+1)}{/if}
+{/foreach}
+{/function}
+<div class="post">
+<form name="createthread" action="{$config->url}/thread/create" method="post">
+{call textinput formname='createthread' inputname='name' displayname='Name' autofocus=true}
 <label for="important">Wichtig: </label><input type="checkbox" name="important" id="important" value="1" {if $thread['important'] == 1}checked="checked"{/if} />
-<p>Beitrag: 
+<p><label for="board">Forum: </label><select name="board" id="board">
+	{bit_board data=$boards->data}
+</select></p>
+<div class="post-charselect">
+<ul>
+{foreach $user->character as $char}
+<li>
+<input name="character" value="{$char}" id="char-{$char}" type="radio"{if $char@first} checked="checked"{/if}/>
+<label for="char-{$char}"><img src="{$config->url}/img/character_avatar.id/thumb/{if $char->avatar}{$char}{elseif ctype_alpha($char->name[0])}i/{$char->name[0]|lower}{else}i/_{/if}.jpg" title="{$char->name|escape:'htmlall'}" /></label>
+</li>
+{/foreach}
+</ul>
+</div>
+<p>
 <input type="hidden" name="smilies" value="1" />
 <input type="hidden" name="signature" value="1" />
-<textarea name="message">{if isset($post['message'])}{$post['message']|escape:'htmlall'}{/if}</textarea></p>
+<textarea class="textarea-bbcode" name="message">{if isset($post['message'])}{$post['message']|escape:'htmlall'}{/if}</textarea></p>
 <input type="submit" value="Neues Thema erstellen" />
 </form>
-{/if}
-{else}
-<h3>Zugriff nicht gestattet!</h3>
-<p>Leider ist Dir der Zugriff auf diese Seite nicht gestattet. Dir fehlen die daf&uuml;r erforderlichen Rechte. Wenn Du glaubst, dass es sich dabei um einen Fehler handelt, benachrichtige bitte den Administrator.</p>
-{/if}
+</div>
 {/block}

@@ -1,0 +1,15 @@
+{function bit_thread}
+{include file='../_function/datetime.htm'}
+<ol>
+{foreach name=threads item=value from=$data}
+{if $value@iteration > (($page - 1) * $entries) && $value@iteration <= (($page) * $entries)}
+{if $value->name}	<li>
+		<h4><a href="{$config->url}/thread/view/{$value}">{if $value->important}<span>Wichtig</span>{/if}{$value->name|escape:'htmlall'}</a>{if isset($user) and $value->post__last_time >= $user->lastvisit and ((isset($viewed[1][$value->id]) and $viewed[1][$value->id] < $value->post__last_time) or !isset($viewed[1][$value->id]))} <span class="option new">(Neu)</span>{/if}</h4>
+		<p class="small">{$value->views} Aufrufe und {if $value->post__total == 1}ein Beitrag{else}{$value->post__total} Beitr&auml;ge{/if}</p>
+		<p class="small"><a href="{$config->url}/user/view/{$value->post[0]->user}">{$value->post[0]->user->name|escape:'htmlall'}</a>; {datetime value=$value->post[0]->time}<br />
+		&mdash;<a href="{$config->url}/user/view/{$value->post__last->user}">{$value->post__last->user->name|escape:'htmlall'}</a>; <a href="{$config->url}/thread/view/{$value}/last#post{$value->post__last}">{datetime value=$value->post__last_time}</a></p>
+	</li>
+{/if}{elseif $value@iteration > (($page) * $entries)}{break}{/if}
+{/foreach}
+</ol>
+{/function}

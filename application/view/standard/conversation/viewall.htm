@@ -1,0 +1,15 @@
+{extends file='../_.htm'}
+{block name=css}conversation{/block}
+{block name=title}Konversationen{/block}
+{block name=content}
+{include file='../_function/datetime.htm'}
+{if $obj->data}
+<ol id="conversations">
+{foreach $obj->data as $conversation}
+	<li><h4>{if $conversation->conversation__last->user__recipient->id == $user->id && $conversation->conversation__last->view == 0}[ungelesen] {/if}{if $conversation->user__1->id == $user->id}<a href="{$config->url}/user/view/{$conversation->user__2->id}"><img src="{$config->url}/img/character_avatar.id/thumb/{if $conversation->user__2->character__avatar}{$conversation->user__2->character__avatar}{elseif ctype_alpha($conversation->user__2->name[0])}i/{$conversation->user__2->name[0]|lower}{else}i/_{/if}.jpg" />{$conversation->user__2->name|escape:'htmlall'}</a>{else}<a href="{$config->url}/user/view/{$conversation->user__1->id}"><img src="{$config->url}/img/character_avatar.id/thumb/{if $conversation->user__1->character__avatar}{$conversation->user__1->character__avatar}{elseif ctype_alpha($conversation->user__1->name[0])}i/{$conversation->user__1->name[0]|lower}{else}i/_{/if}.jpg" />{$conversation->user__1->name|escape:'htmlall'}</a>{/if}, {call datetime value=$conversation->time_end}, <a href="{$config->url}/conversation/view/{if $conversation->user__1->id == $user->id}{$conversation->user__2->id}{else}{$conversation->user__1->id}{/if}">{$conversation->message_total} {if $conversation->message_total == 1}Nachricht{else}Nachrichten{/if}</a></h4>
+	<p>{if $conversation->conversation__last->user__recipient->id == $user->id}&#11106;{else}&#10550;{/if} {$conversation->conversation__last->message|truncate:80:"&hellip;"}</p>
+	</li>
+{/foreach}
+</ol>
+{/if}
+{/block}

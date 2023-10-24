@@ -9,23 +9,27 @@ div#content h4 {
 	color: black;
 }
 
-div#content div.post {
+div#content > div.post {
 	min-height: 60px;
 	position: relative;
 }
 
-div#content div.post + div.post {
+div#content > div.post > div.postuser {
+	overflow: auto;
+}
+
+div#content > div.post + div.post {
 	border-top: 1px solid #aaa;
 	padding-top: 5px;
 	margin-top: 5px;
 	clear: both;
 }
 
-div#content div.followpost {
+div#content > div.followpost {
 	margin-left: 65px;
 }
 
-div#content div.post > img {
+div#content > div.post > img {
 	position: absolute;
 	height: 60px;
 	width: 60px;
@@ -40,16 +44,17 @@ div#content div.followpost > div > h4 {
 	margin-left: 0px;
 }
 
-div#content div.post div p {
+div#content div.post div.postuser p {
 	position: absolute;
 	right: 0px;
 }
 
-div#content div.post > p, div#content div.post > form {
+div#content div.post > .postcontent, div#content div.post > form {
 	margin-left: 65px;
+	display: block;
 }
 
-div#content div.followpost > p {
+div#content div.followpost > .postcontent {
 	margin-left: 0px;
 }
 
@@ -66,7 +71,315 @@ div#content .postnumber:hover {
 	color: #060;
 }
 
-:target {
-	padding-top: 185px; 
-	margin-top: -185px;
+ul#selectaction {
+	list-style-type: none;
+	padding: 0;
+	margin: 0;
+	width: 100%;
+}
+
+ul#selectaction li {
+	display: inline-block;
+}
+
+ul#selectaction li a {
+	display: block;
+	font: 0.75em/1em Linux Biolinum;
+	background: #d5d5d5; /* Old browsers */
+	background: -moz-linear-gradient(top, #d5d5d5 0%, #ffffff 100%); /* FF3.6-15 */
+	background: -webkit-linear-gradient(top, #d5d5d5 0%,#ffffff 100%); /* Chrome10-25,Safari5.1-6 */
+	background: linear-gradient(to bottom, #d5d5d5 0%,#ffffff 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+	padding: 0.2em 0.8em;
+	-webkit-border-radius: 0.4em 0.4em 0 0;
+	-moz-border-radius: 0.4em 0.4em 0 0;
+	border-radius: 0.4em 0.4em 0 0;
+	border: 1px solid #DDD;
+	border-bottom: none;
+}
+
+ul#selectaction li a:hover, ul#selectaction li a.activeaction {
+	background: #d4edbd; /* Old browsers */
+	background: -moz-linear-gradient(top, #d4edbd 0%, #ffffff 100%); /* FF3.6-15 */
+	background: -webkit-linear-gradient(top, #d4edbd 0%,#ffffff 100%); /* Chrome10-25,Safari5.1-6 */
+	background: linear-gradient(to bottom, #d4edbd 0%,#ffffff 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+}
+
+div.post-charselect {
+	position: relative;
+}
+
+div.post-charselect input[type="radio"] {
+	position: fixed;
+	top: -9999px;
+	left: -9999px;
+}
+
+div.post-charselect label {
+	width: 30px;
+	height: 30px;
+	padding-right: 5px;
+	opacity: 0.5;
+   transition: opacity .25s ease-in-out;
+   -moz-transition: opacity .25s ease-in-out;
+   -webkit-transition: opacity .25s ease-in-out;
+   cursor: pointer;
+}
+
+div.post-charselect label:hover {
+	opacity: 1;
+}
+
+div.post-charselect ul {
+	list-style-type: none;
+	padding: 0;
+	margin: 0;
+	overflow: hidden;
+}
+
+div.post-charselect li {
+	display: inline-block;
+	float: left;
+	height: 35px;
+}
+
+div.post-charselect input[type="radio"]:checked ~ label {
+	opacity: 1.0;
+	position: absolute;
+	top: 0px;
+	left: -65px;
+	width: 60px;
+	cursor: auto;
+}
+
+div.post-charselect label img {
+	width: 30px;
+	height: 30px;
+}
+
+div.post-charselect label input {
+	display: none;
+}
+
+div.post-charselect input[type="radio"]:checked ~ label img {
+	width: 60px;
+	height: 60px;
+}
+
+div.post-charselect input[type="radio"]:checked ~ label input {
+	display: block;
+	position: absolute;
+	top: 0;
+	left: 100px;
+	height: 24px;
+	width: 200px;
+	padding: 2px;
+	margin: 0;
+	border: 1px solid #aaa;
+	background: rgba(255, 255, 255, 0.75);
+}
+
+div#content > div#newpost + div#newaction {
+	position: relative;
+	border-top: none;
+	margin-top: 0;
+	padding-top: 0;
+}
+
+ul.inventory-char {
+	list-style-type: none;
+	padding: 0;
+	margin: 0;
+	overflow: hidden;
+}
+
+ul.inventory-char li {
+	display: inline-block;
+	float: left;
+	height: 65px;
+}
+
+ul.inventory-char input[type="checkbox"] {
+	position: fixed;
+	top: -9999px;
+	left: -9999px;
+}
+
+ul.inventory-char label {
+	width: 60px;
+	height: 60px;
+	padding: 1px;
+	margin-right: 5px;
+	opacity: 0.5;
+	transition: opacity .25s ease-in-out;
+	-moz-transition: opacity .25s ease-in-out;
+	-webkit-transition: opacity .25s ease-in-out;
+	cursor: pointer;
+	position: relative;
+}
+
+ul.inventory-char label:hover {
+	opacity: 1;
+}
+
+ul.inventory-char input[type="checkbox"]:checked ~ label {
+	opacity: 1;
+	padding: 0;
+	border: 1px solid #aaa;
+}
+
+ul.inventory-char label img {
+	width: 60px;
+	height: 60px;
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+
+ul.inventory-char input[type="text"] {
+	z-index: 2;
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	font: 0.6em/1em Linux Biolinum;
+	width: 60px;
+	border: none;
+	padding: 0;
+	line-height: 1em;
+	background: none;
+}
+
+li.token-input-token img {
+	padding: 7.5px;
+	padding-left: 7.5px;
+	vertical-align: middle;
+	width: 15px;
+	height: 15px;
+}
+
+ul.token-input-list {
+    overflow: hidden; 
+	width: 100%;
+    cursor: text;
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+}
+
+ul.token-input-list li {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+ul.token-input-list li input {
+    border: 0;
+    width: auto;
+    background-color: white;
+    -webkit-appearance: caret;
+}
+
+li.token-input-token {
+    overflow: hidden; 
+    height: 30px; 
+    background-color: white;
+    cursor: default;
+    display: block;
+}
+
+li.token-input-token:hover {
+	background: #D7EBD7;
+}
+
+li.token-input-token p {
+    float: left;
+    padding: 0;
+    margin: 0;
+}
+
+li.token-input-token span {
+    float: right;
+    color: white;
+    cursor: pointer;
+    height: 1em;
+    margin: 0.5em;
+    padding: 0.25em 0;
+    width: 1.4em;
+    text-align: center;
+    background: #777;
+    line-height: 0.8em;
+}
+
+li.token-input-selected-token {
+    background-color: #777;
+    color: #fff;
+}
+
+li.token-input-selected-token span {
+    color: white;
+}
+
+ul.token-input-list li.token-input-input-token {
+	background: #E7E7E7;
+	padding: 0 5px;
+	margin-top: 5px;
+	margin-bottom: 15px;
+}
+
+div#newaction li.token-input-input-token input {
+	margin: 0;
+	padding: 0;
+}
+
+div.token-input-dropdown {
+    position: absolute;
+    margin-top: -15px;
+    width: 298px;
+    background-color: #fff;
+    overflow: hidden;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    cursor: default;
+    font: 0.75em/1em Linux Biolinum;
+    z-index: 1;
+}
+
+div.token-input-dropdown img {
+	height: 15px;
+	width: 15px;
+}
+
+div.token-input-dropdown p {
+    margin: 0;
+    padding: 5px;
+    font-weight: bold;
+    color: #777;
+}
+
+div.token-input-dropdown ul {
+    margin: 0;
+    padding: 0;
+}
+
+div.token-input-dropdown ul li {
+    background-color: #fff;
+    padding: 3px;
+    list-style-type: none;
+}
+
+div.token-input-dropdown ul li.token-input-dropdown-item {
+    background-color: #fafafa;
+}
+
+div.token-input-dropdown ul li.token-input-dropdown-item2 {
+    background-color: #fff;
+}
+
+div.token-input-dropdown ul li em {
+    font-weight: bold;
+    font-style: normal;
+}
+
+div.token-input-dropdown ul li.token-input-selected-dropdown-item {
+    background-color: #d0efa0;
 }

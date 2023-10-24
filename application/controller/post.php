@@ -20,11 +20,36 @@ class PostController extends Controller {
 			$this->_view->change('view');
 			exit;
 		}
-		$post = array('thread' => $this->obj->id, 'user' => $this->user->id, 'time' => time(), 'message' => $this->post('message'), 'smilies' => $this->post('smilies', 0), 'signature' => $this->post('signature', 0), 'ip' => $_SERVER['REMOTE_ADDR']);
+		$post = array('thread' => $this->obj->id, 'user' => $this->user->id, 'character' => $this->post('character'), 'time' => time(), 'message' => trim($this->post('message')), 'smilies' => $this->post('smilies', 0), 'signature' => $this->post('signature', 0), 'ip' => $_SERVER['REMOTE_ADDR']);
 		if ($post['message']) {
+			if ($post['character'] == 'new') {
+				if (Permission::getPermission($this->obj, 'createcharacter') < 1) {
+					$this->setnotice('user_createcharacter_nopermission', 'error');
+					$this->move('thread/view/'.$this->obj->id);
+				}
+				else {
+					$character = array('name' => $this->post('newcharname'), 'regdate' => time(), 'user' => $this->user->id, 'usertext' => '');
+					if ($character['name']) {
+						$newcharacter = new CharacterModel(NULL, $character);
+						$post['character'] = $newcharacter->id;
+						$this->_view->clear('view', $this->user->id, 'user');
+						echo $post['character'];
+					}
+					else {
+						$this->setnotice('user_createcharacter_namemissing', 'error');
+						$this->move('thread/view/'.$this->obj->id);
+					}
+				}
+			}
+			$character = Cache::_('CharacterModel', $post['character']);
+			if ($character->user->id != $this->user->id) {
+				$this->setnotice('post_create_nopermission', 'error');
+				$this->move('thread/view/'.$this->obj->id);
+			}
 			$newpost = new PostModel(NULL, $post);
 			$this->obj->update(array('post__total' => ($this->obj->post__total + 1), 'post__last' => $newpost->id, 'post__last_time' => $newpost->time));
 			$this->user->update(array('post__total' => ($this->user->post__total + 1)));
+			$character->update(array('post__total' => ($character->post__total + 1)));
 			$this->obj->board->update(array('post__total' => ($this->obj->board->post__total + 1), 'post__last' => $newpost->id));
 			$this->move('thread/view/'.$this->obj->id.'/last#post'.$newpost->id);
 		}
@@ -39,8 +64,18 @@ class PostController extends Controller {
 			$this->_view->change('view');
 			exit;
 		}
-		$post = array('message' => $this->post('message'));
+		$post = array('character' => $this->post('character'), 'message' => trim($this->post('message')));
 		if ($post['message']) {
+			$character = Cache::_('CharacterModel', $post['character']);
+			if ($character->user->id != $this->user->id) {
+				$this->move('thread/view/'.$this->obj->thread->id);
+				exit;
+			}
+			if ($character->id != $this->obj->character->id) {
+				$this->obj->character->update(array('post__total' => ($this->obj->character->post__total - 1)));
+				$character->update(array('post__total' => ($character->post__total + 1)));
+				if($character->regdate > $this->obj->time) $character->update(array('regdate' => $this->obj->time));
+			}
 			$this->obj->update($post);
 			$this->move('thread/view/'.$this->obj->thread->id);
 		}

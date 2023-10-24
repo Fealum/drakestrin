@@ -1,52 +1,31 @@
 {extends file='../_.htm'}
 
 {block name=title}{if $obj->name}{$obj->name|escape:'htmlall'}{else}Zugriff nicht gestattet{/if}{/block}
-{block name=css}board_id{/block}
 {block name=path}
-{include file='../_function/breadcrumbs.htm'}
-&raquo; <a href="{$config->url}/board">Forum</a>{if $obj->name and $obj->board != '0'}{breadcrumbs data=$obj->board url='board/view' parent='board'}{/if}{/block}
-{block name=topoptions}<a href="{$config->url}/board/permissions/{$obj}">Rechte</a> <a href="#">Journal</a>{/block}
+{assign var=pathdata value=$obj->board}
+{while $pathdata}
+{append var=path value=$pathdata->name index=join('/', array('board/view', $pathdata))}
+{assign var=pathdata value=$pathdata->board}
+{/while}
+{append var=path value='Forum' index='board'}
+{/block}
+{block name=css}board_id{/block}
 {block name=content}
-{include file='../_function/datetime.htm'}
+{include file='../_function/bit_board.htm'}
+{include file='../_function/bit_thread.htm'}
 {include file='../_function/pagination.htm'}
-{function name=boards}
-<ol>
-{foreach $data as $board}	<li>
-		<h4><a href="{$config->url}/board/view/{$board}">{$board->name|escape:'htmlall'}</a>{if isset($viewed[$board->id])} <span class="option new">(Neu)</span>{/if}{if $board->board__1} <a href="{$config->url}/board/changeshow/{$board}" class="option {if $configuration->getConfiguration($board, 'show') != '0'}contract">verk&uuml;rzen{else}expand">erweitern{/if}</a>{/if}</h4>
-{if !$board->cat}
-			<p class="small">
-				{if $board->post__last}<span><img src="{$config->url}/img/user_avatar.id/thumb/{if $board->post__last->user->avatar}{$board->post__last->user}{else}0{/if}.jpg" /><a href="{$config->url}/thread/view/{$board->post__last->thread}/last#post{$board->post__last}">{$board->post__last->thread->name|escape:'htmlall'}</a><br /><a href="{$config->url}/user/view/{$board->post__last->user}">{$board->post__last->user->name|escape:'htmlall'}</a>; {datetime value=$board->post__last->time}</span>{/if}
-				{$board->description|escape:'htmlall'}<br /><em>{$board->thread__total} Themen, {$board->post__total} Beitr&auml;ge</em>
-			</p>
-{/if}
-{if $board->board__1 && $configuration->getConfiguration($board, 'show') != '0'}{boards data=$board->board__1}{/if}
-	</li>
-{/foreach}
-</ol>
-{/function}
-{if $obj->name}<p>{if $obj->board__1}{$obj->board__1|@count} Unterforen{if !$obj->cat}, {/if}{/if}{if !$obj->cat}{$obj->thread__total} Themen, {$obj->post__total} Beitr&auml;ge{/if}
+{if $obj->name}<p>{if $obj->board__1}{$obj->board__1|@count} Unterforen{if !$obj->cat}, {/if}{/if}{if !$obj->cat}{$obj->thread__total} Themen, {$obj->post__total} Beitr&auml;ge.{/if}{if $permission->getPermission($obj, 'editboard') == 1} <a class="option edit" title="editieren" href="{$config->url}/board/edit/{$obj}">editieren</a> {/if}{if $permission->getPermission($obj, 'deleteboard') == 1}<a class="option delete" title="l&ouml;schen" href="{$config->url}/board/delete/{$obj}">l&ouml;schen</a> {/if}
 {if $obj->board__1}
 <h3>Unterforen</h3>
 <div id="boards">
-{boards data=$obj->board__1}
+{bit_board data=$obj->board__1}
 </div>
 {/if}
 {if $obj->thread}
 <h3>Themen{if $permission->getPermission($obj, 'createthread') > 0} <a href="{$config->url}/thread/create/{$obj}" class="option create" title="neues Thema erstellen">neues Thema erstellen</a>{/if}</h3>
 <div id="threads">
 {pagination link="/board/view/$obj" total=ceil((int)count($obj->thread) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
-<ol>
-{foreach name=threads item=value from=$obj->thread}
-{if $value@iteration > (($page - 1) * $configuration->getConfiguration($obj, 'pageentries')) && $value@iteration <= (($page) * $configuration->getConfiguration($obj, 'pageentries'))}
-	<li>
-		<h4>{if $value->important}[Wichtig] {/if}<a href="{$config->url}/thread/view/{$value}">{$value->name|escape:'htmlall'}</a>{if isset($user) and $value->post__last_time >= $user->lastvisit and ((isset($viewed[1][$value->id]) and $viewed[1][$value->id] < $value->post__last_time) or !isset($viewed[1][$value->id]))} <span class="option new">(Neu)</span>{/if}</h4>
-		<p class="small">{$value->views} Aufrufe und {if $value->post__total == 1}ein Beitrag{else}{$value->post__total} Beitr&auml;ge{/if}</p>
-		<p class="small"><a href="{$config->url}/user/view/{$value->post[0]->user}">{$value->post[0]->user->name|escape:'htmlall'}</a>; {datetime value=$value->post[0]->time}<br />
-		&mdash;<a href="{$config->url}/user/view/{$value->post__last->user}">{$value->post__last->user->name|escape:'htmlall'}</a>; <a href="{$config->url}/thread/view/{$value}/last#post{$value->post__last}">{datetime value=$value->post__last_time}</a></p>
-	</li>
-{elseif $value@iteration > (($page) * $configuration->getConfiguration($obj, 'pageentries'))}{break}{/if}
-{/foreach}
-</ol>
+{bit_thread data=$obj->thread page=$page entries=$configuration->getConfiguration($obj, 'pageentries')}
 {pagination link="/board/view/$obj" total=ceil((int)count($obj->thread) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
 </div>
 {/if}

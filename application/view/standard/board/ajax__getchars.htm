@@ -1,0 +1,8 @@
+[
+{foreach $obj->data as $i}	{ldelim}
+		"id": "{$i}",
+		"name": "{$i->name}", 
+		"avatar": "{if $i->avatar}{$i->id}{elseif ctype_alpha($i->name[0])}i/{$i->name[0]|lower}{else}i/_{/if}"
+	{rdelim}{if !$i@last},{/if}
+{/foreach}
+]

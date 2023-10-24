@@ -1,0 +1,3 @@
+{function bit_item}
+<img src="{$config->url}/img/item.img/{$value->item->img}.png" title="{$value->item->name|escape:'htmlall'}" />{if $value->stack > 0}<div>{$value->makeunitary()}</div>{/if}
+{/function}

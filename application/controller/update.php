@@ -4,19 +4,18 @@ class UpdateController extends Controller {
 	protected $stdaction = 'std';
 
 	function std($page = 0) {
-		$this->correctutf8('dictionary', 3000, $page * 3000, array('word'));
-		$this->correctutf8('wordtype', 3000, $page * 3000, array('name'));
+		if($this->user->id == 37) $this->correctutf8('encyclopedia', 3000, $page * 3000, array('name', 'title', 'text'));
 	}
 
 	/**
-	 * Läuft durch die Daten eines Listentyps und kodiert sie, falls nötig, als UTF8 neu. 
+	 * Laeuft durch die Daten eines Listentyps und kodiert sie, falls noetig, als UTF8 neu. 
 	 * $name ist dabei der Name der Tabelle; $objects ein Array, das alle zu kodierenden
 	 * Felder beinhaltet.
 	 * @param string $name
 	 * @param array $objects
 	 */
 	function correctutf8($name, $limit__count, $limit__offset, $objects) {
-		$gothrough = new _list($name, NULL, NULL, $limit__count, $limit__offset);
+		$gothrough = new _list($name, NULL, NULL, array($limit__count, $limit__offset));
 		foreach ($gothrough->data as $cur) {
 			$update = false;
 			foreach ($objects as $i) {
@@ -40,7 +39,7 @@ class UpdateController extends Controller {
 		foreach ($gothrough->data as $cur) {
 			if (!$cur->group) {
 				$cur->createrelation('group', $standardgroup);
-				echo '<pre>Gruppe eingerichtet für '.$cur->name.'</pre>';
+				echo '<pre>Gruppe eingerichtet fuer '.$cur->name.'</pre>';
 			}
 		}
 	}

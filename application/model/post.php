@@ -4,11 +4,13 @@ class PostModel extends Model {
 	protected $datatypes = array(
 		'thread' => 'parent',
 		'user' => 'parent',
+		'character' => 'parent',
 		'time' => 'int',
 		'message' => 'string',
 		'smilies' => 'int',
 		'signature' => 'int',
 		'ip' => 'string',
+		'transfer' => 'children',
 		'board_thread_post_edit' => 'children'
 	);
 

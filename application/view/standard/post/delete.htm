@@ -1,14 +1,30 @@
 {extends file='../_.htm'}
 
 {block name=title}{if $permission->getPermission($obj, 'show') > 0}Beitrag im Thema &raquo;{$obj->thread->name|escape:'htmlall'}&laquo; l&ouml;schen{else}Zugriff nicht gestattet{/if}{/block}
+{block name=alttitle}Beitrag l&ouml;schen{/block}
 {block name=path}
-{include file='../_function/breadcrumbs.htm'}
-&raquo; <a href="{$config->url}/board">Forum</a>{if $permission->getPermission($obj, 'show') > 0 and $obj->thread->board != '0'}{breadcrumbs data=$obj->thread->board url='board/view' parent='board'} &raquo; <a href="{$config->url}/thread/view/{$obj->thread}">{$obj->thread->name}</a>{/if}{/block}
+{append var=path value=$obj->thread->name index=join('/', array('thread/view', $obj->thread))}
+{assign var=pathdata value=$obj->thread->board}
+{while $pathdata}
+{append var=path value=$pathdata->name index=join(':', array('board/filter/board', $pathdata))}
+{assign var=pathdata value=$pathdata->board}
+{/while}
+{append var=path value='Forum' index='board'}
+{/block}
+{block name=css}thread{/block}
 {block name=content}
+{include file='../_function/datetime.htm'}
 <h3>Sicher?</h3>
 <p>Bist Du Dir sicher, dass Du diesen Beitr&auml;g l&ouml;schen m&ouml;chtest?</p>
+	<div class="post">
+		<img src="{$config->url}/img/character_avatar.id/thumb/{if $obj->character->avatar}{$obj->character}{elseif ctype_alpha($obj->character->name[0])}i/{$obj->character->name[0]|lower}{else}i/_{/if}.jpg" />
+		<div class="postuser">
+		<h4><a href="{$config->url}/user/character/{$obj->character}">{$obj->character->name|escape:'htmlall'}</a> <span class="datetime">{datetime value=$obj->time}</span></h4>
+		</div>
+		<div class="postcontent">{$obj->message|bbcode:$bbcodes}</div>
+	</div>
 <form name="deletepost" action="{$config->url}/post/delete/{$obj}" method="post">
 <input type="hidden" name="delete" value="1" />
-<p><input type="submit" value="Thema l&ouml;schen" name="submit" /></p>
+<p><input type="submit" value="Beitrag l&ouml;schen" name="submit" /></p>
 </form>
 {/block}

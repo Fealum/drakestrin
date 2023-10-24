@@ -3,12 +3,13 @@ class CompanyModel extends Model {
 
 	protected $datatypes = array(
 		'name' => 'string',
+		'type' => 'int',
+		'character' => 'parent',
 		'description' => 'string',
 		'text' => 'string',
-		'url' => 'string',
-		'user' => 'parent',
+		'territory' => 'parent',
 		'thread' => 'parent',
-		'geldstand' => 'string',
+		'url' => 'string',
 		'company_worker' => 'children',
 		'inventory___owner' => 'mchildren',
 	);

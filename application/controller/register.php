@@ -46,7 +46,7 @@ class RegisterController extends Controller {
 		}
 		$this->set(array('registeremail' => $email, 'registerkey' => $key));
 
-		// Abgelaufene Validemails löschen
+		// Abgelaufene Validemails lÃ¶schen
 		$deletevalidemails = new _list('validemail', '`validuntil` < UNIX_TIMESTAMP(now())');
 		if (!is_null($deletevalidemails->data)) foreach ($deletevalidemails->data as $cur) $cur->delete();
 
@@ -62,7 +62,7 @@ class RegisterController extends Controller {
 			exit;
 		}
 		$userdata['password'] = $this->post('password');
-		$userdata['name'] = $this->post('name');
+		$userdata['name'] = ($this->post('name') !== NULL) ? trim($this->post('name')) : NULL;
 		if (isset($_POST['termsofservice'])) $termsofservice = $_POST['termsofservice'];
 		if (isset($_POST['passwordcheck'])) $passwordcheck = $_POST['passwordcheck'];
 		$this->set(array('registername' => $userdata['name'], 'registerpassword' => $userdata['password']));
@@ -78,11 +78,12 @@ class RegisterController extends Controller {
 			// if no error case was found, create user
 			if ($checknotice == $this->notice) {
 				$userdata['email'] = $email;
-				$userdata['password'] = md5($userdata['password']);
+				$userdata['password'] = password_hash($userdata['password'], PASSWORD_DEFAULT);
 				$userdata['regemail'] = $email;
 				$userdata['regdate'] = time();
 				$userdata['lastvisit'] = $userdata['regdate']; 
-				$userdata['lastactivity'] = $userdata['regdate']; 
+				$userdata['lastactivity'] = $userdata['regdate'];
+				$userdata['usertext'] = '';
 				$user = new UserModel(NULL, $userdata);
 				$standardgroup = Cache::_('GroupModel', 1);
 				$user->createrelation('group', $standardgroup);

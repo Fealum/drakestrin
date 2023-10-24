@@ -1,0 +1,152 @@
+{extends file='../_.htm'}
+{block name=css}territory_view{/block}
+{block name=title}{if $obj->type == '1'}Atlas{else}{if $obj->type == '2'}Provinz{elseif $obj->type == '3a'}Herzogtum{elseif $obj->type == '3b'}Grafschaft{elseif $obj->type == '3c'}Baronie{elseif $obj->type == '4'}Burgschaft{elseif $obj->type == '5'}Fauthei{/if} {$obj->name|escape:'htmlall'}{/if}{/block}
+{block name=path}
+{assign var=pathdata value=$obj->territory}
+{while $pathdata}
+{if $pathdata->id != 1}{append var=path value=$pathdata->name index=join('/', array('territory/view', $pathdata))}{/if}
+{assign var=pathdata value=$pathdata->territory}
+{/while}
+{if $obj->id != 1}{append var=path value='Atlas' index='territory'}{/if}
+{/block}
+{block name=js}{if $obj->territory__children[0]->geom}
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+	var width = 960,
+	height = 500;
+
+	var projection = d3.geoOrthographic();
+
+	$("h2").after("<div id=\"territory_map\"></div>");
+	$("#territory_children").remove();
+	var svg = d3.select("#territory_map").append("svg")
+	.attr("width", width)
+	.attr("height", height);
+
+	var path = d3.geoPath()
+	.projection(projection);
+
+	//create tooltip div
+	var tooltip = d3.select("body").append("div").attr("class", "tooltip");
+	var countryById = {};
+
+	var landmass = svg.append("g").attr("id", "landmass");
+	var g = svg.append("g").attr("id", "territories");
+
+	d3.json("{$config->url}/territory/ajax__getterritories/{$obj->id}", function(error, obj) {
+		projection.center(path.centroid(obj))
+			.fitSize([width, height], obj);
+
+		g.selectAll('path')
+			.data(obj.features)
+			.enter().append("a")
+			.attr("xlink:href", function(d) {
+				return "{$config->url}/territory/view/" + d.properties.id;
+			})
+			.append('path')
+			.attr('d', path)
+			.attr('class', 'map_territory');
+
+		d3.json("{$config->url}/templates/standard/_js/ajax__getterritoryland.json", function(error, obj) {
+			landmass.selectAll('path')
+				.data(obj.features)
+				.enter()
+				.append("path")
+				.attr('d', path)
+				.attr("class", "map_landmass")
+		});
+
+		d3.json("{$config->url}/territory/ajax__getterritorydata/{$obj->id}", function(error, obj) {
+
+			obj.features.forEach(function(d) {
+				if(d.properties.name != null) {
+					// Define tooltip content
+					countryById[d.properties.id] = "<img src=\"{$config->url}/img/territory.id/" + d.properties.id + ".png\"/><p>" + d.properties.name + "</p><small>" + Math.round(d.properties.area/1000000, 2).toLocaleString('de-DE') + " km&sup2;<br />" + parseInt(d.properties.population).toLocaleString('de-DE') + " EW<br />" + (Math.round(d.properties.population/(d.properties.area/1000000)*100)/100).toLocaleString('de-DE') + " EW/km&sup2;</small>";
+				}
+			});
+		
+			svg.selectAll(".map_territory")
+		      		.on("mouseover", function(d) {
+					tooltip.html(countryById[d.properties.id])
+						.style("left", (d3.event.pageX + 7) + "px")
+						.style("top", (d3.event.pageY - 15) + "px")
+						.style("opacity", 1)
+						.style("display", "block");
+	      			})
+				.on("mouseout", function(d) {
+					tooltip.style("opacity", 0)
+					.style("display", "none");
+				})
+				.on("mousemove", function(d) {
+					tooltip.style("left", (d3.event.pageX + 17) + "px")
+					.style("top", (d3.event.pageY - 15) + "px")
+				});
+
+			svg.append("g")
+				.attr("id", "settlements")
+				.selectAll('path')
+				.data(obj.features)
+				.enter()
+				.append("path")
+				.attr('d', path.pointRadius(2.5));
+
+			svg.append("g")
+				.attr("id", "settlement_labels").selectAll(".place-label")
+				.data(obj.features)
+				.enter().append("text")
+				.attr("class", function(d) { return (d.properties.id == {$obj->settlement->id}) ? "place-label capital" : "place-label"; })
+				.attr("transform", function(d) { return "translate(" + projection(d.geometry.coordinates) + ")"; })
+				.attr("dx", ".35em")
+				.text(function(d) { return d.properties.capital; });
+		});
+	});
+});
+</script>
+{/if}{/block}
+{block name=content}
+<svg height="0" style="width: 0; position: fixed;">
+    <filter id="umrisse" color-interpolation-filters="sRGB">
+      <feMorphology
+         in="SourceGraphic"
+         radius="5"
+         operator="erode"
+         result="result2"
+         id="feMorphology26443" />
+      <feComposite
+         in="result2"
+         id="feComposite26445"
+         in2="SourceGraphic"
+         operator="xor" />
+    </filter>
+</svg>
+{function bit_territory}
+<ol>
+{foreach $data as $territory}
+	<li>
+		<a href="{$config->url}/territory/view/{$territory}">{if $territory->type == '3a'}Herzogtum{elseif $territory->type == '3b'}Grafschaft{elseif $territory->type == '3c'}Baronie{elseif $territory->type == '4'}Burgschaft{elseif $territory->type == '5'}Fauthei{/if} {$territory->name|escape:'htmlall'}</a>
+		{if $territory->character}<p class="small"><a href="{$config->url}/user/character/{$territory->character}">{$territory->character->name|escape:'htmlall'}</a></p>{/if}
+{if $territory->territory__children}{bit_territory data=$territory->territory__children}{/if}
+	</li>
+{/foreach}
+</ol>
+{/function}
+<img src="{$config->url}/img/territory.id/{$obj}.png" alt="Wappen von {$obj->name|escape:'htmlall'}" />
+{if $obj->territory__children}
+<ol id="territory_children">
+{foreach $obj->territory__children as $territory}
+	<li>
+		<a href="{$config->url}/territory/view/{$territory}">{if $territory->type == '3a'}Herzogtum{elseif $territory->type == '3b'}Grafschaft{elseif $territory->type == '3c'}Baronie{elseif $territory->type == '4'}Burgschaft{elseif $territory->type == '5'}Fauthei{/if} {$territory->name|escape:'htmlall'}</a>
+		{if $territory->character}<p class="small"><a href="{$config->url}/user/character/{$territory->character}">{$territory->character->name|escape:'htmlall'}</a></p>{/if}
+	</li>
+{/foreach}
+</ol>
+{/if}
+<ol id="territory_info">
+{if $obj->character}	<li id="territory_info_ruler">{if $obj->type == '1'}Kaiser{elseif $obj->type == '2'}K&ouml;nig{if $obj->character->gender == 2}in{/if}{elseif $obj->type == '3a'}Herzog{if $obj->character->gender == 2}in{/if}{elseif $obj->type == '3b'}{if $obj->character->gender != 2}Graf{else}Gr&auml;fin{/if}{elseif $obj->type == '3c'}Baron{if $obj->character->gender == 2}in{/if}{elseif $obj->type == '4'}Statthalter{elseif $obj->type == '5'}Fauth{if $obj->character->gender == 2}in{/if}{/if}: <a href="{$config->url}/user/character/{$obj->character}"><img src="{$config->url}/img/character_avatar.id/thumb/{if $obj->character->avatar}{$obj->character}{elseif ctype_alpha($obj->character->name[0])}i/{$obj->character->name[0]|lower}{else}i/_{/if}.jpg" title="{$obj->character->name|escape:'htmlall'}" /> {$obj->character->name|escape:'htmlall'}</a></li>{/if}
+	<li>Gr&ouml;&szlig;e: {($obj->area/1000000)|number_format:2:",":"."} km&sup2;</li>
+	<li>Einwohner: {$obj->population|number_format:0:",":"."}</li>
+	<li>Bev&ouml;lkerungsdichte: {($obj->population/($obj->area/1000000))|number_format:2:",":"."} EW/km&sup2;</li>
+	<li>Hauptstadt: {$obj->settlement->name|escape:'htmlall'} ({$obj->settlement->population|number_format:0:",":"."} Einwohner)</li>
+</ol>
+{/block}

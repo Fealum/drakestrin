@@ -1,16 +1,46 @@
 {extends file='../_.htm'}
 
 {block name=title}{if $permission->getPermission($obj, 'show') > 0}Beitrag im Thema &raquo;{$obj->thread->name|escape:'htmlall'}&laquo; bearbeiten{else}Zugriff nicht gestattet{/if}{/block}
+{block name=alttitle}Beitrag bearbeiten{/block}
 {block name=css}thread{/block}
+{block name=js}
+<!-- SCEditor -->
+<script type="text/javascript" src="{$config->url}/templates/standard/_js/sceditor/development/jquery.sceditor.bbcode.js"></script>
+<script type="text/javascript" src="{$config->url}/templates/standard/_js/sceditor/languages/de.js"></script>
+<!-- SCEditor skin -->
+<link rel="stylesheet" type="text/css" href="{$config->url}/templates/standard/_js/sceditor/development/themes/square.css" />
+<script type="text/javascript">
+configurl = "{$config->url}";
+</script>
+<script type="text/javascript" src="{$config->url}/templates/standard/_js/sceditor/jquery.sceditor.drakestrin.js"></script>
+{/block}
 {block name=path}
-{include file='../_function/breadcrumbs.htm'}
- &raquo; <a href="{$config->url}/board">Forum</a>{if $permission->getPermission($obj, 'show') > 0 and $obj->thread->board != '0'}{breadcrumbs data=$obj->thread->board url='board/view' parent='board'} &raquo; <a href="{$config->url}/thread/view/{$obj->thread}">{$obj->thread->name}</a>{/if}{/block}
+{append var=path value=$obj->thread->name index=join('/', array('thread/view', $obj->thread))}
+{assign var=pathdata value=$obj->thread->board}
+{while $pathdata}
+{append var=path value=$pathdata->name index=join(':', array('board/filter/board', $pathdata))}
+{assign var=pathdata value=$pathdata->board}
+{/while}
+{append var=path value='Forum' index='board'}
+{/block}
 {block name=content}
 {if $permission->getPermission($obj, 'show') > 0 && ($permission->getPermission($obj, 'editpost') == 2 || ($permission->getPermission($obj, 'editpost') == 1 && $user->id == $obj->user->id))}
+<div class="post">
 <form name="editpost" action="{$config->url}/post/edit/{$obj}" method="post">
-<textarea name="message">{$obj->message|escape:'htmlall'}</textarea>
+<div class="post-charselect">
+<ul>
+{foreach $obj->user->character as $char}
+<li>
+<input name="character" value="{$char}" id="char-{$char}" type="radio"{if $obj->character->id == $char->id} checked="checked"{/if}/>
+<label for="char-{$char}"><img src="{$config->url}/img/character_avatar.id/thumb/{if $char->avatar}{$char}{elseif ctype_alpha($char->name[0])}i/{$char->name[0]|lower}{else}i/_{/if}.jpg" title="{$char->name|escape:'htmlall'}" /></label>
+</li>
+{/foreach}
+</ul>
+</div>
+<textarea class="textarea-bbcode" name="message">{$obj->message|escape:'htmlall'}</textarea>
 <input type="submit" value="Beitrag bearbeiten" />
 </form>
+</div>
 {else}
 <h3>Zugriff nicht gestattet!</h3>
 <p>Leider ist Dir der Zugriff auf diese Seite nicht gestattet. Dir fehlen die daf&uuml;r erforderlichen Rechte. Wenn Du glaubst, dass es sich dabei um einen Fehler handelt, benachrichtige bitte den Administrator.</p>

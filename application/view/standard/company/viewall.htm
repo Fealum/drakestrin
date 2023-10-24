@@ -1,0 +1,11 @@
+{extends file='../_.htm'}
+
+{block name=title}Kontor{/block}
+{block name=content}
+
+<ol class="companies">
+{foreach $obj->data as $value}
+<li><a href="{$config->url}/company/view/{$value}">{$value->name}</a></li>
+{/foreach}
+</ol>
+{/block}

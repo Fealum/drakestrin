@@ -16,11 +16,14 @@ $(document).ready(function () {
     });
 });
 </script>{/block}
-{block name=path} &rarr; <a href="{$config->url}/dictionary">Diktionar</a> &rarr; <a href="{$config->url}/dictionary/view/{$obj}">{$obj->word|escape:htmlall}</a>{/block}
+{block name=path}
+{append var=path value=$obj->word index=join('/', array('dictionary/view', $obj))}
+{append var=path value='Diktionar' index='dictionary'}
+{/block}
 {block name=content}
 {include file='../_function/textinput.htm'}
 <form name="createdictionarykey" action="{$config->url}/dictionary/createkey/{$obj}" method="post">
-{textinput formname='createdictionarykey' inputname='word' displayname='Zu verkn&uuml;pfende Wort-ID' autofocus=true}
+{call textinput formname='createdictionarykey' inputname='word' displayname='Zu verkn&uuml;pfende Wort-ID' autofocus=true}
 <label for="bijective">Bijektiv: </label><input type="checkbox" name="bijective" id="bijective" value="1" checked="checked" />
 <p><input type="submit" value="Neue Verkn&uuml;pfung erstellen" name="submit" /></p>
 </form>

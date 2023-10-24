@@ -8,9 +8,9 @@ class UserModel extends Model {
 		'regemail' => 'string',
 		'regdate' => 'int',
 		'lastvisit' => 'int',
-		'signature' => 'string',
+		'lastactivity' => 'int',
 		'birthday' => 'int',
-		'avatar' => 'int',
+		'character__avatar' => 'parent',
 		'interests' => 'string',
 		'location' => 'string',
 		'work' => 'string',
@@ -24,6 +24,7 @@ class UserModel extends Model {
 		'post' => 'children',
 		'user_contact' => 'children',
 		'company' => 'children',
+		'character' => 'children',
 		'inventory___owner' => 'mchildren',
 		'permission___recipient' => 'mchildren',
 		'configuration___recipient' => 'mchildren'
@@ -31,7 +32,8 @@ class UserModel extends Model {
 	
 	protected $dataorder = array(
 		'group' => array('priority,a;name,a', array('priority' => 'priority', 'name' => 'LOWER(name)')),
-		'user_contact' => array('protocol,a;contact,a', array('protocol' => 'protocol', 'contact' => 'contact'))
+		'user_contact' => array('protocol,a;contact,a', array('protocol' => 'protocol', 'contact' => 'contact')),
+		'character' => array('posts,d;name,a', array('posts' => 'post__total', 'name' => 'LOWER(name)'))
 	);
 
 	public function check_password($password) {
@@ -42,6 +44,6 @@ class UserModel extends Model {
 	
 	public function return_password() {
 		$this->select();
-		return md5($this->data['password']);
+		return $this->data['password'];
 	}
 }

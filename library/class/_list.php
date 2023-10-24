@@ -2,10 +2,17 @@
 class _list {
 	protected $table, $data, $source = STDSOURCE;
 
-	public function __construct($table, $where = NULL, $order = NULL, $limit__count = '', $limit__offset = '') {
+	public function __construct($table, $where = NULL, $order = NULL, $limit = array('', ''), $permission = false, $group = NULL, $idcol = 'id') {
 		$this->table = $table;
-		$query = Source::getInstance($this->source)->select($this->table, $where, array('id'), $order, $limit__count, $limit__offset);
-		if (is_array($query)) foreach ($query as $result) $this->data[] = Cache::_(getModelNameFromObject($this->table), $result['id']);
+		$query = Source::getInstance($this->source)->select($this->table, $where, array($idcol), $order, $limit, $group);
+		if (!empty($query)) {
+			foreach ($query as $result) {
+				$obj = Cache::_(getModelNameFromObject($this->table), $result[$idcol]);
+				if (!$permission || $permission && Permission::getPermission($obj, 'show') > 0) {
+					$this->data[] = $obj;
+				}
+			}
+		}
 		else $this->data = NULL;
 	}
 

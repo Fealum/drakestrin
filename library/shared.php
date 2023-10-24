@@ -29,8 +29,8 @@ function setReporting() {
 
 /**
  * Check for Magic Quotes and remove them
- * @param unknown_type $value
- * @return Ambigous <multitype:, string>
+ * @param string $value
+ * @return mixed <multitype:, string>
  **/
 
 function stripSlashesDeep($value) {
@@ -39,11 +39,7 @@ function stripSlashesDeep($value) {
 }
 
 function removeMagicQuotes() {
-	if (get_magic_quotes_gpc()) {
-		$_GET = stripSlashesDeep($_GET);
-		$_POST = stripSlashesDeep($_POST);
-		$_COOKIE = stripSlashesDeep($_COOKIE);
-	}
+	return true;
 }
 
 /** Check register globals and remove them **/
@@ -86,12 +82,12 @@ function utf8ify($str){
     elseif(($ord&0xE0)===0xC0 && $ord>0xC1) $n = 1; // 110bbbbb (exkl C0-C1)
     elseif(($ord&0xF0)===0xE0) $n = 2; // 1110bbbb
     elseif(($ord&0xF8)===0xF0 && $ord<0xF5) $n = 3; // 11110bbb (exkl F5-FF)
-    else return utf8_encode($str); // ungültiges UTF-8-Zeichen
+    else return utf8_encode($str); // ungï¿½ltiges UTF-8-Zeichen
     for($c=0; $c<$n; $c++) // $n Folgebytes? // 10bbbbbb
       if(++$i===$strlen || (ord($str[$i])&0xC0)!==0x80)
-        return utf8_encode($str); // ungültiges UTF-8-Zeichen
+        return utf8_encode($str); // ungï¿½ltiges UTF-8-Zeichen
   }
-  return $str; // kein ungültiges UTF-8-Zeichen gefunden
+  return $str; // kein ungï¿½ltiges UTF-8-Zeichen gefunden
 }
 
 /**
@@ -146,12 +142,16 @@ function callHook() {
 	$queryString = $urlArray;
 
 	$controller = getControllerNameFromObject($object);
-	$dispatch = new $controller(getModelNameFromObject($object), $object, $action);
+	
+	if ((int)method_exists($controller, $action)) {
+		$dispatch = new $controller(getModelNameFromObject($object), $object, $action);
 
-	if ((int)method_exists($controller, $action)) 
 		call_user_func_array(array($dispatch, $action), $queryString);
+	}
 	else {
 		/* TODO: Error Generation Code Here */
+		echo "Error 404: Page not found";
+		exit;
 	}
 }
 

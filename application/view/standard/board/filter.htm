@@ -1,0 +1,118 @@
+{extends file='../_.htm'}
+
+{block name=title}Forum{/block}
+{block name=css}board{/block}
+{block name=js}<script type="text/javascript" src="{$config->url}/templates/standard/_js/tokeninput/src/jquery.tokeninput.js"></script>
+<script type="text/javascript">
+$(document).ready(function () {
+	
+	$("a.contrexp").click(function( event ) {
+		  event.preventDefault();
+		  var clicked = $(this);
+		  var showstatus = clicked.hasClass("fa-toggle-right") ? 1 : 0;
+		  clicked.removeClass((showstatus == 1) ? "fa-toggle-right" : "fa-toggle-down");
+		  clicked.addClass("fa-refresh");
+		  clicked.addClass("fa-spin");
+		  $.get( clicked.attr('href') + "/" + showstatus + "/1", function( data ) {
+			  clicked.removeClass("fa-refresh");
+			  clicked.removeClass("fa-spin");
+			  clicked.addClass((data == "1") ? "fa-toggle-down" : "fa-toggle-right");
+			  clicked.parent().children("ol").slideToggle();
+			});
+		});
+
+	$("#user_first").tokenInput("{$config->url}/board/ajax__getusers/", {
+		method: "post",
+		preventDuplicates: true,
+		hintText: "Bitte gib den Namen oder die ID eines Nutzers ein",
+		noResultsText: "Nichts gefunden!",
+		searchingText: "Sucht &hellip;",
+		propertyToSearch: "name",
+		resultsFormatter: function(item) { return '<li><img src="{$config->url}/img/character_avatar.id/thumb/' + item.avatar + '.jpg" /> ' + item.name + '</li>' },
+		tokenFormatter: function(item) { return '<li><img src="{$config->url}/img/character_avatar.id/thumb/' + item.avatar + '.jpg" /> ' + item.name + '</li>' }{nocache}{if isset($userfilter.f)},
+		prePopulate: [
+			{foreach $userfilter.f as $i}{ldelim}id: {$i}, name: "{$i->name}", avatar: "{if $i->character__avatar}{$i->character__avatar}{elseif ctype_alpha($i->name[0])}i/{$i->name[0]|lower}{else}i/_{/if}"{rdelim}{if !$i@last},{/if}{/foreach}
+		]{/if}{/nocache}
+    });
+	$("#user_contains").tokenInput("{$config->url}/board/ajax__getusers/", {
+		method: "post",
+		preventDuplicates: true,
+		hintText: "Bitte gib den Namen oder die ID eines Nutzers ein",
+		noResultsText: "Nichts gefunden!",
+		searchingText: "Sucht &hellip;",
+		propertyToSearch: "name",
+		resultsFormatter: function(item) { return '<li><img src="{$config->url}/img/character_avatar.id/thumb/' + item.avatar + '.jpg" /> ' + item.name + '</li>' },
+		tokenFormatter: function(item) { return '<li><img src="{$config->url}/img/character_avatar.id/thumb/' + item.avatar + '.jpg" /> ' + item.name + '</li>' }{nocache}{if isset($userfilter.c)},
+		prePopulate: [
+			{foreach $userfilter.c as $i}{ldelim}id: {$i}, name: "{$i->name}", avatar: "{if $i->character__avatar}{$i->character__avatar}{elseif ctype_alpha($i->name[0])}i/{$i->name[0]|lower}{else}i/_{/if}"{rdelim}{if !$i@last},{/if}{/foreach}
+		]{/if}{/nocache}
+    });
+	$("#user_last").tokenInput("{$config->url}/board/ajax__getusers/", {
+		method: "post",
+		preventDuplicates: true,
+		hintText: "Bitte gib den Namen oder die ID eines Nutzers ein",
+		noResultsText: "Nichts gefunden!",
+		searchingText: "Sucht &hellip;",
+		propertyToSearch: "name",
+		resultsFormatter: function(item) { return '<li><img src="{$config->url}/img/character_avatar.id/thumb/' + item.avatar + '.jpg" /> ' + item.name + '</li>' },
+		tokenFormatter: function(item) { return '<li><img src="{$config->url}/img/character_avatar.id/thumb/' + item.avatar + '.jpg" /> ' + item.name + '</li>' }{nocache}{if isset($userfilter.l)},
+		prePopulate: [
+			{foreach $userfilter.l as $i}{ldelim}id: {$i}, name: "{$i->name}", avatar: "{if $i->character__avatar}{$i->character__avatar}{elseif ctype_alpha($i->name[0])}i/{$i->name[0]|lower}{else}i/_{/if}"{rdelim}{if !$i@last},{/if}{/foreach}
+		]{/if}{/nocache}
+    });
+});
+</script>{/block}
+{block name=content}
+{function bit_thread}
+{include file='../_function/datetime.htm'}
+<ol>
+{foreach name=threads item=value from=$data}
+{if $value@iteration > (($page - 1) * $entries) && $value@iteration <= (($page) * $entries)}
+{if !$value->thread}{assign var="threadid" value=$value->id}{else}{assign var="threadid" value=$value->thread->id}{/if}
+{if $value->name}	<li>
+		<h4><a href="{$config->url}/thread/view/{$threadid}">{if isset($user) and $value->post__last_time >= $user->lastvisit and ((isset($viewed[1][$threadid]) and $viewed[1][$threadid] < $value->post__last_time) or !isset($viewed[1][$threadid]))}<span class="option new">(Neu)</span> {/if}{if $value->important}<span class="important">Wichtig</span>{/if}{$value->name|escape:'htmlall'}</a></h4>
+		<p class="small"><a href="{$config->url}/user/character/{$value->post__first->character}"><img src="{$config->url}/img/character_avatar.id/thumb/{if $value->post__first->character->avatar}{$value->post__first->character}{elseif ctype_alpha($value->post__first->character->name[0])}i/{$value->post__first->character->name[0]|lower}{else}i/_{/if}.jpg" />{$value->post__first->character->name|escape:'htmlall'}</a>; {call datetime value=$value->post__first->time}<br />im Forum <a href="{$config->url}/board/filter/board:{$value->board}">{$value->board->name}</a></p>
+		<p class="small"><a href="{$config->url}/user/character/{$value->post__last->character}"><img src="{$config->url}/img/character_avatar.id/thumb/{if $value->post__last->character->avatar}{$value->post__last->character}{elseif ctype_alpha($value->post__last->character->name[0])}i/{$value->post__last->character->name[0]|lower}{else}i/_{/if}.jpg" />{$value->post__last->character->name|escape:'htmlall'}</a>; <a href="{$config->url}/thread/view/{if !$value->thread}{$value->id}{else}{$value->thread}{/if}/last#post{$value->post__last}">{call datetime value=$value->post__last_time}</a><br />{$value->views|number_format:0:",":"."} Aufrufe und {if $value->post__total == 1}ein Beitrag{else}{$value->post__total|number_format:0:",":"."} Beitr&auml;ge{/if}</p>
+	</li>
+{/if}
+{elseif $value@iteration > (($page) * $entries)}{break}{/if}
+{/foreach}
+</ol>
+{/function}
+{include file='../_function/pagination.htm'}
+{function bit_board show=1}
+<ol{if $show == '0'} style="display: none;"{/if}>
+{foreach $data as $board}	<li>
+		{assign var=boardid value=$board->id} 
+		<input type="checkbox" name="board[]" value="{$board}" id="board-{$board}"{if isset($filter.board.$boardid)} checked="checked"{/if} />{if $board->board__1 && isset($user)}<a href="{$config->url}/board/changeshow/{$board}" class="contrexp fa fa-toggle-{if $configuration->getConfiguration($board, 'show') != '0'}down">verk&uuml;rzen{else}right">erweitern{/if}</a>{/if}<label for="board-{$board}">{$board->name|escape:'htmlall'}</label>
+{if $board->board__1}{bit_board data=$board->board__1 show=($configuration->getConfiguration($board, 'show'))}{/if}
+	</li>
+{/foreach}
+</ol>
+{/function}
+<div id="filter">
+	<form method=post action="{$config->url}/board/setfilter/">
+		<input type="text" name="title" placeholder="Thementitel &hellip;"{if isset($filter.title)} value="{$filter.title|escape:'htmlall'}"{/if} />
+		<input type="text" name="message" placeholder="Beitrag &hellip;"{if isset($filter.message)} value="{$filter.message|escape:'htmlall'}"{/if} />
+		{bit_board data=$boards->data}
+		<p>Nutzer hat Thema er&ouml;ffnet &hellip;</p>
+		<input type="text" class="userinput" id="user_first" name="user_first"{if isset($filter.user_first)} value="{','|implode:$filter.user_first|escape:'htmlall'}"{/if} />
+		<p>Nutzer hat im Thema geschrieben &hellip;</p>
+		<input type="text" class="userinput" id="user_contains" name="user_contains"{if isset($filter.user_contains)} value="{','|implode:$filter.user_contains|escape:'htmlall'}"{/if} />
+		<p>Nutzer hat letzten Beitrag geschrieben &hellip;</p>
+		<input type="text" class="userinput" id="user_last" name="user_last"{if isset($filter.user_last)} value="{','|implode:$filter.user_last|escape:'htmlall'}"{/if} />
+		<input type="submit" name="submit" value="Filtern" />
+	</form>
+</div>
+<div id="threads">
+{if $permission->getPermission(null, 'createthread') > 0}<p class="newthread"><a href="{$config->url}/thread/create" class="fa-comments">neues Thema</a></p>{/if}
+{if $obj->data}
+<p>{$obj->data|@count|number_format:0:",":"."} Ergebnis{if count($obj->data) != 1}se{/if}</p>
+{call pagination link="board/filter$filterstring" total=ceil((int)count($obj->data) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
+{bit_thread data=$obj->data page=$page entries=$configuration->getConfiguration($obj, 'pageentries')}
+{call pagination link="board/filter$filterstring" total=ceil((int)count($obj->data) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
+{else}
+<p>Keine Themen gefunden!</p>
+{/if}
+</div>
+{/block}

@@ -1,0 +1,67 @@
+{extends file='../_.htm'}
+
+{block name=title}{$obj->name}{/block}
+{block name=css}user_id{/block}
+{block name=path}
+{append var=path value=$obj->user->name index=join('/', array('user', 'view', $obj->user->id))}
+{append var=path value='Mitglieder' index='user'}
+{/block}
+{block name=content}
+{include file='../_function/datetime.htm'}
+{if $obj->avatar}<img src="{$config->url}/img/character_avatar.id/{$obj}.jpg" />{/if}
+{if $obj->usertext}<p id="usertext" {if $obj->usertext|count_characters > 80}class="usertext_long"{/if}>{$obj->usertext|escape:'htmlall'|nl2br}</p>{/if}
+<ol class="columns">
+	<li><h4>Aktivit&auml;t</h4>
+		<ol>
+			<li><em>Charakter erstellt:</em> {call datetime value=$obj->regdate}</li>
+			<li><em>&Uuml;bergeordneter Nutzer:</em> <a href="{$config->url}/user/view/{$obj->user}">{$obj->user->name|escape:'htmlall'}</a></li>
+{nocache}			<li><em>Beitr&auml;ge insgesamt:</em> <a href="{$config->url}/board/filter/char_contains:{$obj}">{$obj->post__total|number_format:0:",":"."}</a></li>
+			<li><em>Beitr&auml;ge pro Tag:</em> {($obj->post__total / (($smarty.now - $obj->regdate) / 86400))|number_format:2:",":"."}</li>{/nocache}
+		</ol>
+	</li>
+	<li><h4>Informationen{nocache}{if ($permission->getPermission($obj, 'edituser') == 2 || ($permission->getPermission($obj, 'edituser') == 1 && $user->id == $obj->user->id))} <a href="{$config->url}/user/editcharacter/{$obj}" class="option edit" title="editieren">editieren</a>{/if}{/nocache}</h4>
+		<ol>
+		{if $obj->gender > 0}
+			<li><em>Geschlecht:</em> {if $obj->gender == 1}m&auml;nnlich{else}weiblich{/if}</li>
+		{/if}
+		{if $obj->birthday > 0}
+			<li><em>Geburtstag:</em> {$obj->birthday}</li>
+		{/if}
+		{if $obj->location}
+			<li><em>Herkunft:</em> {$obj->location|escape:'htmlall'}</li>
+		{/if}
+		{if $obj->interests}
+			<li><em>Interessen:</em> {$obj->interests|escape:'htmlall'}</li>
+		{/if}
+		{if $obj->work}
+			<li><em>Amt oder Beruf:</em> {$obj->work|escape:'htmlall'}</li>
+		{/if}
+		</ol>
+	</li>
+{if $obj->territory}
+	<li><h4>Lehen</h4>
+		<ol>{foreach name=territories item=value from=$obj->territory}
+			<li class="territory_info"><a href="{$config->url}/territory/view/{$value}"><img src="{$config->url}/img/territory.id/{$value}.png" alt="Wappen von {$value->name|escape:'htmlall'}" /> {if $value->type == '1'}Kaiser{elseif $value->type == '2'}K&ouml;nig{if $obj->gender == 2}in{/if}{elseif $value->type == '3a'}Herzog{if $obj->gender == 2}in{/if}{elseif $value->type == '3b'}{if $obj->gender != 2}Graf{else}Gr&auml;fin{/if}{elseif $value->type == '3c'}Baron{if $obj->gender == 2}in{/if}{elseif $value->type == '4'}Statthalter{if $obj->gender == 2}in{/if}{elseif $value->type == '5'}Fauth{if $obj->gender == 2}in{/if}{/if} von {$value->name|escape:'htmlall'}</a></li>
+{/foreach}
+		</ol>
+	</li>{/if}
+{nocache}{if $obj->inventory___owner}
+<li><h4>Besitz</h4>
+<ol class="inventory">
+{foreach name=inventories item=value from=$obj->inventory___owner}
+	<li><img src="{$config->url}/img/item.img/{$value->item->img}.png" title="{$value->item->name|escape:'htmlall'}" />{if $value->stack > 0}<div>{$value->makeunitary()}</div>{/if}</li>
+{/foreach}
+</ol>
+</li>{/if}
+{/nocache}
+</ol>
+
+{if $obj->company}
+<h3>Betriebe</h3>
+<ol>
+{foreach name=companies item=value from=$obj->company}
+	<li><a href="{$config->url}/company/view/{$value}">{$value->name|escape:'htmlall'}</a>: {$value->description|escape:'htmlall'}</li>
+{/foreach}
+</ol>
+{/if}
+{/block}

@@ -1,3 +1,5 @@
 {function breadcrumbs}
-{if $data->$parent != '0'}{breadcrumbs data=$data->$parent url=$url parent=$parent}{/if} &rarr; {if $data->name}<a href="{$config->url}/{$url}/{$data}">{$data->name|escape:htmlall}{else}&hellip;{/if}</a>
+{if $data->name}
+{append var=path value=$data->name index=join('/', array($url, $data)) scope='global'}{/if}
+{if $data->$parent != '0'}{breadcrumbs data=$data->$parent url=$url parent=$parent}{/if}
 {/function}

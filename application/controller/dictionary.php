@@ -140,7 +140,7 @@ class DictionaryController extends Controller {
 
 	function ajax__getwords() {
 		$query = addslashes($this->post('q'));
-		$this->obj = new _list('dictionary', 'word LIKE "%'.$query.'%" OR id = "'.$query.'"', array('wordlength,a', array('wordlength' => 'LENGTH(word)')), 10);
+		$this->obj = new _list('dictionary', 'word LIKE "%'.$query.'%" OR id = "'.$query.'"', array('wordlength,a', array('wordlength' => 'LENGTH(word)')), array(10, null));
 		$this->set('query', $this->post('q'));
 		$this->set('obj', $this->obj);
 	}

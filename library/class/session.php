@@ -10,6 +10,7 @@ class Session {
 		if ($restore == TRUE && !isset($_SESSION[$this->name]) && isset($_COOKIE['savecookie_'.$this->name])) {
 			$cookie = json_decode($_COOKIE['savecookie_'.$this->name], TRUE);
 			$_SESSION[$this->name] = $cookie;
+			$this->__set('ip', $_SERVER['REMOTE_ADDR']);
 		}
 	}
 	
@@ -19,8 +20,6 @@ class Session {
 			return TRUE;
 		}
 		elseif ($this->__get('ip') != $_SERVER['REMOTE_ADDR']) {
-			echo $this->__get('ip');
-			echo $_SERVER['REMOTE_ADDR'];
 			$this->destroy();
 			return FALSE;
 		}

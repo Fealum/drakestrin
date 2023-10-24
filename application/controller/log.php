@@ -13,9 +13,22 @@ class LogController extends Controller {
 			if (!is_null($email) && isset($password)) {
 				$user = new UserModel;
 				if ($user->id_from_unique('email', $email)) {
-					if ($user->check_password(md5($password))) {
+					$passwordver = false;
+					if (substr($user->return_password(), 0, 1) == "$") {
+						if (password_verify($password, $user->return_password())) {
+							$passwordver = true;
+							if (password_needs_rehash($user->return_password(), PASSWORD_DEFAULT)) {
+								$user->update(array('password' => password_hash($password, PASSWORD_DEFAULT)));
+							}
+						}
+					}
+					elseif (md5($password) == $user->return_password()) {
+						$user->update(array('password' => password_hash($password, PASSWORD_DEFAULT)));
+						$passwordver = true;
+					}
+					if ($passwordver) {
 						$this->session->userid = $user->id;
-						$this->session->userpw = md5($password);
+						$this->session->userpw = $user->return_password();
 						$this->setnotice('log_in', 'success');
 						$this->move('board');
 					}
@@ -26,7 +39,7 @@ class LogController extends Controller {
 				}
 				else {
 					$this->set('logemail', $email);
-					$this->setnotice('log_wrongemail', 'error');
+					$this->setnotice('log_wrongpassword', 'error');
 					$this->_view->change('std');
 				}
 			}
@@ -89,7 +102,7 @@ class LogController extends Controller {
 				$this->setnotice('log_passwordnotidentical', 'error');
 				exit;
 			}
-			$user->update(array('password' => $password));
+			$user->update(array('password' => password_hash($password, PASSWORD_DEFAULT)));
 			$this->setnotice('log_passwordupdated', 'success');
 			$this->_view->change('std');
 		}

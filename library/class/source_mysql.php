@@ -42,24 +42,32 @@ class Source_MySQL {
 		return $order;
 	}
 	
-	public function select($table, $where = NULL, $fields = array('*'), $order = NULL, $limit__count = '', $limit__offset = '') {
-		$limit__count = (int)$limit__count;
-		if($limit__count > 0) {
-			if ($limit__offset > 0) $limit__count = 'LIMIT '.$limit__offset.','.$limit__count;
-			else $limit__count = 'LIMIT '.$limit__count;
-		}
-		else $limit__count = '';
+	public function select($table, $where = NULL, $fields = array('*'), $order = NULL, $limit = NULL, $group = NULL, $geomfields = NULL) {
+		if ($limit == NULL) $limit = array('', '');
+		$limit[0] = (int)$limit[0];
+		if($limit[0] > 0) 
+			$limit[0] = ($limit[1] > 0) ? 'LIMIT '.$limit[1].','.$limit[0] : 'LIMIT '.$limit[0];
+		else $limit[0] = '';
 
+		$grouporder = $order;
 		$order = $order ? $this->createorder($order) : 'ORDER BY id';
+		$group = $group ? 'GROUP BY `'.$group.'`'.($grouporder ? ', `'.join('`, `', $grouporder[1]).'`' : '') : '';
 		if (is_int($where)) $where = 'WHERE id = '.$where;
 		elseif (!is_null($where)) $where = 'WHERE '.$where;
+		if ($geomfields != NULL) {
+			foreach ($geomfields as $key => $val)
+				$geomfields[$key] = 'ST_AsBinary(`'.$val.'`) AS '.$val;	
+			$geomfields = ', ' . join('`), ST_AsBinary(`', $geomfields);
+		}
 		$result = $this->query('
-			SELECT '.join(', ', $fields).'
+			SELECT `'.join('`, `', $fields).'`'.$geomfields.'
 			FROM `'.$this->p.$table.'`
 			'.$where.'
+			'.$group.'
 			'.$order.'
-			'.$limit__count.'
+			'.$limit[0].'
 		');
+
 		if ($result == true) {
 			$data = array();
 			while ($row = $result->fetch_array(MYSQLI_ASSOC)) $data[] = $row;

@@ -33,7 +33,7 @@ class EncyclopediaController extends Controller {
 			$this->_view->change('view');
 			exit;
 		}
-		$encyclopedia = array('name' => $this->post('name'), 'title' => $this->post('title'), 'encyclopedia' => $this->obj->id, 'text' => $this->post('text'), 'user' => $this->user->id, 'time' => time(), 'activated' => '1');
+		$encyclopedia = array('name' => trim($this->post('name')), 'title' => trim($this->post('title')), 'sort' => $this->post('sort'), 'encyclopedia' => $this->obj->id, 'text' => trim($this->post('text')), 'user' => $this->user->id, 'time' => time(), 'activated' => '1');
 		if ($encyclopedia['name'] && $encyclopedia['title'] && $encyclopedia['text']) {
 			$newencyclopedia = new EncyclopediaModel(NULL, $encyclopedia);
 			$this->clearrecursivecache($this->obj);
@@ -49,13 +49,19 @@ class EncyclopediaController extends Controller {
 			$this->_view->change('view');
 			exit;
 		}
-		$encyclopedia = array('name' => $this->post('name'), 'title' => $this->post('title'), 'text' => $this->post('text'));
+		$encyclopedia = array('encyclopedia' => $this->post('encyclopedia'), 'name' => trim($this->post('name')), 'title' => trim($this->post('title')), 'sort' => $this->post('sort'), 'text' => trim($this->post('text')));
 		if ($encyclopedia['name'] && $encyclopedia['title'] && $encyclopedia['text']) {
-			if($encyclopedia['name'] != $this->obj->name) $this->clearrecursivecache($this->obj);
+			if($encyclopedia['name'] != $this->obj->name || $encyclopedia['encyclopedia'] != $this->obj->encyclopedia->id) {
+				$this->clearrecursivecache($this->obj);
+				$prevenc = $this->obj->encyclopedia->id;
+			}
 			else $this->_view->clear('view', $this->obj->id);
 			$this->obj->update($encyclopedia);
+			if($prevenc != $this->obj->encyclopedia->id) $this->clearrecursivecache($this->obj);
 			$this->move('encyclopedia/view/'.$this->obj->id);
 		}
+		$pages = new _list('encyclopedia', 'encyclopedia = 0');
+		$this->set('pages', $pages);
 	}
 
 	function delete($id = 1) {
