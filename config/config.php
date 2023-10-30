@@ -11,7 +11,7 @@ define('DEVELOPMENT_ENVIRONMENT', true);
 
 define('STDSOURCE', 'mysql1');
 
-$config = array(
+$config = (object) array(
 	'title' => 'Kaiserreich Drachenstein',
 	'url' => $_ENV['URL'],
 	'niceurl' => $_ENV['NICEURL'],
@@ -26,8 +26,6 @@ $config = array(
 	'avatarsize' => 100000,
 	'salt' => $_ENV['SALT']
 );
-
-$config = (object) $config;
 
 $tables = array(
 	0 => 'user',

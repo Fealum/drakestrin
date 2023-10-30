@@ -48,7 +48,7 @@ abstract class Model {
 		if ($name == 'id') $this->id = (int)$value;
 		elseif (in_array($this->datatypes[$name], array('int', 'string'))) settype($value, $this->datatypes[$name]);
 		if ($name != 'id' && isset($this->datatypes[$name])) {
-			if ($this->datatypes[$name] == 'geom') $this->data[$name] = ($value != NULL) ? geo::load($value,'wkb') : NULL;
+			if ($this->datatypes[$name] == 'geom') $this->data[$name] = ($value != NULL) ? Geo::load($value,'wkb') : NULL;
 			else $this->data[$name] = $value;
 		}
 	}
