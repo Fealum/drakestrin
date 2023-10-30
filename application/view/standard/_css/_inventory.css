@@ -1,12 +1,12 @@
 @charset "utf-8";
 
-div#content ol.inventory {
+main ol.inventory {
 	list-style-type: none;
 	padding:0px;
 	margin:0px;
 }
 
-div#content ol.inventory li {
+main ol.inventory li {
 	width: 60px;
 	height: 60px;
 	padding: 0;
@@ -19,11 +19,11 @@ div#content ol.inventory li {
 	transition: border-color .7s;
 }
 
-div#content ol.inventory li:hover {
+main ol.inventory li:hover {
 	border: 1px solid #aaa;
 }
 
-div#content ol.inventory li img {
+main ol.inventory li img {
 	width: 60px;
 	height: 60px;
 	position: absolute;
@@ -31,7 +31,7 @@ div#content ol.inventory li img {
 	left: 1px;
 }
 
-div#content ol.inventory li div {
+main ol.inventory li div {
 	z-index: 2;
 	position: absolute;
 	bottom: 2px;

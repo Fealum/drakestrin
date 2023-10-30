@@ -2,26 +2,26 @@
 @import url('_.css');
 @import url('_options.css');
 
-#content ol {
+main ol {
 	list-style-type: none;
 }
 
-#content > ol {
+main > ol {
 	padding: 0px;
 }
 
-#content > ol:hover > li {
+main > ol:hover > li {
 	opacity: 0.5;
 	transition: opacity .25s ease-in-out;
 	-moz-transition: opacity .25s ease-in-out;
 	-webkit-transition: opacity .25s ease-in-out;
 }
 
-#content > ol > li:hover {
+main > ol > li:hover {
 	opacity: 1;
 }
 
-#content > ol > li {
+main > ol > li {
 	color: #d40000;
 	margin: 0;
 	padding-bottom: 30px;
@@ -39,7 +39,7 @@
 	background-size: contain;
 }
 
-#content > ol > li > a {
+main > ol > li > a {
 	display: block;
 	color: white;
 	text-shadow: 0px 0px 4px rgba(0, 0, 0, 1);
@@ -47,12 +47,12 @@
 	padding: 5%;
 }
 
-#content > ol a:hover {
+main > ol a:hover {
 	background: none;
 	text-decoration: underline;
 }
 
-#content > ol > li > ol {
+main > ol > li > ol {
 	margin-left: 20%;
 	column-width: 210px;
 	-moz-column-width: 210px;
@@ -66,18 +66,18 @@
 	text-shadow: 0px 0px 2px rgba(255, 255, 255, 1);
 }
 
-#content > ol > li > ol > li {
+main > ol > li > ol > li {
 	font-weight: bold;
 	display: inline-block;
 	width: 100%;
 }
 
-#content > ol > li > ol > li ol {
+main > ol > li > ol > li ol {
 	font-weight: normal;
 	padding: 0;
 }
 
-#content > ol > li > ol > li ol ol {
+main > ol > li > ol > li ol ol {
 	padding-left: 1em;
 }
 

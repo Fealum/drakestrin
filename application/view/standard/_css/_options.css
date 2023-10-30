@@ -1,6 +1,6 @@
 @charset "utf-8";
 
-div#content .option {
+main .option {
 	height: 13px;
 	width: 13px;
 	display: inline-block;
@@ -9,82 +9,82 @@ div#content .option {
 	text-indent: 9999px;
 }
 
-div#content .option.edit {
+main .option.edit {
 	background-position: 0px 0px;
 }
 
-div#content .option.edit:hover {
+main .option.edit:hover {
 	background-position: 0px -15px;
 }
 
-div#content .option.quote {
+main .option.quote {
 	background-position: -15px 0px;
 }
 
-div#content .option.quote:hover {
+main .option.quote:hover {
 	background-position: -15px -15px;
 }
 
-div#content .option.report {
+main .option.report {
 	background-position: -30px 0px;
 }
 
-div#content .option.report:hover {
+main .option.report:hover {
 	background-position: -30px -15px;
 }
 
-div#content .option.ip {
+main .option.ip {
 	background-position: -45px 0px;
 }
 
-div#content .option.ip:hover {
+main .option.ip:hover {
 	background-position: -45px -15px;
 }
 
-div#content .option.create {
+main .option.create {
 	background-position: -60px 0px;
 }
 
-div#content .option.create:hover {
+main .option.create:hover {
 	background-position: -60px -15px;
 }
 
-div#content .option.delete {
+main .option.delete {
 	background-position: -75px 0px;
 }
 
-div#content .option.delete:hover {
+main .option.delete:hover {
 	background-position: -75px -15px;
 }
 
-div#content .option.permission {
+main .option.permission {
 	background-position: -90px 0px;
 }
 
-div#content .option.permission:hover {
+main .option.permission:hover {
 	background-position: -90px -15px;
 }
 
-div#content .option.expand {
+main .option.expand {
 	background-position: -105px 0px;
 }
 
-div#content .option.expand:hover {
+main .option.expand:hover {
 	background-position: -105px -15px;
 }
 
-div#content .option.contract {
+main .option.contract {
 	background-position: -120px 0px;
 }
 
-div#content .option.contract:hover {
+main .option.contract:hover {
 	background-position: -120px -15px;
 }
 
-div#content .option.new {
+main .option.new {
 	background-position: -135px 0px;
 }
 
-div#content .option.new:hover {
+main .option.new:hover {
 	background-position: -135px 0px;
 }

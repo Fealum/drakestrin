@@ -2,27 +2,27 @@
 @import url('_.css');
 @import url('_options.css');
 
-#content > img {
+main > img {
 	position: absolute;
 	width: 100px;
 	margin-top: 15px;
 }
 
-#content > p {
+main > p {
 	font: 0.75em/1em Linux Biolinum;
 }
 
-#content ol {
+main ol {
 	list-style-type: none;
 }
 
-#content > ol{
+main > ol{
 	margin-left: 130px;
 	min-height: 125px;
 	padding: 0px;
 }
 
-#content > ol#territory_children {
+#main > ol#territory_children {
 	column-width: 210px;
 	-moz-column-width: 210px;
 	-webkit-column-width: 210px;

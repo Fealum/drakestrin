@@ -1,24 +1,25 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="de">
+<!DOCTYPE html>
+<html lang="de" class="no-js">
 <head>
-<meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<title>{block name=title}{/block} | {$config->title}</title>
-<meta http-equiv="language" content="deutsch, de" />
-<meta name="keywords" content="Drachenstein, Kaiserreich, Mikronation, Virtuelle Nation, Forenrollenspiel, Forumrollenspiel, Rollenspiel, Browserspiel, Browser-Rollenspiel, Mittelalter, Fantasy, Drache, kostenlos, Kaiser, Veuxin, Hobbit, Vampir" />
-<meta name="Description" content="Das Kaiserreich Drachenstein ist eine sogenannte Micronation, ein Browser-basiertes Rollenspiel, in dem ein virtueller mittelalterlicher Fantasy-Staat simuliert wird. " />
-<meta name="Author" content="Fabian Müller" />
-<meta name="copyright" content="Fabian Müller" />
-<meta name="page-topic" content="Unterhaltung" />
-<meta name="revisit-after" content="14 days" />
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="imagetoolbar" content="false" />
-<link rel="stylesheet" type="text/css" href="{$config->url}/templates/standard/_css/_header{nocache}{random in=1 out=6}{/nocache}.css" />
-<link rel="stylesheet" type="text/css" href="{$config->url}/templates/standard/_css/{block name=css}_{/block}.css" />
-{block name=morecss}{/block}
-<link rel="alternate" type="application/rss+xml" title="{$config->title} RSS-Feed" href="rss.php" />
-<link rel="icon" href="{$config->url}/templates/standard/_img/favicon.ico" type="image/x-icon" />
-<link rel="shortcut icon" href="{$config->url}/templates/standard/_img/favicon.ico" type="image/x-icon" />
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+	<title>{block name=title}{/block} | {$config->title}</title>
+
+	<script type="module">
+		document.documentElement.classList.remove('no-js');
+		document.documentElement.classList.add('js');
+	</script>
+
+	<link rel="stylesheet" type="text/css" href="{$config->url}/templates/standard/_css/_header{nocache}{random in=1 out=6}{/nocache}.css" />
+	<link rel="stylesheet" type="text/css" href="{$config->url}/templates/standard/_css/{block name=css}_{/block}.css" />
+	{block name=morecss}{/block}
+
+	<meta name="description" content="Das Kaiserreich Drachenstein ist eine sogenannte Micronation, ein Browser-basiertes Rollenspiel, in dem ein virtueller mittelalterlicher Fantasy-Staat simuliert wird. " />
+	<meta name="keywords" content="Drachenstein, Kaiserreich, Mikronation, Virtuelle Nation, Forenrollenspiel, Forumrollenspiel, Rollenspiel, Browserspiel, Browser-Rollenspiel, Mittelalter, Fantasy, Drache, kostenlos, Kaiser, Hobbit, Vampir, Elb, Elf" />
+
+	<link rel="icon" href="{$config->url}/templates/standard/_img/favicon.ico" type="image/x-icon" />
+	<link rel="shortcut icon" href="{$config->url}/templates/standard/_img/favicon.ico" type="image/x-icon" />
 <script
 			  src="https://code.jquery.com/jquery-2.2.4.min.js"
 			  integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
@@ -49,11 +50,10 @@ $(document).ready(function () {
 {block name=js}{/block}
 </head>
 <body>
-	<div id="wrapper">
-		<div id="ornament"></div>
-		<h1><a href="{$config->url}">Kaiserreich<br />Drachenstein</a></h1>
-		<a class="nav-open" id="nav-open" href="#nav">Zur Navigation</a>
-		<div id="nav">
+	<h1><a href="{$config->url}">Kaiserreich Drachenstein</a></h1>
+	<header>
+		<nav>
+			<a class="nav-open" id="nav-open" href="#nav">Zur Navigation</a>
 			<ul>
 				<li><a href="{$config->url}/encyclopedia">Kompendium</a></li>
 				<li><a href="{$config->url}/board">Forum</a></li>
@@ -63,75 +63,75 @@ $(document).ready(function () {
 				<li><a href="{$config->url}/dictionary">Diktionar</a></li>
 			</ul>
 			<a class="nav-close" id="nav-close" href="#nav-open">Nach oben</a>
-		</div>
+		</nav>
+		{nocache}	<div id="userbar"><div id="userbarcontent"{if isset($user)} class="user-loggedin"{/if}>
+			{if isset($user)}
+				<a id="notifypic" href="#sidebar"><img src="{$config->url}/img/character_avatar.id/thumb/{if $user->character__avatar}{$user->character__avatar}{else}0{/if}.jpg" /></a>
+				{if $newconv->data}<a href="{$config->url}/conversation" class="fa-envelope newconv"> </a> {/if}Sali Vuz,<br />{$user->name}!
+			{else}
+				<form action="{$config->url}/log/in" method="post">
+					<input type="email" name="email" maxlength=85 placeholder="Email" tabindex=1 required>
+					<input type="password" placeholder="Passwort" name="password" maxlength=85 tabindex=2 required>
+					<input type="submit" class="fa-sign-in" value="Anmelden" name="submit" />
+				</form>
+				<a class="fa-plus-circle" href="{$config->url}/register">Registrieren</a> <a class="fa-question-circle" href="{$config->url}/log/forgotpw">Passwort vergessen</a>
+			{/if}
+				</div></div>{/nocache}
+	</header>
+	<main>
 		{block name=path}{/block}
 		<div id="breadcrumbs">{if isset($path)}<a href="{$config->url}/">{$config->title}</a> 
 		{foreach array_reverse($path) as $url=>$name}
 		/ <a href="{$config->url}/{$url}">{$name|escape:htmlall}</a>
 		{/foreach} / {block name=alttitle}{block name=title}{/block}{/block}{/if}</div>
-	{nocache}	<div id="userbar"><div id="userbarcontent"{if isset($user)} class="user-loggedin"{/if}>
-	{if isset($user)}
-		<a id="notifypic" href="#sidebar"><img src="{$config->url}/img/character_avatar.id/thumb/{if $user->character__avatar}{$user->character__avatar}{else}0{/if}.jpg" /></a>
-		{if $newconv->data}<a href="{$config->url}/conversation" class="fa-envelope newconv"> </a> {/if}Sali Vuz,<br />{$user->name}!
-	{else}
-		<form action="{$config->url}/log/in" method="post">
-			<input type="email" name="email" maxlength=85 placeholder="Email" tabindex=1 required>
-			<input type="password" placeholder="Passwort" name="password" maxlength=85 tabindex=2 required>
-			<input type="submit" class="fa-sign-in" value="Anmelden" name="submit" />
-		</form>
-		<a class="fa-plus-circle" href="{$config->url}/register">Registrieren</a> <a class="fa-question-circle" href="{$config->url}/log/forgotpw">Passwort vergessen</a>
-	{/if}
-		</div></div>{/nocache}
-		<div id="content">
 		<h2>{block name=title}{/block}</h2>
 		{nocache}{foreach $notice as $i}
 		<p class="notice notice_{$i.type}">{if $i.notice != ''}{include "./_notice/{$i.notice}.htm"}{else}Fehler bei der Notizerstellung: {var_dump($i)}{/if}</p>
 		{/foreach}{/nocache}
 		{block name=content}{/block}
-		</div>
-		<div id="sidebar">
-			{nocache}{if isset($user)}
-			<ul id="accountoptions">
-				<li><a href="{$config->url}/conversation" class="fa-envelope">Konversationen</a></li>
-				<li><a href="{$config->url}/user/view/{$user}" class="fa-user">Profil</a></li>
-				<li><a href="{$config->url}/log/out" class="fa-sign-out">Abmelden</a></li>
-			</ul>
-			{/if}{if $online->data}
-			<p id="online">
-				{foreach $online->data as $value}
-				<span>
-					<a href="{$config->url}/user/view/{$value->user}"><img src="{$config->url}/img/character_avatar.id/thumb/{if $value->user->character__avatar}{$value->user->character__avatar}{else}0{/if}.jpg" />{$value->user->name|escape:'htmlall'}</a>, {$value->time|date_format:$config->time}<br />
-		{if $value->controller == 'index'}
-			{if $value->action == 'std'}<a href="{$config->url}/{$value->controller}">Index</a>
-			{elseif $value->action == 'online'}<a href="{$config->url}/{$value->controller}/{$value->action}">Wer ist online?</a>
-			{else}Index, Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$value->action}</a>
-			{/if}
-		{elseif $value->controller == 'board'}
-			{if $value->action == 'filter'}<a href="{$config->url}/{$value->controller}">Foren&uuml;bersicht</a>
-			{else}Forum, Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$value->action}</a>
-			{/if}
-		{elseif $value->controller == 'thread'}
-			{if $value->action == 'view'}Thema: <a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>
-			{elseif $value->action == 'create'}Neues Thema erstellen
-			{elseif $value->action == 'edit'}Thema &raquo;<a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo; bearbeiten
-			{elseif $value->action == 'delete'}Thema &raquo;<a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo; l&ouml;schen
-			{else}Thema, Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$value->action}</a>
-			{/if}
-		{elseif $value->controller == 'user'}
-			{if $value->action == 'viewall'}<a href="{$config->url}/{$value->controller}/{$value->action}">Mitglieder&uuml;bersicht</a>
-			{elseif $value->action == 'view'}Mitglied &raquo;<a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo;
-			{elseif $value->action == 'edit'}Mitglied &raquo;<a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a> &laquo; bearbeiten
-			{else}Mitglieder, Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$value->action}</a>
-			{/if}
-		{else}Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$value->controller}/{$value->action}</a>
+	</main>
+	<aside id="sidebar">
+		{nocache}{if isset($user)}
+		<ul id="accountoptions">
+			<li><a href="{$config->url}/conversation" class="fa-envelope">Konversationen</a></li>
+			<li><a href="{$config->url}/user/view/{$user}" class="fa-user">Profil</a></li>
+			<li><a href="{$config->url}/log/out" class="fa-sign-out">Abmelden</a></li>
+		</ul>
+		{/if}{if $online->data}
+		<p id="online">
+			{foreach $online->data as $value}
+			<span>
+				<a href="{$config->url}/user/view/{$value->user}"><img src="{$config->url}/img/character_avatar.id/thumb/{if $value->user->character__avatar}{$value->user->character__avatar}{else}0{/if}.jpg" />{$value->user->name|escape:'htmlall'}</a>, {$value->time|date_format:$config->time}<br />
+	{if $value->controller == 'index'}
+		{if $value->action == 'std'}<a href="{$config->url}/{$value->controller}">Index</a>
+		{elseif $value->action == 'online'}<a href="{$config->url}/{$value->controller}/{$value->action}">Wer ist online?</a>
+		{else}Index, Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$value->action}</a>
 		{/if}
-				</span>
-				{/foreach}
-			</p>
-			{/if}{/nocache}
-			<a id="sidebar-close" href="#userbar">Nach oben</a>
-		</div>
-		<p class="disclaimer">Morikles 1.0 <span class="fa fa-paw"></span> Fabian M&uuml;ller, 2005&mdash;{$smarty.now|date_format:"%Y"}.<br /><a href="{$config->url}/static/help">Hilfe</a>, <a href="{$config->url}/static/terms">Nutzungsbedingungen</a>, <a href="{$config->url}/static/legal">Impressum</a>.</p>
-	</div>
+	{elseif $value->controller == 'board'}
+		{if $value->action == 'filter'}<a href="{$config->url}/{$value->controller}">Foren&uuml;bersicht</a>
+		{else}Forum, Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$value->action}</a>
+		{/if}
+	{elseif $value->controller == 'thread'}
+		{if $value->action == 'view'}Thema: <a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>
+		{elseif $value->action == 'create'}Neues Thema erstellen
+		{elseif $value->action == 'edit'}Thema &raquo;<a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo; bearbeiten
+		{elseif $value->action == 'delete'}Thema &raquo;<a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo; l&ouml;schen
+		{else}Thema, Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$value->action}</a>
+		{/if}
+	{elseif $value->controller == 'user'}
+		{if $value->action == 'viewall'}<a href="{$config->url}/{$value->controller}/{$value->action}">Mitglieder&uuml;bersicht</a>
+		{elseif $value->action == 'view'}Mitglied &raquo;<a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo;
+		{elseif $value->action == 'edit'}Mitglied &raquo;<a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a> &laquo; bearbeiten
+		{else}Mitglieder, Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$value->action}</a>
+		{/if}
+	{else}Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$value->controller}/{$value->action}</a>
+	{/if}
+			</span>
+			{/foreach}
+		</p>
+		{/if}{/nocache}
+		<a id="sidebar-close" href="#userbar">Nach oben</a>
+	</aside>
+	<footer>Drachenstein <span class="fa fa-paw"></span> Fabian M&uuml;ller, 2003&mdash;{$smarty.now|date_format:"%Y"}.<br /><a href="{$config->url}/static/help">Hilfe</a>, <a href="{$config->url}/static/terms">Nutzungsbedingungen</a>, <a href="{$config->url}/static/legal">Impressum</a>.</footer>
 </body>
 </html>

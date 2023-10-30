@@ -3,34 +3,34 @@
 @import url('_inventory.css');
 @import url('_options.css');
 
-div#content ol {
+main ol {
 	list-style-type: none;
 	padding:0px;
 	margin:0px;
 }
 
-div#content > ol.columns {
+main > ol.columns {
 	width: 100%;
 }
 
-div#content > ol.columns > li {
+main > ol.columns > li {
 	display: inline-block;
 	width: 100%;
 }
 
-div#content > ol.columns > li li {
+main > ol.columns > li li {
 	margin-left: 15px;
 	line-height: 1.4em;
 	margin-bottom: 0.4em;
 }
 
-div#content > ol.columns em {
+main > ol.columns em {
 	display: block;
 	margin-left: -15px;
 	font: 0.75em/1em Linux Biolinum;
 }
 
-div#content img {
+main img {
 	max-width: 140px;
 }
 
@@ -50,7 +50,7 @@ div#content img {
 	padding-top: 0;
 }
 
-div#content ol#user_characters {
+main ol#user_characters {
 	list-style-type: none;
 	padding:0px;
 	margin:0px;
@@ -61,7 +61,7 @@ div#content ol#user_characters {
 	position: relative;
 }
 
-div#content ol#user_characters li {
+main ol#user_characters li {
 	width: 100%;
 	padding-bottom: 5px;
 	border-bottom: 1px solid #aaa;
@@ -72,26 +72,26 @@ div#content ol#user_characters li {
 
 }
 
-div#content ol#user_characters li:last-child {
+main ol#user_characters li:last-child {
 	border-bottom: none;
 	margin-bottom: 0;
 	padding-bottom: 0;
 }
 
-div#content ol#user_characters img {
+main ol#user_characters img {
 	position: absolute;
 	left: -35px;
 	height: 30px;
 	width: 30px;
 }
 
-div#content ol#user_characters p {
+main ol#user_characters p {
 	clear: none;
 	padding-top: 0px;
 	margin-left: 35px;
 }
 
-div#content ol#user_characters li#morecharacters {
+main ol#user_characters li#morecharacters {
 	position: absolute;
 	bottom: 0;
 	background: #ddd;
@@ -106,12 +106,12 @@ div#content ol#user_characters li#morecharacters {
 	transition: opacity .7s, color .7s;
 }
 
-div#content ol#user_characters li#morecharacters:hover {
+main ol#user_characters li#morecharacters:hover {
 	opacity: 0.8;
 	color: #000;
 }
 
-div#content ol#user_characters li#createchar input[type="text"] {
+main ol#user_characters li#createchar input[type="text"] {
 	background: none;
 	color: #1a1a1a;
 	width: 60%;
@@ -121,7 +121,7 @@ div#content ol#user_characters li#createchar input[type="text"] {
 	margin-right: 5px;
 }
 
-div#content ol#user_characters li#createchar input[type="submit"] {
+main ol#user_characters li#createchar input[type="submit"] {
 	width: auto;
 	background: none;
 	font: 1em/1.25em Linux Biolinum, FontAwesome;
@@ -130,7 +130,7 @@ div#content ol#user_characters li#createchar input[type="submit"] {
 	transition: border .7s, color .7s;
 }
 
-div#content ol#user_characters li#createchar:hover input[type="submit"] {
+main ol#user_characters li#createchar:hover input[type="submit"] {
 	width: auto;
 	background: none;
 	font: 1em/1.25em Linux Biolinum, FontAwesome;
@@ -148,7 +148,7 @@ div#content ol#user_characters li#createchar:hover input[type="submit"] {
 	top: 0.2em;
 }
 
-div#content ol.columns > li > ol.inventory > li {
+main ol.columns > li > ol.inventory > li {
 	margin-left: 0px;
 	margin-bottom: 5px;
 }

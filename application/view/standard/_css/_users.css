@@ -1,12 +1,12 @@
 @charset "utf-8";
 
-div#content ol.users {
+main ol.users {
 	list-style-type: none;
 	padding:0px;
 	margin:0px;
 }
 
-div#content ol.users li {
+main ol.users li {
 	min-width:345px;
 	width: auto;
 	float:left;
@@ -16,14 +16,14 @@ div#content ol.users li {
 	margin-bottom: 5px;
 }
 
-div#content ol.users img {
+main ol.users img {
 	float: left;
 	height: 60px;
 	width: 60px;
 	margin-right: 5px;
 }
 
-div#content ol.users p {
+main ol.users p {
 	clear: none;
 	padding-top: 0px;
 }

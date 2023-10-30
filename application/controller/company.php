@@ -17,7 +17,45 @@ class CompanyController extends Controller {
 		$this->set('obj', $this->obj);
 	}
 	
-    function worker($id = 1) {
+// 	elseif($mode == 1) {
+// 	    $mtdata = $db_zugriff->query_first("SELECT * FROM bb".$n."_handlungen WHERE id = '$arbeit'");
+// 	    $adata = $db_zugriff->query_first("SELECT * FROM bb".$n."_arbeiter WHERE id = '$arbeiter'");
+// 	    $werkzeuge = ($mtdata[benwerkzeug]) ? objReturn(makeobjArray($mtdata[benwerkzeug]),$adata[betrieb]) : true;
+// 	    $rohstoffe = ($mtdata[benrohstoff]) ? objReturn(makeobjArray($mtdata[benrohstoff]),$adata[betrieb]) : true;
+// 	    if($werkzeuge && $rohstoffe) {
+// 	        if($mtdata[benwerkzeug]) objRelabel($werkzeuge,$adata[betrieb],2,"B");
+// 	        if($mtdata[benrohstoff]) objtrans($rohstoffe,$adata[betrieb],2,0,5);
+// 	        $bistime = $nowtime + $mtdata[benzeit];
+// 	        if($prodanzahl < 0 && $prodanzahl > 9999) $prodanzahl = 1;
+// 	        if($arbeitanzahl != "X") $arbeitanzahl = round($prodanzahl);
+// 	        if($verkprodals < 0) $verkprodals = 0;
+// 	        if($arbeitprodals == 0) $arbeitprodals = $verkprodals;
+// 	        if($arbeitprodals < 0 AND $arbeitprodals != "P" AND $arbeitprodals != "V") $arbeitprodals = "P";
+// 	        $instances = floor($instances);
+// 	        if($instances > $mtdata['auslastung']) $instances = $mtdata['auslastung'];
+// 	        elseif($instances < 1) $instances = 1;
+// 	        $taskquery = $db_zugriff->query("SELECT bb".$n."_handlungen.auslastung AS auslastung, bb".$n."_momtaetig.instances AS instances, bb".$n."_momtaetig.nextinsta AS nextinsta FROM bb".$n."_handlungen LEFT JOIN bb".$n."_momtaetig ON bb".$n."_momtaetig.handlungsid = bb".$n."_handlungen.id WHERE bb".$n."_momtaetig.arbeiterid = '$adata[id]'");
+// 	        while($task = $db_zugriff->fetch_array($taskquery)) {
+// 	            $auslastung = (1 / $task['auslastung']) * $task['instances'] + $auslastung;
+// 	            $nextauslastung =  (1 / $task['auslastung']) * $task['nextinsta'] + $nextauslastung;
+// 	        }
+// 	        $kapazitaet = floor((1 - $auslastung) * $mtdata['auslastung']);
+// 	        $nextkapazitaet = floor((1 - $nextauslastung) * $mtdata['auslastung']);
+// 	        if($instances > $kapazitaet || $instances > $nextkapazitaet) $instances = 1;
+// 	        mysql_query("INSERT INTO bb".$n."_momtaetig (arbeiterid, handlungsid, seit, bis, prodals, anzahl, instances, nextinsta) VALUES ('$arbeiter', '$arbeit', '$nowtime', '$bistime', '$arbeitprodals', '$arbeitanzahl', '$instances', 0)");
+// 	        $infobuy = "Euer Arbeiter wurde in seine neue Tätigkeit eingewiesen. ";
+// 	    }
+// 	    else {
+// 	        if(!$werkzeuge) $textbit = "das benötigte Werkzeug";
+// 	        if(!$rohstoffe && !$werkzeuge) $textbit .= " und ";
+// 	        if(!$rohstoffe) $textbit .= "die benötigten Rohstoffe";
+// 	        $infobuy = "Euer Arbeiter hat nicht ".$textbit." da, um mit der Tätigkeit zu beginnen.";
+// 	    }
+// 	    $ride = "taetigkeiten.php?arbeiter=$arbeiter";
+// 	    eval("dooutput(\"".gettemplate("shop_ride")."\");");
+//	}
+	
+	function worker($id = 1) {
 	    $this->obj = Cache::_('Company_workerModel', $id);
 	    $this->onlinelocation(0, $this->obj->id);
 	    $this->set('obj', $this->obj);
@@ -42,7 +80,7 @@ class CompanyController extends Controller {
 	    }
 	    $this->set('labours', $possiblelabours);
 
-	    $assignlabour = array('company_worker' => $this->obj->id, 'labour' => $this->post('labour'), 'since' => time(), 'prodas' => $this->post('prodas'), 'prodas_value' => $this->post('prodas_value'), 'quantity' => $this->post('quantity'), 'quantity_count' => round($this->post('quantity_count')), 'instances' => round($this->post('instances')));
+	        $assignlabour = array('company_worker' => $this->obj->id, 'labour' => $this->post('labour'), 'since' => time(), 'prodas' => $this->post('prodas'), 'prodas_value' => $this->post('prodas_value'), 'quantity' => $this->post('quantity'), 'quantity_count' => round($this->post('quantity_count')), 'instances' => round($this->post('instances')));
 	    if ($this->post('assignlabour')) {
 	        if ($this->obj->company->character->user != $this->user) {
 	            $this->setnotice('company_worker_assignlabour_nopermission', 'error');
@@ -72,7 +110,6 @@ class CompanyController extends Controller {
 	                continue;
                 $componententity = Items::getEntity($component->item, $this->obj->company, $component->quantity, -2);
                 var_dump($componententity);
-                echo "Test";
                 // Falls Werkzeug: relabeln als -3 (in Benutzung)
                 if ($component->type == 1)
                     $usedtools = Items::transfer($componententity, $this->obj->company, $this->obj->company, -3);
@@ -97,7 +134,7 @@ class CompanyController extends Controller {
 	        if ($assignlabour['instances'] > floor((1 - $workload) * $chosenlabour->workload))
 	            $assignlabour['instances'] = floor((1 - $workload) * $chosenlabour->workload);
 	        $assignlabour['nextinsta'] = 0;
-	        // $newlabour = new Labour_activeModel(NULL, $assignlabour);
+	        $newlabour = new Labour_activeModel(NULL, $assignlabour);
 	        // $this->_view->clear('worker', $this->obj->id);
 	        //$this->setnotice('company_worker_assignlabour', 'success');
 	        //$this->move('company/worker/'.$this->obj->id);

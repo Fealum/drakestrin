@@ -6,6 +6,54 @@ class TransferController extends Controller {
 	function std() {
 		$this->view(1, 1);
 	}
+	
+	private function transfer2($object, $from, $to) {
+		global $tables;
+		if (is_int($from)) $from = Cache::_('CharacterModel', $from);
+		if (is_int($to)) $to = Cache::_('CharacterModel', $to);
+		if (!$from->id) return FALSE;
+		if (!$to->id) return FALSE;
+		if (is_array($object[0])) {
+			$return = array();
+			foreach ($object as $i) {
+				$thistransfer = $this->transfer2($i, $from, $to);
+				if ($thistransfer != FALSE) $return[] = $thistransfer;
+			}
+			return (count($return) > 0) ? $return : FALSE;
+		}
+		if (is_numeric($object[0])) 
+			$object[0] = Cache::_('InventoryModel', $object[0]);
+		if ($object[0]->owner != $from) return FALSE;
+		if (!$object[0]->item->stackable) {
+			$object[0]->update(array('table__owner' => array_search($to->table, $tables), 'owner' => $to->id));
+			return array($object[0]->item, 0);
+		}
+		$object[1] = (!isset($object[1])) ? 1 : $object[0]->undounitary($object[1]);
+		if ($object[1] <= 0)
+			$object[1] = 1;
+		elseif ($object[1] > $object[0]->stack)
+			$object[1] = $object[0]->stack;
+			$invatrecipient = new _list('inventory', 'item = '.$object[0]->item->id.' AND table__owner = 6'.array_search($to->table, $tables).' AND owner = '.$to->id);
+		if ($invatrecipient != NULL) $invatrecipient = $invatrecipient->data[0];
+		if ($object[1] == $object[0]->stack && $invatrecipient == NULL) {
+			$object[0]->update(array('table__owner' => array_search($to->table, $tables), 'owner' => $to->id));
+			return array($object[0]->item, $object[1]);
+		}
+		elseif ($object[1] == $object[0]->stack && $invatrecipient != NULL) {
+			$invatrecipient->update(array('stack' => $invatrecipient->stack + $object[1]));
+			$item = $object[0]->item;
+			$object[0]->delete();
+			return array($item, $object[1]);
+		}
+		elseif ($object[1] < $object[0]->stack && $invatrecipient == NULL) {
+			if ($invatrecipient == NULL) 
+				$newinv = new InventoryModel(NULL, array('item' => $object[0]->item->id, 'stack' => $object[1], 'wear' => 0, 'table__owner' => array_search($to->table, $tables), 'owner' => $to->id));
+			else
+				$invatrecipient->update(array('stack' => $invatrecipient->stack + $object[1]));
+			$object[0]->update(array('stack' => $object[0]->stack - $object[1]));
+			return array($object[0]->item, $object[1]);
+		}
+	}
 
 	function transfer($id = 1) {
 		$this->obj = Cache::_('ThreadModel', $id);
@@ -21,7 +69,7 @@ class TransferController extends Controller {
 		}
 		$transferarray = array();
 		foreach ($transfer['inventory'] as $k => $i) 
-		    $transferarray[] = array(Cache::_('ItemModel', $transfer['inventory'][$k]), $transfer['inventorystack'][$k]);
+			$transferarray[] = array($transfer['inventory'][$k], $transfer['inventorystack'][$k]);
 			$transfer = Items::transfer($transferarray, $character, $recipient);
 		if (!is_array($transfer)) {
 			$this->setnotice('transfer_transfer_nopermission', 'error');

@@ -3,62 +3,62 @@
 @import url('_inventory.css');
 @import url('_options.css');
 
-div#content h4 {
+main h4 {
 	margin: 0px;
 	padding: 0px;
 	color: black;
 }
 
-div#content > div.post {
+main > div.post {
 	min-height: 60px;
 	position: relative;
 }
 
-div#content > div.post > div.postuser {
+main > div.post > div.postuser {
 	overflow: auto;
 }
 
-div#content > div.post + div.post {
+main > div.post + div.post {
 	border-top: 1px solid #aaa;
 	padding-top: 5px;
 	margin-top: 5px;
 	clear: both;
 }
 
-div#content > div.followpost {
+main > div.followpost {
 	margin-left: 65px;
 }
 
-div#content > div.post > img {
+main > div.post > img {
 	position: absolute;
 	height: 60px;
 	width: 60px;
 }
 
-div#content div.post > div > h4 {
+main div.post > div > h4 {
 	float: left;
 	margin-left: 65px;
 }
 
-div#content div.followpost > div > h4 {
+main div.followpost > div > h4 {
 	margin-left: 0px;
 }
 
-div#content div.post div.postuser p {
+main div.post div.postuser p {
 	position: absolute;
 	right: 0px;
 }
 
-div#content div.post > .postcontent, div#content div.post > form {
+main div.post > .postcontent, main div.post > form {
 	margin-left: 65px;
 	display: block;
 }
 
-div#content div.followpost > .postcontent {
+main div.followpost > .postcontent {
 	margin-left: 0px;
 }
 
-div#content .postnumber {
+main .postnumber {
 	height: 13px;
 	min-width: 9px;
 	padding: 0px 2px;
@@ -67,7 +67,7 @@ div#content .postnumber {
 	text-align: center;
 }
 
-div#content .postnumber:hover {
+main .postnumber:hover {
 	color: #060;
 }
 
@@ -178,7 +178,7 @@ div.post-charselect input[type="radio"]:checked ~ label input {
 	background: rgba(255, 255, 255, 0.75);
 }
 
-div#content > div#newpost + div#newaction {
+main > div#newpost + div#newaction {
 	position: relative;
 	border-top: none;
 	margin-top: 0;
