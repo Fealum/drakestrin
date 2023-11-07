@@ -132,6 +132,12 @@ class StringParser_BBCode extends StringParser {
 		'start_tag' => '<p>',
 		'end_tag' => "</p>\n"
 	);
+
+	var $_quoting = null;
+	var $_savedName = null;
+	var $_savedValue = null;
+	var $_savedCloseCount = null;
+	var $_codeInfo = null;
 	
 	/**
 	 * Allow mixed attribute types (e.g. [code=bla attr=blub])
@@ -1524,6 +1530,8 @@ class StringParser_BBCode_Node_Element extends StringParser_Node {
 	 * @var bool
 	 */
 	var $_paragraphHandled = false;
+
+	var $_codeInfo = null;
 	
 	//////////////////////////////////////////////////
 	

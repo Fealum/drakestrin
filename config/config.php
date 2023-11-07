@@ -23,7 +23,7 @@ $config = (object) array(
 	'emailvalidfor' => 172800,
 	'timeout' => 900,
 	'pageentries' => 20,
-	'avatarsize' => 100000,
+	'avatarsize' => 500000,
 	'salt' => $_ENV['SALT']
 );
 

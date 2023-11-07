@@ -41,21 +41,4 @@
 <h3>Nutzerkonto</h3>
 	<em>Beitr&auml;ge:</em> {$obj->post__total}<br />
 	<em>Mitglied seit:</em> {$obj->regdate|date_format:$config->datetime}<br />
-
-{if $obj->inventory___owner}
-<h3>Besitz</h3>
-<ol class="inventory">
-{foreach name=inventories item=value from=$obj->inventory___owner}
-	<li><img src="{$config->url}/img/item.img/{$value->item->img}.png" /> {$value->item->name|escape:'htmlall'}: {$value->stack}, {$value->wear}</li>
-{/foreach}
-</ol>
-{/if}
-{if $obj->company}
-<h3>Betriebe</h3>
-<ol>
-{foreach name=companies item=value from=$obj->company}
-	<li>{$value->name|escape:'htmlall'}: {$value->description|escape:'htmlall'}</li>
-{/foreach}
-</ol>
-{/if}
 {/block}

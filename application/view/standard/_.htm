@@ -20,40 +20,41 @@
 
 	<link rel="icon" href="{$config->url}/templates/standard/_img/favicon.ico" type="image/x-icon" />
 	<link rel="shortcut icon" href="{$config->url}/templates/standard/_img/favicon.ico" type="image/x-icon" />
-<script
-			  src="https://code.jquery.com/jquery-2.2.4.min.js"
-			  integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
-			  crossorigin="anonymous"></script>
-<script type="text/javascript">
-$(document).ready(function () {
-	$("a#nav-open").click(function(event) {
-		  event.preventDefault();
-		  $("#nav").fadeIn();
+	<script
+		 src="https://code.jquery.com/jquery-2.2.4.min.js"
+		 integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
+		 crossorigin="anonymous">
+	</script>
+	<script type="text/javascript">
+	$(document).ready(function () {
+		$("a#nav-open").click(function(event) {
+			event.preventDefault();
+			$("#nav").fadeIn();
+		});
+		
+		$("a#nav-close").click(function(event) {
+			event.preventDefault();
+			$("#nav").fadeOut();
+		});
+		
+		$("a#notifypic").click(function(event) {
+			event.preventDefault();
+			$("#sidebar").fadeIn();
+		});
+		
+		$("a#sidebar-close").click(function(event) {
+			event.preventDefault();
+			$("#sidebar").fadeOut();
+		});
 	});
-	
-	$("a#nav-close").click(function(event) {
-		  event.preventDefault();
-		  $("#nav").fadeOut();
-	});
-	
-	$("a#notifypic").click(function(event) {
-		  event.preventDefault();
-		  $("#sidebar").fadeIn();
-	});
-	
-	$("a#sidebar-close").click(function(event) {
-		  event.preventDefault();
-		  $("#sidebar").fadeOut();
-	});
-});
-</script>
+	</script>
 {block name=js}{/block}
 </head>
 <body>
 	<h1><a href="{$config->url}">Kaiserreich Drachenstein</a></h1>
 	<header>
-		<nav>
-			<a class="nav-open" id="nav-open" href="#nav">Zur Navigation</a>
+		<a class="nav-open" id="nav-open" href="#nav">Zur Navigation</a>
+		<nav id="nav">
 			<ul>
 				<li><a href="{$config->url}/encyclopedia">Kompendium</a></li>
 				<li><a href="{$config->url}/board">Forum</a></li>
@@ -64,7 +65,8 @@ $(document).ready(function () {
 			</ul>
 			<a class="nav-close" id="nav-close" href="#nav-open">Nach oben</a>
 		</nav>
-		{nocache}	<div id="userbar"><div id="userbarcontent"{if isset($user)} class="user-loggedin"{/if}>
+		{nocache}<div id="userbar">
+			<div id="userbarcontent"{if isset($user)} class="user-loggedin"{/if}>
 			{if isset($user)}
 				<a id="notifypic" href="#sidebar"><img src="{$config->url}/img/character_avatar.id/thumb/{if $user->character__avatar}{$user->character__avatar}{else}0{/if}.jpg" /></a>
 				{if $newconv->data}<a href="{$config->url}/conversation" class="fa-envelope newconv"> </a> {/if}Sali Vuz,<br />{$user->name}!
@@ -76,7 +78,8 @@ $(document).ready(function () {
 				</form>
 				<a class="fa-plus-circle" href="{$config->url}/register">Registrieren</a> <a class="fa-question-circle" href="{$config->url}/log/forgotpw">Passwort vergessen</a>
 			{/if}
-				</div></div>{/nocache}
+			</div>
+		</div>{/nocache}
 	</header>
 	<main>
 		{block name=path}{/block}
@@ -86,7 +89,7 @@ $(document).ready(function () {
 		{/foreach} / {block name=alttitle}{block name=title}{/block}{/block}{/if}</div>
 		<h2>{block name=title}{/block}</h2>
 		{nocache}{foreach $notice as $i}
-		<p class="notice notice_{$i.type}">{if $i.notice != ''}{include "./_notice/{$i.notice}.htm"}{else}Fehler bei der Notizerstellung: {var_dump($i)}{/if}</p>
+		<p class="notice notice_{$i.type}">{if $i.notice != '' && file_exists("./_notice/{$i.notice}.htm")}{include "./_notice/{$i.notice}.htm"}{else}Fehler bei der Notizerstellung: {var_dump($i)}{/if}</p>
 		{/foreach}{/nocache}
 		{block name=content}{/block}
 	</main>

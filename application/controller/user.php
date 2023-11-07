@@ -1,4 +1,6 @@
 <?php
+
+use Verot\Upload\Upload as Upload;
 class UserController extends Controller {
 
 	protected $stdaction = 'viewall';
@@ -81,8 +83,8 @@ class UserController extends Controller {
 					$avatar->file_overwrite = true;
 					$avatar->image_convert = 'jpg';
 					$avatar->jpeg_quality = 90;
-					$avatar->image_x = 140;
-					$avatar->image_y = 160;
+					$avatar->image_x = 200;
+					$avatar->image_y = 200;
 					$avatar->image_resize = true;
 					$avatar->image_ratio_no_zoom_in = true;
 					$avatar->process(createPath(array('img', 'character_avatar.id/')));

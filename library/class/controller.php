@@ -71,7 +71,10 @@ abstract class Controller {
 	function setnotice($notice, $type = 'info', $vars = NULL) {
 		if ($notice != '') {
 			$pusharray = $this->session->notice;
-			$this->session->notice = is_array($pusharray) ? array_push($pusharray, array('notice' => $notice, 'type' => $type, 'vars' => $vars)) : array(array('notice' => $notice, 'type' => $type, 'vars' => $vars));
+			$this->session->notice = is_array($pusharray) 
+				? array_push($pusharray, array('notice' => $notice, 'type' => $type, 'vars' => $vars)) 
+				: array(array('notice' => $notice, 'type' => $type, 'vars' => $vars))
+			;
 		}
 	}
 	

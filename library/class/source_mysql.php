@@ -5,6 +5,7 @@ class Source_MySQL {
 
 	public function __construct($data) {
 		$this->_dbHandle = new mysqli($data['host'], $data['user'], $data['password'], $data['database']);
+		$this->_dbHandle->set_charset("utf8mb4");
 		$this->p = $data['prefix'];
 		if ($this->_dbHandle->connect_error) die('Connect Error ('.$this->_dbHandle->connect_errno.')'.$this->_dbHandle->connect_error);
 	}

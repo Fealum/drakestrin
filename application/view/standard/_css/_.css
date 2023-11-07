@@ -50,9 +50,9 @@ body {
 header {
 	background: #1a1a1a;
 	display: grid;
-	grid-template-columns: [leftmargin] 1fr [main] 960px [rightmargin] 1fr;
-	grid-template-rows: 60px;
-	grid-template-areas: ". navbar userbar";
+	grid-template-columns: [leftmargin] 1fr [main] 41.25rem [main-overflow] 18.75rem [rightmargin] 1fr;
+	grid-template-rows: 3.75rem;
+	grid-template-areas: ". navbar userbar userbar";
 	position: sticky;
 	top: 0;
 	z-index: 1;
@@ -60,9 +60,9 @@ header {
 }
 
 main {
-	width: 960px;
-	padding-left: 15px;
-	padding-right: 15px;
+	width: 60em;
+	padding-left: 1em;
+	padding-right: 1em;
 	padding-bottom: 4em;
 	margin: 0 auto;
 	display: block;
@@ -103,18 +103,18 @@ h1 {
 	-moz-background-size: cover;
 	-o-background-size: cover;
 	background-size: cover;
-	line-height: 200px;
+	line-height: 12.5em;
 	width: 100%;
 	overflow: hidden;
 	order: 2;
 }
 
 h1 a {
-	margin-left: 210px;
+	margin-left: 13.125em;
 	display: flex;
 	margin: 0 auto;
-	max-width: 960px;
-	height: 200px;
+	max-width: 60rem;
+	height: 13.125rem;
 	align-items: center;
 	vertical-align: middle;
 	line-height: 0.8em;
@@ -127,8 +127,8 @@ h1 a {
 h1 a::before {
 	content: url(../_img/logo.svg);
 	position: relative;
-	left: -180px;
-	margin-right: -150px;
+	left: -11.25rem;
+	margin-right: -9.375rem;
 }
 
 h1>a:link,h1>a:visited,h1>a:hover {
@@ -145,21 +145,21 @@ h2 {
 
 h3, h4, #topoptions a {
 	color: #d40000;
-	padding-top: 15px;
-	margin: 0px;
+	padding-top: 1rem;
+	margin: 0;
 	position: relative;
 	clear: both;
 	font-weight: normal;
 	font-style: italic;
-	font-size: 20px;
-	line-height: 30px;
+	font-size: 1.25rem;
+	line-height: 1.875rem;
 }
 
 h4 {
-	font-size: 15px;
+	font-size: 1em;
 	font-style: normal;
-	margin: 0px;
-	padding: 0px;
+	margin: 0;
+	padding: 0;
 	font-weight: bold;
 }
 
@@ -175,7 +175,7 @@ nav>ul, #breadcrumbs {
 nav > ul {
 	padding: 0;
 	margin: 0 auto;
-	width: 960px;
+	width: 60em;
 	font-family: Linux Biolinum;
 	font-size: 1em;
 	line-height: 1.2em;
@@ -186,7 +186,7 @@ nav > ul {
 nav > ul a, nav > ul a:visited {
 	color: #fff;
 	display: inline-block;
-	padding-top: 20px;
+	padding-top: 1.25em;
 	padding-bottom: -5px;
 	margin-bottom: -4px;
 	border-bottom: 2px solid transparent; 
@@ -200,10 +200,9 @@ nav>ul a:hover, nav>ul a:focus {
 }
 
 #breadcrumbs {
-	background: #fff;
 	font: 0.75em/1em Linux Biolinum;
 	padding: 10px 0px 10px 0px;
-	min-height: 12px;
+	min-height: 0.75rem;
 }
 
 #breadcrumbs:hover {
@@ -215,17 +214,20 @@ nav>ul li {
 }
 
 #userbar {
-	left: 0px;
-	top: 0px;
-	height: 60px;
+	height: 3.75em;
+	width: 100%;
+	max-width: 18.75em;
 	background-color: #1a1a1a;
 	z-index: 4;
 	grid-area: userbar;
 	justify-self: end;
 }
 
+#userbar:hover {
+	background-color: #2a2a2a;
+}
+
 #userbarcontent {
-	width: 285px;
 	height: 45px;
 	text-align: right;
 	color: white;
@@ -257,12 +259,7 @@ nav>ul li {
 }
 
 #userbarcontent.user-loggedin {
-	width: 245px;
 	padding-right: 55px;
-}
-
-#userbarcontent:hover {
-	background-color: #2a2a2a;
 }
 
 #userbarcontent a {
@@ -363,20 +360,17 @@ nav>ul li {
 }
 
 #sidebar-close {
-		position: absolute;
-		text-indent: -9999px;
-		overflow: hidden;
-		top: -60px;
-		right: 0px;
-		width: 300px;
-		height: 60px;
-		background: rgba(221, 221, 221, 0.5);
-		border-left: 1px solid rgba(192, 192, 192, 0.2);
-		transition: background 0.2s ease-in-out;
-		-moz-transition: background 0.2s ease-in-out;
-		-webkit-transition: background 0.2s ease-in-out;
-		-o-transition: background 0.2s ease-in-out;
-	}
+	position: absolute;
+	text-indent: -9999px;
+	overflow: hidden;
+	top: -60px;
+	right: 0px;
+	width: 300px;
+	height: 60px;
+	background: rgba(221, 221, 221, 0.5);
+	border-left: 1px solid rgba(192, 192, 192, 0.2);
+	transition: background 0.2s ease-in-out;
+}
 
 #sidebar:not(:target) {
 	display: none;
@@ -656,17 +650,46 @@ nav>ul {
 	position: relative;
 }
 
-@media screen and (max-width: 74em) {
+@media screen and (max-width: 86.25em) {
+	h1 a::before {
+		left: 0;
+		margin-right: 30px;
+	}
+}
+
+@media screen and (max-width: 62em) {
 	main {
-		padding-left: 30px;
+		width: calc(100% - 2em);
 	}
-	
+
+	header {
+		grid-template-areas: "navbar navbar userbar userbar";
+	}
+
 	nav {
-		left: 30px;
+		margin-left: 1em;
 	}
-	
-	#breadcrumbs {
-		padding-left: 30px;
+
+	h1 a {
+		margin-left: 1rem;
+		max-width: 100%;
+	}
+}
+
+@media screen and (max-width: 60em) {
+	header {
+		display: flex;
+		flex-flow: row nowrap;
+		justify-content: space-between;
+		align-items: stretch;
+	}
+
+	nav {
+		flex-basis: content;
+	}
+
+	nav > ul {
+		width: auto;
 	}
 }
 
@@ -678,21 +701,17 @@ nav>ul {
 	
 	h1 {
 		font-size: 2em;
-		line-height: 80px;			
 	}
 	
 	h1 a {
-		margin-left: 30px;
+		margin-left: 0.5em;
+		height: 3em;
 	}
 
-	h1:before {
-		content: '';
-	}
-
-	h1::before {
+	h1 a::before {
 		display: none;
 	}
-	
+
 	nav {
 		display: block;
 		position: fixed;
@@ -701,6 +720,7 @@ nav>ul {
 		width: 100%;
 		height: 100%;
 		z-index: 5;
+		margin: 0;
 	}
 	
 	nav>ul {
@@ -736,10 +756,8 @@ nav>ul {
 		padding: 0px;
 		margin: 0px;
 		overflow: hidden;
-		position: fixed;
-		top: 0px;
-		left: 0px;
 		z-index: 5;
+		flex-shrink: 0;
 	}
 	
 	#nav-open:hover {
@@ -756,20 +774,14 @@ nav>ul {
 		background: #FFF;
 		opacity: 0.7;
 		transition: background 0.2s ease-in-out;
-		-moz-transition: background 0.2s ease-in-out;
-		-webkit-transition: background 0.2s ease-in-out;
-		-o-transition: background 0.2s ease-in-out;
 	}
 	
 	#nav-close:hover {
 		background: none;
 		transition: background 0.2s ease-in-out;
-		-moz-transition: background 0.2s ease-in-out;
-		-webkit-transition: background 0.2s ease-in-out;
-		-o-transition: background 0.2s ease-in-out;
 	}
-	
-	nav>ul>li {
+
+	nav > ul > li {
 		display: block;
 		width: 100%;
 	}
@@ -800,8 +812,4 @@ nav>ul {
 	nav:not(:target) {
 		display: none;
 	}
-}
-
-@media screen and (min-width: 51.875em) {
-
 }

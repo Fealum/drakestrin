@@ -1,4 +1,5 @@
 <?php
+use geoPHP as Geo;
 /**
  * Basic abstract class for data from the database. Referenced by specific data classes.  
  * @author Fabian
