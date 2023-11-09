@@ -1,9 +1,12 @@
 RewriteEngine On
-RewriteBase /
-RewriteRule ^templates/(.*)$ /application/view/$1 [L]
 
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
+# Redirect requests to /img/ to /legacy/img/
+RewriteCond %{REQUEST_URI} ^/img/
+RewriteRule ^img/(.*)$ /legacy/img/$1 [L]
 
-DirectoryIndex /public/index.php
-RewriteRule ^(.*)$ /public/index.php?url=$1 [L]
+# Redirect requests to /templates/ to /legacy/App/View/
+RewriteCond %{REQUEST_URI} ^/templates/
+RewriteRule ^templates/(.*)$ /legacy/App/View/$1 [L]
+
+# Redirect all other requests to /new/public/
+RewriteRule ^(.*)$ /new/public/index.php?url=$1 [L]

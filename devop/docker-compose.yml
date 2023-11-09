@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  php-apache-environment:
+    container_name: php-apache
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../:/var/www/html
+    ports:
+      - 8080:80
+    depends_on:
+      - db
+  db:
+    container_name:  db
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: drakestrin
+      MYSQL_DATABASE: drakestrin
+      MYSQL_USER: drakestrin
+      MYSQL_PASSWORD: drakestrin
+    ports:
+      - 9906:3306
+    volumes:
+      - mysql_data:/var/lib/mysql
+volumes:
+  mysql_data:
