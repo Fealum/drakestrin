@@ -123,11 +123,11 @@ class BoardController extends Controller
 				if (count($value) == 2) $filterarr[$value[0]] = $value[1];
 			}
 			if (isset($filterarr['title']) && $filterarr['title'] != '') {
-				$filterbits[] = "LOWER(`name`) LIKE LOWER('%" . Source::getInstance(STDSOURCE)->escape($filterarr['title']) . "%')";
+				$filterbits[] = "LOWER(`name`) LIKE LOWER('%" . Source::getInstance('mysql1')->escape($filterarr['title']) . "%')";
 			}
 			if (isset($filterarr['message']) && $filterarr['message'] != '') {
 				$postfiltering = true;
-				$filterbits[] = "LOWER(`message`) LIKE LOWER('%" . Source::getInstance(STDSOURCE)->escape($filterarr['message']) . "%')";
+				$filterbits[] = "LOWER(`message`) LIKE LOWER('%" . Source::getInstance('mysql1')->escape($filterarr['message']) . "%')";
 			}
 			if (isset($filterarr['board'])) {
 				$filterarr['board'] = explode(",", $filterarr['board']);

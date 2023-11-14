@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StaticPageController;
+use App\Http\Controllers\LegacyController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,10 +38,9 @@ if (php_sapi_name() !== "cli") {
     }
 }
 
-Route::get('/', function () {
-    return view('welcome');
-});
-
 Route::get('/static/help', [StaticPageController::class, 'help'])->name('static.help');
 Route::get('/static/terms', [StaticPageController::class, 'terms'])->name('static.terms');
 Route::get('/static/legal', [StaticPageController::class, 'legal'])->name('static.legal');
+
+// LEGACY
+Route::any('{path}', LegacyController::class)->where('path', '.*')->withoutMiddleware(['web', 'VerifyCsrfToken']);

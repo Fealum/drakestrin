@@ -44,7 +44,7 @@ class ThreadController extends Controller
 		$this->set('boards', $boards);
 
 		$thread = array('board' => $this->post('board'), 'name' => trim($this->post('name') ?? ''), 'post__first_time' => time(), 'post__total' => 1, 'post__last_time' => time(), 'views' => 0, 'important' => $this->post('important', 0));
-		$post = array('user' => $this->user->id, 'character' => $this->post('character'), 'time' => $thread['post__first_time'], 'message' => trim($this->post('message') ?? ''), 'smilies' => $this->post('smilies', 0), 'signature' => $this->post('signature', 0), 'ip' => $_SERVER['REMOTE_ADDR']);
+		$post = array('user' => $this->user->id, 'character' => $this->post('character'), 'time' => $thread['post__first_time'], 'message' => trim($this->post('message') ?? ''), 'smilies' => $this->post('smilies', 0), 'signature' => $this->post('signature', 0), 'ip' => request()->ip());
 		if ($thread['board'] && $thread['name'] && $post['message']) {
 			$board = Cache::_('BoardModel', $thread['board']);
 			if (Permission::getPermission($board, 'createthread') == 0) {

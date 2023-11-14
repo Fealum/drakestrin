@@ -9,4 +9,4 @@ RewriteCond %{REQUEST_URI} ^/templates/
 RewriteRule ^templates/(.*)$ /legacy/App/View/$1 [L]
 
 # Redirect all other requests to /new/public/
-RewriteRule ^(.*)$ /new/public/index.php?url=$1 [L]
+RewriteRule ^(.*)$ /public/index.php?url=$1 [L]

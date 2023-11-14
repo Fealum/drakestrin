@@ -61,7 +61,17 @@ class Configuration
 
 	public static function getConfiguration($object, $setting)
 	{
-		global $tables;
+		$tables = array(
+			0 => 'user',
+			1 => 'thread',
+			2 => 'company',
+			3 => 'board',
+			4 => 'group',
+			5 => 'encyclopedia',
+			6 => 'character',
+			8 => 'company_worker'
+		);
+
 		if ($object == NULL) return self::$settings[$setting];
 		if (isset(self::$configurations[array_search($object->table, $tables)][$object->id][$setting]))
 			return self::$configurations[array_search($object->table, $tables)][$object->id][$setting];

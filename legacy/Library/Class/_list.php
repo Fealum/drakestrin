@@ -8,7 +8,7 @@ use Legacy\Library\Class\Permission;
 
 class _list
 {
-	protected $table, $data, $source = STDSOURCE;
+	protected $table, $data, $source = 'mysql1';
 
 	public function __construct($table, $where = NULL, $order = NULL, $limit = array('', ''), $permission = false, $group = NULL, $idcol = 'id')
 	{

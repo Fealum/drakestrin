@@ -24,7 +24,17 @@ class TransferController extends Controller
 
 	private function transfer2($object, $from, $to)
 	{
-		global $tables;
+		$tables = array(
+			0 => 'user',
+			1 => 'thread',
+			2 => 'company',
+			3 => 'board',
+			4 => 'group',
+			5 => 'encyclopedia',
+			6 => 'character',
+			8 => 'company_worker'
+		);
+
 		if (is_int($from)) $from = Cache::_('CharacterModel', $from);
 		if (is_int($to)) $to = Cache::_('CharacterModel', $to);
 		if (!$from->id) return FALSE;
@@ -73,7 +83,7 @@ class TransferController extends Controller
 	{
 		$this->obj = Cache::_('ThreadModel', $id);
 		$this->set('obj', $this->obj);
-		$post = array('thread' => $this->obj->id, 'user' => 2, 'character' => 3, 'time' => time(), 'message' => '', 'smilies' => 0, 'signature' => 0, 'ip' => $_SERVER['REMOTE_ADDR']);
+		$post = array('thread' => $this->obj->id, 'user' => 2, 'character' => 3, 'time' => time(), 'message' => '', 'smilies' => 0, 'signature' => 0, 'ip' => request()->ip());
 		$transfer = array('inventory' => $this->post('inventory'), 'inventorystack' => $this->post('inventorystack'), 'recipient' => $this->post('recipient'));
 		$character = Cache::_('CharacterModel', $this->post('character'));
 		$recipient = Cache::_('CharacterModel', $transfer['recipient']);

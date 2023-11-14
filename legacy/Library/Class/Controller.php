@@ -11,10 +11,9 @@ abstract class Controller
 	protected $_model, $_controller, $_view, $_action, $stdaction = 'std', $setonline = TRUE, $cacheid = NULL, $move = FALSE;
 	public $session, $online, $user = NULL, $obj, $notice = array(), $config;
 
-	function __construct($model, $controller, $action)
+	function __construct($model, $controller, $action, $config, $tables)
 	{
-		global $config;
-		date_default_timezone_set($config->timezone);
+		date_default_timezone_set(config('app.timezone'));
 		if ($action == 'std') $action = $this->stdaction;
 		$this->_model = $model;
 		$this->_controller = $controller;
@@ -33,8 +32,8 @@ abstract class Controller
 			// Initialize online
 			if ($this->setonline == TRUE) {
 				$this->online = new OnlineModel();
-				if (!$this->online->id_from_unique('user', $this->user->id)) $this->online = new OnlineModel(NULL, array('time' => time(), 'ip' => $_SERVER['REMOTE_ADDR'], 'user' => $this->user->id, 'browser' => $_SERVER['HTTP_USER_AGENT'], 'controller' => $this->_controller, 'action' => $this->_action));
-				elseif ($this->user) $this->online->update(array('time' => time(), 'ip' => $_SERVER['REMOTE_ADDR'], 'user' => $this->user->id, 'browser' => $_SERVER['HTTP_USER_AGENT'], 'controller' => $this->_controller, 'action' => $this->_action, 'table__location' => NULL, 'location' => NULL));
+				if (!$this->online->id_from_unique('user', $this->user->id)) $this->online = new OnlineModel(NULL, array('time' => time(), 'ip' => request()->ip(), 'user' => $this->user->id, 'browser' => request()->server('HTTP_USER_AGENT'), 'controller' => $this->_controller, 'action' => $this->_action));
+				elseif ($this->user) $this->online->update(array('time' => time(), 'ip' => request()->ip(), 'user' => $this->user->id, 'browser' => request()->server('HTTP_USER_AGENT'), 'controller' => $this->_controller, 'action' => $this->_action, 'table__location' => NULL, 'location' => NULL));
 			}
 		}
 
@@ -69,7 +68,7 @@ abstract class Controller
 
 	function post($var, $else = NULL)
 	{
-		return isset($_POST[$var]) ? $_POST[$var] : $else;
+		return request($var, $else);
 	}
 
 	function onlinelocation($table, $location)
@@ -91,6 +90,7 @@ abstract class Controller
 	{
 		$this->move = TRUE;
 		header('Location: ' . $this->config->url . '/' . $path);
+		exit;
 	}
 
 	function set($name, $value = NULL)

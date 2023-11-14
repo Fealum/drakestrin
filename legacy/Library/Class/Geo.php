@@ -2,7 +2,7 @@
 
 namespace Legacy\Library\Class;
 
-require_once ROOT . DS . 'vendor' . DS . 'phayes' . DS . 'geophp' . DS . 'geoPHP.inc';
+require_once ROOT . DS . '..' . DS . 'vendor' . DS . 'phayes' . DS . 'geophp' . DS . 'geoPHP.inc';
 
 use \geoPHP;
 

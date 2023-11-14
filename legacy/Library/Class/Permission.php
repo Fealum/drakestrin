@@ -61,7 +61,17 @@ class Permission
 
 	public static function getPermission($object, $permit)
 	{
-		global $tables;
+		$tables = array(
+			0 => 'user',
+			1 => 'thread',
+			2 => 'company',
+			3 => 'board',
+			4 => 'group',
+			5 => 'encyclopedia',
+			6 => 'character',
+			8 => 'company_worker'
+		);
+
 		if ($object == NULL) return self::$permits[$permit];
 		if (isset(self::$permissions[array_search($object->table, $tables)][$object->id][$permit]))
 			return self::$permissions[array_search($object->table, $tables)][$object->id][$permit];

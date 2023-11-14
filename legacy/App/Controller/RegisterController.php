@@ -19,7 +19,7 @@ class RegisterController extends Controller
 
 	function validate()
 	{
-		$email = $_POST['email'];
+		$email = $this->post('email');
 		$this->set('registeremail', $email);
 		if ($email == NULL) {
 			$this->setnotice('register_noemail', 'error');
@@ -76,8 +76,8 @@ class RegisterController extends Controller
 		}
 		$userdata['password'] = $this->post('password');
 		$userdata['name'] = ($this->post('name') !== NULL) ? trim($this->post('name')) : NULL;
-		if (isset($_POST['termsofservice'])) $termsofservice = $_POST['termsofservice'];
-		if (isset($_POST['passwordcheck'])) $passwordcheck = $_POST['passwordcheck'];
+		if ($this->post('termsofservice')) $termsofservice = $this->post('termsofservice');
+		if ($this->post('passwordcheck')) $passwordcheck = $this->post('passwordcheck');
 		$this->set(array('registername' => $userdata['name'], 'registerpassword' => $userdata['password']));
 		if (isset($userdata['name']) || isset($userdata['password'])) {
 			// check error cases

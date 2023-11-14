@@ -8,7 +8,18 @@ namespace Legacy\Library\Class;
  */
 abstract class Model
 {
-	protected $table, $id, $data, $source = STDSOURCE;
+	protected $table, $id, $data, $source = 'mysql1';
+
+	protected $tables = array(
+		0 => 'user',
+		1 => 'thread',
+		2 => 'company',
+		3 => 'board',
+		4 => 'group',
+		5 => 'encyclopedia',
+		6 => 'character',
+		8 => 'company_worker'
+	);
 
 	/**
 	 * Constructor. Constructs data object either from an ID or a query, in which case it 
@@ -60,7 +71,6 @@ abstract class Model
 
 	public function __get($name)
 	{
-		global $tables;
 		if ($name == 'id') return $this->id;
 		elseif ($name == 'table') return $this->table;
 		elseif ($name == 'permission' && isset($this->permission)) return $this->permission;
@@ -72,7 +82,7 @@ abstract class Model
 		elseif ($this->datatypes[$name] == 'mchildren' && !isset($this->data[$name])) $this->initmchildren($name);
 		elseif ($this->datatypes[$name] == 'custom' && !isset($this->data[$name])) $this->{'init_' . $name}();
 		elseif ($this->datatypes[$name] == 'parent' && !is_object($this->data[$name])) $this->init($name, $this->data[$name]);
-		elseif ($this->datatypes[$name] == 'mparent' && !is_object($this->data[$name])) $this->init($tables[$this->__get('table__' . $name)], $this->data[$name], $name);
+		elseif ($this->datatypes[$name] == 'mparent' && !is_object($this->data[$name])) $this->init($this->tables[$this->__get('table__' . $name)], $this->data[$name], $name);
 		elseif (!isset($this->datatypes[$name])) echo 'Unbekannter Datentyp: ' . $this->datatypes[$name];
 		if (isset($this->data[$name])) return $this->data[$name];
 	}
@@ -148,12 +158,11 @@ abstract class Model
 
 	protected function initmchildren($name)
 	{
-		global $tables;
 		$namepcs = explode('___', $name);
 		$query = Source::getInstance($this->source)->query("
 			SELECT id 
 			FROM `dra_" . $this->stripsuffix($namepcs[0]) . "` 
-			WHERE `table__" . $namepcs[1] . "` = " . array_search($this->table, $tables) . " AND 
+			WHERE `table__" . $namepcs[1] . "` = " . array_search($this->table, $this->tables) . " AND 
 				`" . $namepcs[1] . "` = " . $this->id . " 
 			ORDER BY id
 		");

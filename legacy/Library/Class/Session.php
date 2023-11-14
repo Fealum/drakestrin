@@ -18,16 +18,16 @@ class Session
 		if ($restore == TRUE && !isset($_SESSION[$this->name]) && isset($_COOKIE['savecookie_' . $this->name])) {
 			$cookie = json_decode($_COOKIE['savecookie_' . $this->name], TRUE);
 			$_SESSION[$this->name] = $cookie;
-			$this->__set('ip', $_SERVER['REMOTE_ADDR']);
+			$this->__set('ip', request()->ip());
 		}
 	}
 
 	function check()
 	{
 		if (is_null($this->__get('ip'))) {
-			$this->__set('ip', $_SERVER['REMOTE_ADDR']);
+			$this->__set('ip', request()->ip() ?? null);
 			return TRUE;
-		} elseif ($this->__get('ip') != $_SERVER['REMOTE_ADDR']) {
+		} elseif ($this->__get('ip') != request()->ip()) {
 			$this->destroy();
 			return FALSE;
 		} else return TRUE;

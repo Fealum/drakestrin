@@ -48,20 +48,8 @@ $app = require_once __DIR__ . '/../bootstrap/app.php';
 
 $kernel = $app->make(Kernel::class);
 
-/* LEGACY | Original: 
 $response = $kernel->handle(
     $request = Request::capture()
 )->send();
-*/
-$response = $kernel->handle(
-    $request = Request::capture()
-);
-
-if (false === $response->isNotFound()) {
-    $response->send();
-} else {
-    require __DIR__ . '/../../legacy/public/index.php';
-}
-/* LEGACY | END */
 
 $kernel->terminate($request, $response);

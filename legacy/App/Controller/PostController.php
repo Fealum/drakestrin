@@ -34,7 +34,7 @@ class PostController extends Controller
 			$this->_view->change('view');
 			exit;
 		}
-		$post = array('thread' => $this->obj->id, 'user' => $this->user->id, 'character' => $this->post('character'), 'time' => time(), 'message' => trim($this->post('message')), 'smilies' => $this->post('smilies', 0), 'signature' => $this->post('signature', 0), 'ip' => $_SERVER['REMOTE_ADDR']);
+		$post = array('thread' => $this->obj->id, 'user' => $this->user->id, 'character' => $this->post('character'), 'time' => time(), 'message' => trim($this->post('message')), 'smilies' => $this->post('smilies', 0), 'signature' => $this->post('signature', 0), 'ip' => request()->ip());
 		if ($post['message']) {
 			if ($post['character'] == 'new') {
 				if (Permission::getPermission($this->obj, 'createcharacter') < 1) {

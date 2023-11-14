@@ -2,8 +2,6 @@
 
 namespace Legacy\Library\Class;
 
-define('STDSOURCE', 'mysql1');
-
 class Cache
 {
 	private static $cache = array();
