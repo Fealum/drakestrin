@@ -27,14 +27,8 @@ abstract class Controller
 		if (Auth::check()) {
 			$this->user = Cache::_('UserModel', Auth::id());
 			$this->set('user', $this->user);
-			$newconv = new _list('conversation', '`view` = 0 AND `user__recipient` = ' . $this->user->id);
+			$newconv = new _list('conversation', '`view` = 0 AND `user__recipient` = ' . Auth::id());
 			$this->set('newconv', $newconv);
-			// Initialize online
-			if ($this->setonline == TRUE) {
-				$this->online = new OnlineModel();
-				if (!$this->online->id_from_unique('user', $this->user->id)) $this->online = new OnlineModel(NULL, array('time' => time(), 'ip' => request()->ip(), 'user' => $this->user->id, 'browser' => request()->server('HTTP_USER_AGENT'), 'controller' => $this->_controller, 'action' => $this->_action));
-				elseif ($this->user) $this->online->update(array('time' => time(), 'ip' => request()->ip(), 'user' => $this->user->id, 'browser' => request()->server('HTTP_USER_AGENT'), 'controller' => $this->_controller, 'action' => $this->_action, 'table__location' => NULL, 'location' => NULL));
-			}
 		}
 
 		$this->session = $this->session ?? new Session();

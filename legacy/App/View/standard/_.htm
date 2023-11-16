@@ -111,7 +111,7 @@
 		{else}Index, Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$value->action}</a>
 		{/if}
 	{elseif $value->controller == 'board'}
-		{if $value->action == 'filter'}<a href="{$config->url}/{$value->controller}">Foren&uuml;bersicht</a>
+		{if $value->action == 'std'}<a href="{$config->url}/{$value->controller}">Foren&uuml;bersicht</a>
 		{else}Forum, Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$value->action}</a>
 		{/if}
 	{elseif $value->controller == 'thread'}
@@ -122,7 +122,7 @@
 		{else}Thema, Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$value->action}</a>
 		{/if}
 	{elseif $value->controller == 'user'}
-		{if $value->action == 'viewall'}<a href="{$config->url}/{$value->controller}/{$value->action}">Mitglieder&uuml;bersicht</a>
+		{if $value->action == 'std'}<a href="{$config->url}/{$value->controller}/{$value->action}">Mitglieder&uuml;bersicht</a>
 		{elseif $value->action == 'view'}Mitglied &raquo;<a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo;
 		{elseif $value->action == 'edit'}Mitglied &raquo;<a href="{$config->url}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a> &laquo; bearbeiten
 		{else}Mitglieder, Seite <a href="{$config->url}/{$value->controller}/{$value->action}">{$value->action}</a>

@@ -11,7 +11,7 @@
 		Fangen wir also mit Deiner eMail-Adresse an!
 	</p>
 	<form name="register" action="{$config->url}/register/validate" method="post">
-		{textinput formname='register' inputname='email' displayname='eMail' maxlength=85 placeholder="email@domain.de" autofocus=true}
+		{call textinput formname='register' inputname='email' displayname='eMail' maxlength=85 placeholder="email@domain.de" autofocus=true}
 			<input type="submit" value="Los!" name="submit" />
 		</p>
 	</form>

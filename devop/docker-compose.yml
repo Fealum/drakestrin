@@ -1,6 +1,6 @@
 version: '3.8'
 services:
-  php-apache-environment:
+  drakestrin-frontend:
     container_name: php-apache
     build:
       context: .
@@ -8,10 +8,10 @@ services:
     volumes:
       - ../:/var/www/html
     ports:
-      - 8080:80
+      - 80:80
     depends_on:
-      - db
-  db:
+      - drakestrin-db
+  drakestrin-db:
     container_name:  db
     image: mysql:latest
     environment:
@@ -20,8 +20,13 @@ services:
       MYSQL_USER: drakestrin
       MYSQL_PASSWORD: drakestrin
     ports:
-      - 9906:3306
+      - 3306:3306
     volumes:
       - mysql_data:/var/lib/mysql
+  drakestrin-adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
 volumes:
   mysql_data:

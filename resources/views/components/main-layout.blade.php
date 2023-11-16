@@ -68,7 +68,7 @@
 		<div id="userbar">
 			<div id="userbarcontent"@auth class="user-loggedin"@endauth>
 			@if (Auth::check())
-				<a id="notifypic" href="#sidebar"><img src="{{ url('/') }}/img/character_avatar.id/thumb/{{ $user->character__avatar ?? 0 }}.jpg" /></a>
+				<a id="notifypic" href="#sidebar"><img src="{{ url('/') }}/img/character_avatar.id/thumb/{{ auth()->user()->character__avatar ?? 0 }}.jpg" /></a>
 				@isset ($newconv->data)
                 <a href="{{ url('/') }}/conversation" class="fa-envelope newconv"> </a>
                 @endisset
@@ -88,7 +88,7 @@
 		{{ $path ?? '' }}
 		<div id="breadcrumbs">
             @isset($path)
-            <a href="{{ url('/') }}/">{$config->title}</a> 
+            <a href="{{ url('/') }}/">{{ config('app.name') }}</a> 
 		    @foreach (array_reverse($path) as $url => $name)
 		    / <a href="{{ url('/') }}/{{ $url }}">{{ $name }}</a>
 		    @endforeach
@@ -109,35 +109,52 @@
 			<li><a href="{{ url('/') }}/log/out" class="fa-sign-out">Abmelden</a></li>
 		</ul>
 		@endauth
-        @isset ($online->data)
+        @isset ($online)
 		<p id="online">
-			@foreach ($online->data as $value)
+			@foreach ($online as $value)
 			<span>
-				<a href="{{ url('/') }}/user/view/{$value->user}"><img src="{{ url('/') }}/img/character_avatar.id/thumb/{if $value->user->character__avatar}{$value->user->character__avatar}{else}0{/if}.jpg" />{$value->user->name|escape:'htmlall'}</a>, {$value->time|date_format:$config->time}<br />
-	{if $value->controller == 'index'}
-		{if $value->action == 'std'}<a href="{{ url('/') }}/{$value->controller}">Index</a>
-		{elseif $value->action == 'online'}<a href="{{ url('/') }}/{$value->controller}/{$value->action}">Wer ist online?</a>
-		{else}Index, Seite <a href="{{ url('/') }}/{$value->controller}/{$value->action}">{$value->action}</a>
-		{/if}
-	{elseif $value->controller == 'board'}
-		{if $value->action == 'filter'}<a href="{{ url('/') }}/{$value->controller}">Forenübersicht</a>
-		{else}Forum, Seite <a href="{{ url('/') }}/{$value->controller}/{$value->action}">{$value->action}</a>
-		{/if}
-	{elseif $value->controller == 'thread'}
-		{if $value->action == 'view'}Thema: <a href="{{ url('/') }}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>
-		{elseif $value->action == 'create'}Neues Thema erstellen
-		{elseif $value->action == 'edit'}Thema &raquo;<a href="{{ url('/') }}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo; bearbeiten
-		{elseif $value->action == 'delete'}Thema &raquo;<a href="{{ url('/') }}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo; löschen
-		{else}Thema, Seite <a href="{{ url('/') }}/{$value->controller}/{$value->action}">{$value->action}</a>
-		{/if}
-	{elseif $value->controller == 'user'}
-		{if $value->action == 'viewall'}<a href="{{ url('/') }}/{$value->controller}/{$value->action}">Mitgliederübersicht</a>
-		{elseif $value->action == 'view'}Mitglied &raquo;<a href="{{ url('/') }}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a>&laquo;
-		{elseif $value->action == 'edit'}Mitglied &raquo;<a href="{{ url('/') }}/{$value->controller}/{$value->action}/{$value->location}">{$value->location->name|escape:'htmlall'}</a> &laquo; bearbeiten
-		{else}Mitglieder, Seite <a href="{{ url('/') }}/{$value->controller}/{$value->action}">{$value->action}</a>
-		{/if}
-	{else}Seite <a href="{{ url('/') }}/{$value->controller}/{$value->action}">{$value->controller}/{$value->action}</a>
-	{/if}
+				<a href="{{ url('/') }}/user/view/{{ $value->user }}"><img src="{{ url('/') }}/img/character_avatar.id/thumb/{{ $value->user_legacy->character__avatar ?? 0 }}.jpg" />{{ $value->user_legacy->name }}</a>, {{ $value->time->format('H:i') }}<br />
+	@if ($value->controller == 'index')
+		@if ($value->action == 'std')
+		<a href="{{ url('/') }}/{{ $value->controller }}">Index</a>
+		@elseif ($value->action == 'online')
+		<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">Wer ist online?</a>
+		@else
+		Index, Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->action }}</a>
+		@endif
+	@elseif ($value->controller == 'board')
+		@if ($value->action == 'filter')
+		<a href="{{ url('/') }}/{{ $value->controller }}">Forenübersicht</a>
+		@else
+		Forum, Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->action }}</a>
+		@endif
+	@elseif ($value->controller == 'thread')
+		@if ($value->action == 'view')
+		Thema: <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{{ $value->location->name }}</a>
+		@elseif ($value->action == 'create')
+		Neues Thema erstellen
+		@elseif ($value->action == 'edit')
+		Thema »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{{ $value->location->name }}</a>« bearbeiten
+		@elseif ($value->action == 'delete')
+		Thema »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{{ $value->location->name }}</a>« löschen
+		@else
+		Thema, Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->action }}</a>
+		@endif
+	@elseif ($value->controller == 'user')
+		@if ($value->action == 'viewall')
+		<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">Mitgliederübersicht</a>
+		@elseif ($value->action == 'view')
+		Mitglied »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{$value->location->name}</a>«
+		@elseif ($value->action == 'edit')
+		Mitglied »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{{ $value->location->name }}</a>« bearbeiten
+		@else
+		Mitglieder, Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->action}}</a>
+		@endif
+	@elseif ($value->controller)
+		Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->controller }}/{{ $value->action }}</a>
+	@else
+		Seite <a href="{{ route($value->route) }}">{{ $value->route }}</a>
+	@endif
 			</span>
 			@endforeach
 		</p>

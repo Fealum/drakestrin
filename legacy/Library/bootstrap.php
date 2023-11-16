@@ -4,33 +4,6 @@
 
 define('DEVELOPMENT_ENVIRONMENT', true);
 
-$config = (object) array(
-    'title' => 'Kaiserreich Drachenstein',
-    'url' => $_ENV['URL'],
-    'niceurl' => $_ENV['NICEURL'],
-    'email' => $_ENV['ADMIN_MAIL'],
-    'datetime' => '%d.%m.%Y, %R',
-    'date' => '%d.%m.%Y',
-    'time' => '%R',
-    'timezone' => 'Europe/Berlin',
-    'emailvalidfor' => 172800,
-    'timeout' => 900,
-    'pageentries' => 20,
-    'avatarsize' => 500000,
-    'salt' => $_ENV['SALT']
-);
-
-$tables = array(
-    0 => 'user',
-    1 => 'thread',
-    2 => 'company',
-    3 => 'board',
-    4 => 'group',
-    5 => 'encyclopedia',
-    6 => 'character',
-    8 => 'company_worker'
-);
-
 /**
  * Create a path out of an element and return it 
  * @param array $array
@@ -40,23 +13,6 @@ $tables = array(
 function createPath($array)
 {
     return ROOT . DS . implode(DS, $array);
-}
-
-/**
- * Check if environment is development and display errors
- **/
-
-function setReporting()
-{
-    if (DEVELOPMENT_ENVIRONMENT == true) {
-        error_reporting(E_ALL);
-        ini_set('display_errors', 'On');
-    } else {
-        error_reporting(E_ALL);
-        ini_set('display_errors', 'Off');
-        ini_set('log_errors', 'On');
-        ini_set('error_log', createPath(array('tmp', 'logs', 'error.log')));
-    }
 }
 
 /**
@@ -125,9 +81,9 @@ function utf8ify($str)
         else return mb_convert_encoding($str, 'utf8'); // ung�ltiges UTF-8-Zeichen
         for ($c = 0; $c < $n; $c++) // $n Folgebytes? // 10bbbbbb
             if (++$i === $strlen || (ord($str[$i]) & 0xC0) !== 0x80)
-                return mb_convert_encoding($str, 'utf8'); // ung�ltiges UTF-8-Zeichen
+                return mb_convert_encoding($str, 'utf8'); // ungültiges UTF-8-Zeichen
     }
-    return $str; // kein ung�ltiges UTF-8-Zeichen gefunden
+    return $str; // kein ungültiges UTF-8-Zeichen gefunden
 }
 
 /**
@@ -170,16 +126,34 @@ function validEmail($email)
 
 /** Main Call Function **/
 
-function callHook($url, $config, $tables)
+function callHook($object, $action, $queryString)
 {
-    $urlArray = array();
-    $urlArray = explode("/", $url ?? 'index');
+    $config = (object) array(
+        'title' => 'Kaiserreich Drachenstein',
+        'url' => $_ENV['URL'],
+        'niceurl' => $_ENV['NICEURL'],
+        'email' => $_ENV['ADMIN_MAIL'],
+        'datetime' => '%d.%m.%Y, %R',
+        'date' => '%d.%m.%Y',
+        'time' => '%R',
+        'timezone' => 'Europe/Berlin',
+        'emailvalidfor' => 172800,
+        'timeout' => 900,
+        'pageentries' => 20,
+        'avatarsize' => 500000,
+        'salt' => $_ENV['SALT']
+    );
 
-    $object = $urlArray[0];
-    array_shift($urlArray);
-    $action = (isset($urlArray[0]) && $urlArray[0] != '') ? $urlArray[0] : 'std';
-    array_shift($urlArray);
-    $queryString = $urlArray;
+    $tables = array(
+        0 => 'user',
+        1 => 'thread',
+        2 => 'company',
+        3 => 'board',
+        4 => 'group',
+        5 => 'encyclopedia',
+        6 => 'character',
+        8 => 'company_worker'
+    );
 
     $controller = '\Legacy\App\Controller\\' . getControllerNameFromObject($object);
 
@@ -194,7 +168,6 @@ function callHook($url, $config, $tables)
     }
 }
 
-setReporting();
 removeMagicQuotes();
 unregisterGlobals();
-callHook($url, $config, $tables);
+callHook($object, $action, $queryString);
