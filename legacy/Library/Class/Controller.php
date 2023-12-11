@@ -2,8 +2,9 @@
 
 namespace Legacy\Library\Class;
 
-use Legacy\App\Model\OnlineModel;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\View as BladeView;
+use App\Models\Online;
 
 abstract class Controller
 {
@@ -33,17 +34,6 @@ abstract class Controller
 
 		$this->session = $this->session ?? new Session();
 
-		// Delete old onlines
-		$deleteonlines = new _list('online', '`time` < (UNIX_TIMESTAMP(now()) - ' . $config->timeout . ')');
-		if (!is_null($deleteonlines->data)) foreach ($deleteonlines->data as $cur) {
-			$cur->user->update(array('lastvisit' => $cur->time));
-			$cur->delete();
-		}
-
-		// Get onlines
-		$online = new _list('online', NULL, array('time,d', array('time' => 'time')));
-		$this->set('online', $online);
-
 		// Initialize permissions and configurations
 		Permission::setPermissions($this->user);
 		$this->set('permission', Permission::getInstance());
@@ -67,23 +57,33 @@ abstract class Controller
 
 	function onlinelocation($table, $location)
 	{
-		if ($this->user) $this->online->update(array('table__location' => (int)$table, 'location' => (int)$location));
+		if (Auth::check()) {
+			Online::updateOrCreate(
+				['user' => Auth::id()],
+				[
+					'table__location' => (int)$table,
+					'location' => (int)$location,
+				]
+			);
+			BladeView::share('online', Online::all());
+		}
 	}
 
 	function setnotice($notice, $type = 'info', $vars = NULL)
 	{
-		if ($notice != '') {
-			$pusharray = $this->session->notice;
-			$this->session->notice = is_array($pusharray)
-				? array_push($pusharray, array('notice' => $notice, 'type' => $type, 'vars' => $vars))
-				: array(array('notice' => $notice, 'type' => $type, 'vars' => $vars));
-		}
+		$messages = session('flash_messages', []);
+		$messages[] = [
+			'level' => $type,
+			'content' => view('notifications.' . $notice, $vars)->render(),
+		];
+
+		session()->flash('flash_messages', $messages);
 	}
 
 	function move($path)
 	{
 		$this->move = TRUE;
-		header('Location: ' . $this->config->url . '/' . $path);
+		redirect($path);
 		exit;
 	}
 
@@ -101,8 +101,6 @@ abstract class Controller
 	function __destruct()
 	{
 		if (!$this->move) {
-			$this->set('notice', $this->session->notice);
-			$this->session->notice = NULL;
 			$this->session->savecookie();
 			$this->_view->output($this->cacheid);
 		}

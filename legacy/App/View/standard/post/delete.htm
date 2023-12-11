@@ -1,4 +1,4 @@
-{extends file='../_.htm'}
+{extends file='../legacy.htm'}
 
 {block name=title}{if $permission->getPermission($obj, 'show') > 0}Beitrag im Thema &raquo;{$obj->thread->name|escape:'htmlall'}&laquo; l&ouml;schen{else}Zugriff nicht gestattet{/if}{/block}
 {block name=alttitle}Beitrag l&ouml;schen{/block}

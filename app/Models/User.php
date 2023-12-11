@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
@@ -40,6 +41,10 @@ class User extends Authenticatable
         'email',
         'password',
         'character__avatar',
+        'usertext',
+        'regdate',
+        'lastvisit',
+        'lastactivity',
     ];
 
     /**
@@ -52,8 +57,25 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    /**
+     * The attributes that should be cast to native types.
+     *
+     * @var array<int, string>
+     */
+    protected $casts = [
+        'character__avatar' => 'integer',
+        'regdate' => 'datetime',
+        'lastvisit' => 'datetime',
+        'lastactivity' => 'datetime',
+    ];
+
     public function character_avatar(): BelongsTo
     {
         return $this->belongsTo(Character::class, 'character__avatar');
+    }
+
+    public function groups(): BelongsToMany
+    {
+        return $this->belongsToMany(Group::class, 'dra_group2user', 'user', 'group');
     }
 }

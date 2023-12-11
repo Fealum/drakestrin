@@ -1,4 +1,4 @@
-{extends file='../_.htm'}
+{extends file='../legacy.htm'}
 {block name=title}Wort &raquo;{$obj->word|escape:htmlall}&laquo; bearbeiten{/block}
 {block name=path}
 {append var=path value=$obj->word index=join('/', array('dictionary/view', $obj))}

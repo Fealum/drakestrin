@@ -1,0 +1,1 @@
+Diese Email-Adresse ist nicht im System vermerkt! Entweder wurde sie nicht eingetragen, oder aber der Bestätigungslink ist abgelaufen.

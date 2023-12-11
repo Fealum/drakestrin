@@ -1,4 +1,4 @@
-{extends file='../_.htm'}
+{extends file='../legacy.htm'}
 {block name=css}territory_view{/block}
 {block name=title}{if $obj->type == '1'}Atlas{else}{if $obj->type == '2'}Provinz{elseif $obj->type == '3a'}Herzogtum{elseif $obj->type == '3b'}Grafschaft{elseif $obj->type == '3c'}Baronie{elseif $obj->type == '4'}Burgschaft{elseif $obj->type == '5'}Fauthei{/if} {$obj->name|escape:'htmlall'}{/if}{/block}
 {block name=path}

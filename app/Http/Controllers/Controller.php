@@ -19,26 +19,14 @@ class Controller extends BaseController
     protected $setonline = true;
     protected $online = null;
 
-    function __construct()
+    protected function flashMessage(string $level, string $template, array $data = [])
     {
-        if (Auth::check() && $this->setonline) {
-            $currentRoute = Route::current();
-            $this->online = Online::updateOrCreate(
-                ['user' => Auth::id()],
-                [
-                    'time' => Carbon::now(),
-                    'ip' => Request::ip(),
-                    'browser' => Request::userAgent(),
-                    'controller' => NULL,
-                    'action' => NULL,
-                    'table__location' => NULL,
-                    'location' => NULL,
-                    'route' => Route::current()->getName(),
-                ]
-            );
-            $this->online->locateable()->detach();
-        }
+        $messages = session('flash_messages', []);
+        $messages[] = [
+            'level' => $level,
+            'content' => view('notifications.' . $template, $data)->render(),
+        ];
 
-        View::share('online', Online::all());
+        session()->flash('flash_messages', $messages);
     }
 }

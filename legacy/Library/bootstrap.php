@@ -15,23 +15,6 @@ function createPath($array)
     return ROOT . DS . implode(DS, $array);
 }
 
-/**
- * Check for Magic Quotes and remove them
- * @param string $value
- * @return mixed <multitype:, string>
- **/
-
-function stripSlashesDeep($value)
-{
-    $value = is_array($value) ? array_map('stripSlashesDeep', $value) : stripslashes($value);
-    return $value;
-}
-
-function removeMagicQuotes()
-{
-    return true;
-}
-
 /** Check register globals and remove them **/
 
 function unregisterGlobals()
@@ -48,21 +31,6 @@ function unregisterGlobals()
 }
 
 /** Returns object/controller/model Name **/
-
-function getObjectNameFromModel($value)
-{
-    return substr(strtolower($value), 4, -5);
-}
-
-function getObjectNameFromController($value)
-{
-    return substr(strtolower($value), 4, -10);
-}
-
-function getControllerNameFromObject($value)
-{
-    return ucwords($value) . 'Controller';
-}
 
 function getModelNameFromObject($value)
 {
@@ -86,44 +54,6 @@ function utf8ify($str)
     return $str; // kein ungültiges UTF-8-Zeichen gefunden
 }
 
-/**
-Validate an email address.
-Provide email address (raw input)
-Returns true if the email address has the email 
-address format and the domain exists.
- */
-function validEmail($email)
-{
-    $isValid = true;
-    $atIndex = strrpos($email, "@");
-    if (is_bool($atIndex) && !$atIndex) return false;
-    else {
-        $domain = substr($email, $atIndex + 1);
-        $local = substr($email, 0, $atIndex);
-        $localLen = strlen($local);
-        $domainLen = strlen($domain);
-        // local part length exceeded
-        if ($localLen < 1 || $localLen > 64) return false;
-        // domain part length exceeded
-        elseif ($domainLen < 1 || $domainLen > 255) return false;
-        // local part starts or ends with '.'
-        elseif ($local[0] == '.' || $local[$localLen - 1] == '.') return false;
-        // local part has two consecutive dots
-        elseif (preg_match('/\\.\\./', $local)) return false;
-        // character not valid in domain part
-        elseif (!preg_match('/^[A-Za-z0-9\\-\\.]+$/', $domain)) return false;
-        // domain part has two consecutive dots
-        elseif (preg_match('/\\.\\./', $domain)) return false;
-        elseif (!preg_match('/^(\\\\.|[A-Za-z0-9!#%&`_=\\/$\'*+?^{}|~.-])+$/', str_replace("\\\\", "", $local))) {
-            // character not valid in local part unless local part is quoted
-            if (!preg_match('/^"(\\\\"|[^"])+"$/', str_replace("\\\\", "", $local))) return false;
-        }
-        // domain not found in DNS
-        if ($isValid && !(checkdnsrr($domain, "MX") || checkdnsrr($domain, "A"))) return false;
-    }
-    return $isValid;
-}
-
 /** Main Call Function **/
 
 function callHook($object, $action, $queryString)
@@ -137,7 +67,6 @@ function callHook($object, $action, $queryString)
         'date' => '%d.%m.%Y',
         'time' => '%R',
         'timezone' => 'Europe/Berlin',
-        'emailvalidfor' => 172800,
         'timeout' => 900,
         'pageentries' => 20,
         'avatarsize' => 500000,
@@ -155,7 +84,7 @@ function callHook($object, $action, $queryString)
         8 => 'company_worker'
     );
 
-    $controller = '\Legacy\App\Controller\\' . getControllerNameFromObject($object);
+    $controller = '\Legacy\App\Controller\\' . ucwords($object) . 'Controller';
 
     if (method_exists($controller, $action)) {
         $dispatch = new $controller(getModelNameFromObject($object), $object, $action, $config, $tables);
@@ -168,6 +97,5 @@ function callHook($object, $action, $queryString)
     }
 }
 
-removeMagicQuotes();
 unregisterGlobals();
 callHook($object, $action, $queryString);

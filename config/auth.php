@@ -112,4 +112,25 @@ return [
 
     'password_timeout' => 10800,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Valid Email Timeout
+    |--------------------------------------------------------------------------
+    |
+    | How long an email is kept in the database for validation, in minutes.
+    |
+    */
+    'valid_email_timeout' => 2880,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Visit Timeout
+    |--------------------------------------------------------------------------
+    |
+    | How long the user may stay without action to still regard a user session
+    | as one visit, in muntes.
+    |
+    */
+    'user_timeout' => 15,
+
 ];

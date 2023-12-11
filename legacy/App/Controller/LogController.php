@@ -4,6 +4,7 @@ namespace Legacy\App\Controller;
 
 use Legacy\Library\Class\Controller;
 use Legacy\App\Model\UserModel;
+use Illuminate\Support\Facades\Auth;
 
 class LogController extends Controller
 {
@@ -35,6 +36,7 @@ class LogController extends Controller
 						$passwordver = true;
 					}
 					if ($passwordver) {
+						Auth::loginUsingId($user->id, true);
 						$this->session->userid = $user->id;
 						$this->session->userpw = $user->return_password();
 						$this->setnotice('log_in', 'success');
@@ -54,6 +56,7 @@ class LogController extends Controller
 
 	function out()
 	{
+		Auth::logout();
 		$this->session->userid = NULL;
 		$this->session->userpw = NULL;
 		$this->online->delete();

@@ -3,7 +3,7 @@
 <li>
 	<img src="{$config->url}/img/character_avatar.id/thumb/{if $value->character__avatar}{$value->character__avatar}{elseif ctype_alpha($value->name[0])}i/{$value->name[0]|lower}{else}i/_{/if}.jpg" />
 	<a href="{$config->url}/user/view/{$value}">{$value->name|escape:'htmlall'}</a> 
-	<p class="small">{$value->post__total} Beitr&auml;ge seit {datetime value=$value->regdate onlydate=1} ({($value->post__total / (($smarty.now - $value->regdate) / 86400))|round:"2"} / Tag)</p>
+	<p class="small">{$value->post__total} Beitr&auml;ge seit {call datetime value=$value->regdate onlydate=1} ({($value->post__total / (($smarty.now - $value->regdate) / 86400))|round:"2"} / Tag)</p>
 	<ol>{foreach $value->character as $char}
 		<li>{$char->name}</li>
 {/foreach}	</ol>

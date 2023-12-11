@@ -1,6 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\LogController;
+use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\StaticPageController;
 use App\Http\Controllers\LegacyController;
 
@@ -15,32 +18,21 @@ use App\Http\Controllers\LegacyController;
 |
 */
 
-use Legacy\Library\Class\Session;
-use Legacy\Library\Class\Cache;
-use Illuminate\Support\Facades\Auth;
+Route::get('/calendar', [CalendarController::class, 'view'])->name('calendar');
 
-$userSession = new Session();
-if ($userSession->check() == FALSE) $userSession = new Session();
-if ($userSession->userid && $userSession->userpw) {
-    $thisUser = Cache::_('UserModel', $userSession->userid);
-    if (!$thisUser->check_password($userSession->userpw)) $thisUser = FALSE;
-} else {
-    $thisUser = FALSE;
-}
+Route::post('/log/in', [LogController::class, 'in'])->name('log.in');
+Route::get('/log/out', [LogController::class, 'out'])->name('log.out');
+Route::get('/log/forgot-password', [LogController::class, 'forgotPassword'])->name('log.forgot-password');
+Route::get('/log/new-password', [LogController::class, 'newPassword'])->name('log.new-password');
 
-if (php_sapi_name() !== "cli") {
-    if ($thisUser && Auth::guest()) {
-        Auth::login(
-            App\Models\User::findOrFail($userSession->userid)
-        );
-    } else if (!$thisUser) {
-        Auth::logout();
-    }
-}
+Route::get('/register', [RegisterController::class, 'start'])->name('register');
+Route::post('/register/validation', [RegisterController::class, 'validation'])->name('register.validation');
+Route::match(['get', 'post'], '/register/registration/{email}/{key}', [RegisterController::class, 'registration'])->name('register.registration');
+Route::get('/register/welcome', [RegisterController::class, 'welcome'])->name('register.welcome');
 
 Route::get('/static/help', [StaticPageController::class, 'help'])->name('static.help');
 Route::get('/static/terms', [StaticPageController::class, 'terms'])->name('static.terms');
 Route::get('/static/legal', [StaticPageController::class, 'legal'])->name('static.legal');
 
 // LEGACY
-Route::any('{path}', LegacyController::class)->where('path', '.*')->withoutMiddleware(['web', 'VerifyCsrfToken']);
+Route::any('{path}', LegacyController::class)->where('path', '.*')->withoutMiddleware(['VerifyCsrfToken']);

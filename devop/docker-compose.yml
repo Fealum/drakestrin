@@ -1,6 +1,6 @@
 version: '3.8'
 services:
-  drakestrin-frontend:
+  php-apache-environment:
     container_name: php-apache
     build:
       context: .
@@ -10,8 +10,8 @@ services:
     ports:
       - 80:80
     depends_on:
-      - drakestrin-db
-  drakestrin-db:
+      - db
+  db:
     container_name:  db
     image: mysql:latest
     environment:

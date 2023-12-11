@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\View;
+use Carbon\Carbon;
 use App\Models\Online;
 
 // Handles LEGACY requests
@@ -21,14 +24,14 @@ class LegacyController extends Controller
         $queryString = $urlArray;
 
         if (Auth::check() && $this->setonline) {
-            $this->online = Online::updateOrCreate(
-                ['user' => Auth::id()],
-                [
+            $this->online = Online::where('user', Auth::id())
+                ->update([
                     'controller' => $object,
-                    'action' => $action,
-                ]
-            );
+                    'action' => $action
+                ]);
         }
+
+        View::share('online', Online::all());
 
         ob_start();
         require app_path('Http') . '/legacy.php';

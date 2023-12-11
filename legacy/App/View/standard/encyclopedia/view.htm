@@ -1,6 +1,6 @@
-{extends file='../_.htm'}
+{extends file='../legacy.htm'}
 {block name=css}encyclopedia_view{/block}
-{block name=title}{if $obj->name}{$obj->title|escape:htmlall}{else}Zugriff nicht gestattet{/if}{/block}
+{block name=title}{if $obj->name}{$obj->title}{else}Zugriff nicht gestattet{/if}{/block}
 {block name=path}
 {assign var=pathdata value=$obj->encyclopedia}
 {while $pathdata}
@@ -12,13 +12,13 @@
 {block name=content}
 {function name=encyclopedia}
 <ol>
-{foreach $data as $page}	<li><a href="{$config->url}/encyclopedia/view/{$page}">{$page->name|escape:htmlall}</a>
+{foreach $data as $page}	<li><a href="{$config->url}/encyclopedia/view/{$page}">{$page->name}</a>
 	{if $page->encyclopedia__1}{encyclopedia data=$page->encyclopedia__1}{/if}
 	</li>
 {/foreach}
 </ol>
 {/function}
-{nocache}{if $permission->getPermission($obj, 'createencyclopedia') > 0}<p><a href="{$config->url}/encyclopedia/create/{$obj}" class="option create" title="Unterseite erstellen">Unterseite erstellen</a>{/if}{if (Permission::getPermission($obj, 'editencyclopedia') == 2 || (Permission::getPermission($obj, 'editencyclopedia') == 1 && $user->id == $obj->user->id))} <a href="{$config->url}/encyclopedia/edit/{$obj}" class="option edit" title="bearbeiten">bearbeiten</a>{/if}{if (Permission::getPermission($obj, 'deleteencyclopedia') == 2 || (Permission::getPermission($obj, 'deleteencyclopedia') == 1 && $user->id == $obj->user->id))} <a href="{$config->url}/encyclopedia/delete/{$obj}" class="option delete" title="l&ouml;schen">l&ouml;schen</a></p>{/if}{/nocache}
+{nocache}{if $permission::getPermission($obj, 'createencyclopedia') > 0}<p><a href="{$config->url}/encyclopedia/create/{$obj}" class="option create" title="Unterseite erstellen">Unterseite erstellen</a>{/if}{if ($permission::getPermission($obj, 'editencyclopedia') == 2 || ($permission::getPermission($obj, 'editencyclopedia') == 1 && $user->id == $obj->user->id))} <a href="{$config->url}/encyclopedia/edit/{$obj}" class="option edit" title="bearbeiten">bearbeiten</a>{/if}{if ($permission::getPermission($obj, 'deleteencyclopedia') == 2 || ($permission::getPermission($obj, 'deleteencyclopedia') == 1 && $user->id == $obj->user->id))} <a href="{$config->url}/encyclopedia/delete/{$obj}" class="option delete" title="l&ouml;schen">l&ouml;schen</a></p>{/if}{/nocache}
 <p>{$obj->text|bbcode:$bbcodes}</p>
 {if $obj->encyclopedia__1}
 <h3>Unterseiten</h3>

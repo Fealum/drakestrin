@@ -21,9 +21,9 @@
 	<link rel="icon" href="{{ url('/') }}/templates/standard/_img/favicon.ico" type="image/x-icon" />
 	<link rel="shortcut icon" href="{{ url('/') }}/templates/standard/_img/favicon.ico" type="image/x-icon" />
 	<script
-		 src="https://code.jquery.com/jquery-2.2.4.min.js"
-		 integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
-		 crossorigin="anonymous">
+		src="https://code.jquery.com/jquery-2.2.4.min.js"
+		integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
+		crossorigin="anonymous">
 	</script>
 	<script type="text/javascript">
 	$(document).ready(function () {
@@ -60,7 +60,7 @@
 				<li><a href="{{ url('/') }}/board">Forum</a></li>
 				<li><a href="{{ url('/') }}/user">Mitglieder</a></li> 
 				<li><a href="{{ url('/') }}/territory">Atlas</a></li>
-				<li><a href="{{ url('/') }}/calendar">Kalendarium</a></li> 
+				<li><a href="{{ route('calendar') }}">Kalendarium</a></li> 
 				<li><a href="{{ url('/') }}/dictionary">Diktionar</a></li>
 			</ul>
 			<a class="nav-close" id="nav-close" href="#nav-open">Nach oben</a>
@@ -75,6 +75,7 @@
                 Sali Vuz,<br />{{ auth()->user()->name }}!
 			@else
 				<form action="{{ url('/') }}/log/in" method="post">
+					@csrf
 					<input type="email" name="email" maxlength=85 placeholder="Email" tabindex=1 required>
 					<input type="password" placeholder="Passwort" name="password" maxlength=85 tabindex=2 required>
 					<input type="submit" class="fa-sign-in" value="Anmelden" name="submit" />
@@ -85,13 +86,13 @@
 		</div>
 	</header>
 	<main>
-		{{ $path ?? '' }}
+		{{ $patharray ?? '' }}
 		<div id="breadcrumbs">
             @isset($path)
             <a href="{{ url('/') }}/">{{ config('app.name') }}</a> 
-		    @foreach (array_reverse($path) as $url => $name)
-		    / <a href="{{ url('/') }}/{{ $url }}">{{ $name }}</a>
-		    @endforeach
+            @foreach (array_reverse($path) as $url => $name)
+            / <a href="{{ url('/') }}/{{ $url }}">{{ $name }}</a>
+            @endforeach
             / {{ $altTitle }}
             @endisset
         </div>
@@ -99,13 +100,19 @@
 		@foreach ($notice as $i)
 		<p class="notice notice_{$i.type}">{if $i.notice != '' && file_exists("./_notice/{$i.notice}.htm")}{include "./_notice/{$i.notice}.htm"}{else}Fehler bei der Notizerstellung: {var_dump($i)}{/if}</p>
 		@endforeach
+		
+		@foreach ($flashMessages as $i)
+		<p class="notice notice_{{ $i['level'] }}">
+			{!! $i['content'] !!}
+		</p>
+		@endforeach
 		{{ $slot }}
 	</main>
 	<aside id="sidebar">
 		@auth
 		<ul id="accountoptions">
 			<li><a href="{{ url('/') }}/conversation" class="fa-envelope">Konversationen</a></li>
-			<li><a href="{{ url('/') }}/user/view/{$user}" class="fa-user">Profil</a></li>
+			<li><a href="{{ url('/') }}/user/view/{{ auth()->user()->id }}" class="fa-user">Profil</a></li>
 			<li><a href="{{ url('/') }}/log/out" class="fa-sign-out">Abmelden</a></li>
 		</ul>
 		@endauth
@@ -123,20 +130,20 @@
 		Index, Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->action }}</a>
 		@endif
 	@elseif ($value->controller == 'board')
-		@if ($value->action == 'filter')
+		@if ($value->action == 'std')
 		<a href="{{ url('/') }}/{{ $value->controller }}">Forenübersicht</a>
 		@else
 		Forum, Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->action }}</a>
 		@endif
 	@elseif ($value->controller == 'thread')
 		@if ($value->action == 'view')
-		Thema: <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{{ $value->location->name }}</a>
+		<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">Thema</a>
 		@elseif ($value->action == 'create')
 		Neues Thema erstellen
 		@elseif ($value->action == 'edit')
-		Thema »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{{ $value->location->name }}</a>« bearbeiten
+		Thema »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{{ $value->location }}</a>« bearbeiten
 		@elseif ($value->action == 'delete')
-		Thema »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{{ $value->location->name }}</a>« löschen
+		Thema »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{{ $value->location }}</a>« löschen
 		@else
 		Thema, Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->action }}</a>
 		@endif
@@ -144,15 +151,23 @@
 		@if ($value->action == 'viewall')
 		<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">Mitgliederübersicht</a>
 		@elseif ($value->action == 'view')
-		Mitglied »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{$value->location->name}</a>«
+		Mitglied »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{$value->location}</a>«
 		@elseif ($value->action == 'edit')
-		Mitglied »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{{ $value->location->name }}</a>« bearbeiten
+		Mitglied »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{{ $value->location }}</a>« bearbeiten
 		@else
 		Mitglieder, Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->action}}</a>
 		@endif
+	@elseif ($value->controller === 'StaticPage')
+		@if ($value->action == 'help')
+		<a href="{{ route('static.help') }}">Hilfe</a>
+		@elseif ($value->action == 'terms')
+		<a href="{{ route('static.terms') }}">Nutzungsbedingungen</a>
+		@elseif ($value->action == 'legal')
+		<a href="{{ route('static.legal') }}">Impressum</a>
+		@endif
 	@elseif ($value->controller)
 		Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->controller }}/{{ $value->action }}</a>
-	@else
+	@elseif (isset($value->route))
 		Seite <a href="{{ route($value->route) }}">{{ $value->route }}</a>
 	@endif
 			</span>

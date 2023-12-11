@@ -3,6 +3,8 @@
 namespace Legacy\Library\Class;
 
 use \Smarty;
+use Illuminate\Support\Facades\Blade;
+use Legacy\Library\Class\Permission;
 
 class View extends Smarty
 {
@@ -39,7 +41,9 @@ class View extends Smarty
 			$this->setCaching(Smarty::CACHING_LIFETIME_SAVED);
 			$this->setCacheLifetime($cachetime);
 		}
-		parent::display(createPath(array('App', 'View', 'standard', $this->_controller, $this->_action . '.htm')), $cacheid);
+		// parent::display(createPath(array('App', 'View', 'standard', $this->_controller, $this->_action . '.htm')), $cacheid);
+		$smartyView = parent::fetch(createPath(array('App', 'View', 'standard', $this->_controller, $this->_action . '.htm')), $cacheid);
+		echo Blade::render($smartyView);
 	}
 
 	function clear($action, $cacheid = NULL, $controller = NULL)

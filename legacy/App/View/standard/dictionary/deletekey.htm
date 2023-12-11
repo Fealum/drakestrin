@@ -1,4 +1,4 @@
-{extends file='../_.htm'}
+{extends file='../legacy.htm'}
 
 {block name=title}Verkn&uuml;pfung zwischen &raquo;{$obj->dictionary__from->word|escape:htmlall}&laquo; und &raquo;{$obj->dictionary__to->word|escape:htmlall}&laquo; l&ouml;schen{/block}
 {block name=path} &rarr; <a href="{$config->url}/dictionary">Diktionar</a> &rarr; <a href="{$config->url}/dictionary/view/{$obj->dictionary__from}">{$obj->dictionary__from->word|escape:htmlall}</a>{/block}

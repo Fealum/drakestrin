@@ -1,4 +1,4 @@
-{extends file='../_.htm'}
+{extends file='../legacy.htm'}
 
 {block name=title}Forum{/block}
 {block name=css}board{/block}
@@ -7,17 +7,17 @@
 $(document).ready(function () {
 	
 	$("a.contrexp").click(function( event ) {
-		  event.preventDefault();
-		  var clicked = $(this);
-		  var showstatus = clicked.hasClass("fa-toggle-right") ? 1 : 0;
-		  clicked.removeClass((showstatus == 1) ? "fa-toggle-right" : "fa-toggle-down");
-		  clicked.addClass("fa-refresh");
-		  clicked.addClass("fa-spin");
-		  $.get( clicked.attr('href') + "/" + showstatus + "/1", function( data ) {
-			  clicked.removeClass("fa-refresh");
-			  clicked.removeClass("fa-spin");
-			  clicked.addClass((data == "1") ? "fa-toggle-down" : "fa-toggle-right");
-			  clicked.parent().children("ol").slideToggle();
+        event.preventDefault();
+        var clicked = $(this);
+        var showstatus = clicked.hasClass("fa-toggle-right") ? 1 : 0;
+        clicked.removeClass((showstatus == 1) ? "fa-toggle-right" : "fa-toggle-down");
+        clicked.addClass("fa-refresh");
+        clicked.addClass("fa-spin");
+        $.get( clicked.attr('href') + "/" + showstatus + "/1", function( data ) {
+            clicked.removeClass("fa-refresh");
+            clicked.removeClass("fa-spin");
+            clicked.addClass((data == "1") ? "fa-toggle-down" : "fa-toggle-right");
+            clicked.parent().children("ol").slideToggle();
 			});
 		});
 
@@ -31,7 +31,7 @@ $(document).ready(function () {
 		resultsFormatter: function(item) { return '<li><img src="{$config->url}/img/character_avatar.id/thumb/' + item.avatar + '.jpg" /> ' + item.name + '</li>' },
 		tokenFormatter: function(item) { return '<li><img src="{$config->url}/img/character_avatar.id/thumb/' + item.avatar + '.jpg" /> ' + item.name + '</li>' }{nocache}{if isset($userfilter.f)},
 		prePopulate: [
-			{foreach $userfilter.f as $i}{ldelim}id: {$i}, name: "{$i->name}", avatar: "{if $i->character__avatar}{$i->character__avatar}{elseif ctype_alpha($i->name[0])}i/{$i->name[0]|lower}{else}i/_{/if}"{rdelim}{if !$i@last},{/if}{/foreach}
+		    {foreach $userfilter.f as $i}{ldelim}id: {$i}, name: "{$i->name}", avatar: "{if $i->character__avatar}{$i->character__avatar}{elseif ctype_alpha($i->name[0])}i/{$i->name[0]|lower}{else}i/_{/if}"{rdelim}{if !$i@last},{/if}{/foreach}
 		]{/if}{/nocache}
     });
 	$("#user_contains").tokenInput("{$config->url}/board/ajax__getusers/", {
@@ -44,7 +44,7 @@ $(document).ready(function () {
 		resultsFormatter: function(item) { return '<li><img src="{$config->url}/img/character_avatar.id/thumb/' + item.avatar + '.jpg" /> ' + item.name + '</li>' },
 		tokenFormatter: function(item) { return '<li><img src="{$config->url}/img/character_avatar.id/thumb/' + item.avatar + '.jpg" /> ' + item.name + '</li>' }{nocache}{if isset($userfilter.c)},
 		prePopulate: [
-			{foreach $userfilter.c as $i}{ldelim}id: {$i}, name: "{$i->name}", avatar: "{if $i->character__avatar}{$i->character__avatar}{elseif ctype_alpha($i->name[0])}i/{$i->name[0]|lower}{else}i/_{/if}"{rdelim}{if !$i@last},{/if}{/foreach}
+		    {foreach $userfilter.c as $i}{ldelim}id: {$i}, name: "{$i->name}", avatar: "{if $i->character__avatar}{$i->character__avatar}{elseif ctype_alpha($i->name[0])}i/{$i->name[0]|lower}{else}i/_{/if}"{rdelim}{if !$i@last},{/if}{/foreach}
 		]{/if}{/nocache}
     });
 	$("#user_last").tokenInput("{$config->url}/board/ajax__getusers/", {

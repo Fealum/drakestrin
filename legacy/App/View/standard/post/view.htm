@@ -1,6 +1,6 @@
-{extends file='../_.htm'}
+{extends file='../legacy.htm'}
 
-{block name=title}{if _permissions::getPermission($obj, 'show') > 0}Beitrag im Thema &raquo;{$obj->thread->name|escape:'htmlall'}&laquo; bearbeiten{else}Zugriff nicht gestattet{/if}{/block}
+{block name=title}{if $permission::getPermission($obj, 'show') > 0}Beitrag im Thema &raquo;{$obj->thread->name|escape:'htmlall'}&laquo; bearbeiten{else}Zugriff nicht gestattet{/if}{/block}
 {block name=css}thread{/block}
 {block name=path}
 {function name=breadcrumbs}
@@ -8,7 +8,7 @@
 {/function}
  &raquo; <a href="board.php">Forum</a>{if $obj->name}{breadcrumbs data=$obj->thread->board} &raquo; <a href="board.php?id={$obj}">{$obj->name}</a>{/if}{/block}
 {block name=content}
-{if _permissions::getPermission($obj, 'show') > 0 && (_permissions::getPermission($obj, 'editpost') == 2 || (_permissions::getPermission($obj, 'editpost') == 1 && $user->id == $obj->user->id))}
+{if $permission::getPermission($obj, 'show') > 0 && ($permission::getPermission($obj, 'editpost') == 2 || ($permission::getPermission($obj, 'editpost') == 1 && $user->id == $obj->user->id))}
 <form name="editpost" action="post.php" method="post">
 <input type="hidden" name="mode" value="edit" />
 <input type="hidden" name="id" value="{$obj}" />

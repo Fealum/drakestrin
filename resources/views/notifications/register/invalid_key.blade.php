@@ -1,0 +1,1 @@
+Der Bestätigungsschlüssel passt leider nicht zur Email-Adresse <em>{{ $email }}</em>!
