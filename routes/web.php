@@ -22,8 +22,8 @@ Route::get('/calendar', [CalendarController::class, 'view'])->name('calendar');
 
 Route::post('/log/in', [LogController::class, 'in'])->name('log.in');
 Route::get('/log/out', [LogController::class, 'out'])->name('log.out');
-Route::get('/log/forgot-password', [LogController::class, 'forgotPassword'])->name('log.forgot-password');
-Route::get('/log/new-password', [LogController::class, 'newPassword'])->name('log.new-password');
+Route::match(['get', 'post'], '/log/forgot-password', [LogController::class, 'forgotPassword'])->name('log.forgot_password');
+Route::match(['get', 'post'], '/log/new-password/{email}/{key}', [LogController::class, 'newPassword'])->name('log.new_password');
 
 Route::get('/register', [RegisterController::class, 'start'])->name('register');
 Route::post('/register/validation', [RegisterController::class, 'validation'])->name('register.validation');

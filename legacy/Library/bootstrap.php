@@ -60,9 +60,9 @@ function callHook($object, $action, $queryString)
 {
     $config = (object) array(
         'title' => 'Kaiserreich Drachenstein',
-        'url' => $_ENV['URL'],
+        'url' => $_ENV['APP_URL'],
         'niceurl' => $_ENV['NICEURL'],
-        'email' => $_ENV['ADMIN_MAIL'],
+        'email' => $_ENV['APP_ADMIN_MAIL'],
         'datetime' => '%d.%m.%Y, %R',
         'date' => '%d.%m.%Y',
         'time' => '%R',

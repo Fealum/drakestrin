@@ -1,0 +1,1 @@
+Der Schlüssel passt leider nicht zur Email-Adresse <em>{{ $email }}</em>! Bitte überprüfe noch einmal, dass Du den Link, den Du per Mail bekommen hast, richtig übertragen hast.

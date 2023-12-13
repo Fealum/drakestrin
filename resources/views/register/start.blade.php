@@ -7,10 +7,11 @@
         </ol>
         Fangen wir also mit Deiner Email-Adresse an!
     </p>
-    <form name="register" action="{{ route('register.validation') }}" method="post">
-        @csrf
-        <x-textinput formname="register" inputname="email" displayname="Email" maxlength="85" type="email" placeholder="email@domain.de" :value="old('email')" :autofocus="true" :required="true" />
+    <p>
+        <form name="register" action="{{ route('register.validation') }}" method="post">
+            @csrf
+            <x-textinput formname="register" inputname="email" displayname="Email" maxlength="85" type="email" placeholder="email@domain.de" :value="old('email')" :autofocus="true" :required="true" />
             <input type="submit" value="Los!" name="submit" />
-        </p>
-    </form>
+        </form>
+    </p>
 </x-main-layout>

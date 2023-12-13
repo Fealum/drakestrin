@@ -61,6 +61,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Admin Email
+    |--------------------------------------------------------------------------
+    |
+    | This email adress will be used on the website when users should be able
+    | to contact the administration.
+    |
+    */
+
+    'admin_mail' => env('APP_ADMIN_MAIL'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

@@ -80,7 +80,7 @@
 					<input type="password" placeholder="Passwort" name="password" maxlength=85 tabindex=2 required>
 					<input type="submit" class="fa-sign-in" value="Anmelden" name="submit" />
 				</form>
-				<a class="fa-plus-circle" href="{{ url('/') }}/register">Registrieren</a> <a class="fa-question-circle" href="{{ url('/') }}/log/forgotpw">Passwort vergessen</a>
+				<a class="fa-plus-circle" href="{{ route('register') }}">Registrieren</a> <a class="fa-question-circle" href="{{ route('log.forgot_password') }}">Passwort vergessen</a>
 			@endif
 			</div>
 		</div>
