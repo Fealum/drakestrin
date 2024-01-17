@@ -64,7 +64,7 @@ class RegisterController extends Controller
         return view('register.validation', ['email' => $newValidEmail->email]);
     }
 
-    public function registration(Request $request, string $email, string $key)
+    public function registration(Request $request, string $email, string $key): RedirectResponse|View
     {
         $this->clearValidEmails();
 
@@ -124,7 +124,7 @@ class RegisterController extends Controller
         ]);
     }
 
-    public function welcome()
+    public function welcome(): View
     {
         return view('register.welcome');
     }

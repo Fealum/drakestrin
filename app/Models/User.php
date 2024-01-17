@@ -9,6 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -77,5 +78,15 @@ class User extends Authenticatable
     public function groups(): BelongsToMany
     {
         return $this->belongsToMany(Group::class, 'dra_group2user', 'user', 'group');
+    }
+
+    public function sentMessages()
+    {
+        return $this->hasMany(Conversation::class, 'user__sender');
+    }
+
+    public function receivedMessages()
+    {
+        return $this->hasMany(Conversation::class, 'user__recipient');
     }
 }

@@ -10,8 +10,11 @@ class MainLayout extends Component
 {
     public $title;
     public $altTitle;
-    public $headerimg;
+    public $headerImg;
     public $notice;
+    public $css;
+    public $moreCss;
+
     /**
      * Create a new component instance.
      */
@@ -19,11 +22,15 @@ class MainLayout extends Component
         $title = null,
         $altTitle = null,
         $notice = null,
+        $css = null,
+        $moreCss = null,
     ) {
         $this->title = $title ?? 'Startseite';
         $this->altTitle = $altTitle ?? $this->title;
-        $this->headerimg = rand(1, 6);
+        $this->headerImg = rand(1, 6);
         $this->notice = $notice ?? [];
+        $this->css = $css ?? '_';
+        $this->moreCss = $moreCss ?? '';
     }
 
     /**

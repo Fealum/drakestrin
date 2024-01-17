@@ -28,8 +28,6 @@ abstract class Controller
 		if (Auth::check()) {
 			$this->user = Cache::_('UserModel', Auth::id());
 			$this->set('user', $this->user);
-			$newconv = new _list('conversation', '`view` = 0 AND `user__recipient` = ' . Auth::id());
-			$this->set('newconv', $newconv);
 		}
 
 		$this->session = $this->session ?? new Session();

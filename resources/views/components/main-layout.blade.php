@@ -11,9 +11,9 @@
 		document.documentElement.classList.add('js');
 	</script>
 
-	<link rel="stylesheet" type="text/css" href="{{ url('/') }}/templates/standard/_css/_header{{ $headerimg }}.css" />
-	<link rel="stylesheet" type="text/css" href="{{ url('/') }}/templates/standard/_css/{{ $css ?? '_' }}.css" />
-    {{ $morecss ?? '' }}
+	<link rel="stylesheet" type="text/css" href="{{ url('/') }}/templates/standard/_css/_header{{ $headerImg }}.css" />
+	<link rel="stylesheet" type="text/css" href="{{ url('/') }}/templates/standard/_css/{{ $css }}.css" />
+    {{ $moreCss }}
 
 	<meta name="description" content="Das Kaiserreich Drachenstein ist eine sogenannte Micronation, ein Browser-basiertes Rollenspiel, in dem ein virtueller mittelalterlicher Fantasy-Staat simuliert wird. " />
 	<meta name="keywords" content="Drachenstein, Kaiserreich, Mikronation, Virtuelle Nation, Forenrollenspiel, Forumrollenspiel, Rollenspiel, Browserspiel, Browser-Rollenspiel, Mittelalter, Fantasy, Drache, kostenlos, Kaiser, Hobbit, Vampir, Elb, Elf" />
@@ -69,12 +69,12 @@
 			<div id="userbarcontent"@auth class="user-loggedin"@endauth>
 			@if (Auth::check())
 				<a id="notifypic" href="#sidebar"><img src="{{ url('/') }}/img/character_avatar.id/thumb/{{ auth()->user()->character__avatar ?? 0 }}.jpg" /></a>
-				@isset ($newconv->data)
-                <a href="{{ url('/') }}/conversation" class="fa-envelope newconv"> </a>
-                @endisset
+				@if ($newConv)
+                <a href="{{ route('conversation') }}" class="fa-envelope newconv"> </a>
+                @endif
                 Sali Vuz,<br />{{ auth()->user()->name }}!
 			@else
-				<form action="{{ url('/') }}/log/in" method="post">
+				<form action="{{ route('log.in') }}" method="post">
 					@csrf
 					<input type="email" name="email" maxlength=85 placeholder="Email" tabindex=1 required>
 					<input type="password" placeholder="Passwort" name="password" maxlength=85 tabindex=2 required>
@@ -111,9 +111,9 @@
 	<aside id="sidebar">
 		@auth
 		<ul id="accountoptions">
-			<li><a href="{{ url('/') }}/conversation" class="fa-envelope">Konversationen</a></li>
+			<li><a href="{{ route('conversation') }}" class="fa-envelope">Konversationen</a></li>
 			<li><a href="{{ url('/') }}/user/view/{{ auth()->user()->id }}" class="fa-user">Profil</a></li>
-			<li><a href="{{ url('/') }}/log/out" class="fa-sign-out">Abmelden</a></li>
+			<li><a href="{{ route('log.out') }}" class="fa-sign-out">Abmelden</a></li>
 		</ul>
 		@endauth
         @isset ($online)
@@ -166,7 +166,7 @@
 		<a href="{{ route('static.legal') }}">Impressum</a>
 		@endif
 	@elseif ($value->controller)
-		Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->controller }}/{{ $value->action }}</a>
+		Seite <a href="{{ url('/') }}/{{ Str::lower($value->controller) }}/{{ $value->action }}">{{ $value->controller }}/{{ $value->action }}</a>
 	@elseif (isset($value->route))
 		Seite <a href="{{ route($value->route) }}">{{ $value->route }}</a>
 	@endif

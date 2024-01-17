@@ -20,4 +20,5 @@
 #conversations li h4 img {
 	position: absolute;
 	left: -65px;
+	width: 60px;
 }
