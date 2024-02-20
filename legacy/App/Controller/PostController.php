@@ -110,11 +110,11 @@ class PostController extends Controller
 			$this->obj->delete();
 			$newlastthread = new ThreadModel;
 			$newlastthread->id_from_order(array('id,d', array('id' => 'id')));
-			$newlastpost = $newlastthread->post;
-			$newlastpost = &end($newlastpost);
-			$thread->update(array('post__total' => ($thread->post__total - 1)));
+			$newlastthreadpost = $thread->post[array_key_last($thread->post)];
+			$newlastboardpost = $newlastthread->post[array_key_last($newlastthread->post)];
+			$thread->update(array('post__total' => ($thread->post__total - 1), 'post__last' => $newlastthreadpost, 'post__last_time' => $newlastthreadpost->time));
 			$user->update(array('post__total' => ($user->post__total - 1)));
-			$thread->board->update(array('post__total' => ($thread->board->post__total - 1), 'post__last' => $newlastpost));
+			$thread->board->update(array('post__total' => ($thread->board->post__total - 1), 'post__last' => $newlastboardpost));
 			$this->move('thread/view/' . $thread->id);
 		}
 	}

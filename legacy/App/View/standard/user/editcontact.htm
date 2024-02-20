@@ -1,14 +1,15 @@
 {extends file='../legacy.htm'}
-{block name=title}Kontaktm&ouml;glichkeit bearbeiten{/block}
+{block name=title}Kontaktmöglichkeit bearbeiten{/block}
 {block name=path}
  &raquo; <a href="{$config->url}/user">Mitglieder</a> &raquo; <a href="{$config->url}/user/view/{$obj}">{$obj->name|escape:'htmlall'}</a>{/block}
 {block name=content}
 {include file='../_function/textinput.htm'}
 <form name="editusercontact" action="{$config->url}/user/editcontact/{$obj}" method="post">
+    @csrf
 <p><label for="protocol">Protokoll: </label><select name="protocol">
 {foreach $protocols->data as $i}	<option label="{$i->name}" value="{$i}"{if $obj->protocol->id == $i->id} selected="selected"{/if}>{$i->name}</option>{/foreach}
 </select></p>
 {call textinput formname='editusercontact' inputname='contact' displayname='Kontakt' value=$obj->contact}
-<p><input type="submit" value="Kontaktm&ouml;glichkeit bearbeiten" name="submit" /></p>
+<p><input type="submit" value="Kontaktmöglichkeit bearbeiten" name="submit" /></p>
 </form>
 {/block}

@@ -1,12 +1,13 @@
 {extends file='../legacy.htm'}
 
-{block name=title}Kontaktm&ouml;glichkeit l&ouml;schen{/block}
+{block name=title}Kontaktmöglichkeit löschen{/block}
 {block name=path} &rarr; <a href="{$config->url}/user">Mitglieder</a> &rarr; <a href="{$config->url}/user/view/{$obj->user}">{$obj->user->name|escape:htmlall}</a>{/block}
 {block name=content}
 <h3>Sicher?</h3>
-<p>Bist Du Dir sicher, dass Du die &raquo;{$obj->protocol->name|escape:htmlall}&laquo;-Kontaktm&ouml;glichkeit &raquo;{$obj->contact|escape:htmlall}&laquo; l&ouml;schen m&ouml;chtest?</p>
+<p>Bist Du Dir sicher, dass Du die &raquo;{$obj->protocol->name|escape:htmlall}&laquo;-Kontaktmöglichkeit &raquo;{$obj->contact|escape:htmlall}&laquo; löschen möchtest?</p>
 <form name="deletecontact" action="{$config->url}/user/deletecontact/{$obj}" method="post">
+    @csrf
 <input type="hidden" name="delete" value="1" />
-<p><input type="submit" value="Kontaktm&ouml;glichkeit l&ouml;schen" name="submit" /></p>
+<p><input type="submit" value="Kontaktmöglichkeit löschen" name="submit" /></p>
 </form>
 {/block}

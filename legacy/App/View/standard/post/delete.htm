@@ -1,7 +1,7 @@
 {extends file='../legacy.htm'}
 
-{block name=title}{if $permission->getPermission($obj, 'show') > 0}Beitrag im Thema &raquo;{$obj->thread->name|escape:'htmlall'}&laquo; l&ouml;schen{else}Zugriff nicht gestattet{/if}{/block}
-{block name=alttitle}Beitrag l&ouml;schen{/block}
+{block name=title}{if $permission->getPermission($obj, 'show') > 0}Beitrag im Thema »{$obj->thread->name|escape:'htmlall'}« löschen{else}Zugriff nicht gestattet{/if}{/block}
+{block name=alttitle}Beitrag löschen{/block}
 {block name=path}
 {append var=path value=$obj->thread->name index=join('/', array('thread/view', $obj->thread))}
 {assign var=pathdata value=$obj->thread->board}
@@ -15,15 +15,16 @@
 {block name=content}
 {include file='../_function/datetime.htm'}
 <h3>Sicher?</h3>
-<p>Bist Du Dir sicher, dass Du diesen Beitr&auml;g l&ouml;schen m&ouml;chtest?</p>
+<p>Bist Du Dir sicher, dass Du diesen Beitrag löschen möchtest?</p>
 	<div class="post">
 		<img src="{$config->url}/img/character_avatar.id/thumb/{if $obj->character->avatar}{$obj->character}{elseif ctype_alpha($obj->character->name[0])}i/{$obj->character->name[0]|lower}{else}i/_{/if}.jpg" />
 		<div class="postuser">
-		<h4><a href="{$config->url}/user/character/{$obj->character}">{$obj->character->name|escape:'htmlall'}</a> <span class="datetime">{datetime value=$obj->time}</span></h4>
+		<h4><a href="{$config->url}/user/character/{$obj->character}">{$obj->character->name|escape:'htmlall'}</a> <span class="datetime">{call datetime value=$obj->time}</span></h4>
 		</div>
 		<div class="postcontent">{$obj->message|bbcode:$bbcodes}</div>
 	</div>
 <form name="deletepost" action="{$config->url}/post/delete/{$obj}" method="post">
+	@csrf
 <input type="hidden" name="delete" value="1" />
 <p><input type="submit" value="Beitrag l&ouml;schen" name="submit" /></p>
 </form>

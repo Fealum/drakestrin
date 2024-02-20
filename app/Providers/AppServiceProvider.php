@@ -24,6 +24,14 @@ class AppServiceProvider extends ServiceProvider
     {
         // Custom polymorphic types
         Relation::enforceMorphMap([
+            0 => 'App\Models\User',
+            1 => 'App\Models\Thread',
+            2 => 'App\Models\Company',
+            3 => 'App\Models\Board',
+            4 => 'App\Models\Group',
+            5 => 'App\Models\Encyclopedia',
+            6 => 'App\Models\Character',
+            8 => 'App\Models\CompanyWorker',
             'character' => 'App\Models\Character',
             'thread' => 'App\Models\Thread',
             'user' => 'App\Models\User',

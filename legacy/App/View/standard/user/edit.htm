@@ -1,6 +1,6 @@
 {extends file='../legacy.htm'}
 
-{block name=title}&raquo;{$obj->name|escape:'htmlall'}&laquo; bearbeiten{/block}
+{block name=title}»{$obj->name|escape:'htmlall'}« bearbeiten{/block}
 {block name=alttitle}Nutzer bearbeiten{/block}
 {block name=css}user_edit{/block}
 {block name=path}
@@ -10,6 +10,7 @@
 {block name=content}
 {include file='../_function/textinput.htm'}
 <form name="edituser" action="{$config->url}/user/edit/{$obj}" method="post" enctype="multipart/form-data">
+	@csrf
 <h3>Avatar</h3>
 <p>Avatar des folgenden Charakters als Nutzeravatar benutzen</p>
 <div class="edit-avatarselect">

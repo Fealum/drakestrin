@@ -107,6 +107,7 @@ Keine Beitr&auml;ge!
 {/if}
 <div id="newpost" class="post">
 <form name="newpost" action="{$config->url}/post/create/{$obj}" method="post">
+	@csrf
 <div class="post-charselect">
 <ul>
 {foreach $user->character as $char}

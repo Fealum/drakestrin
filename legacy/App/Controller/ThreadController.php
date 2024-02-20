@@ -37,8 +37,7 @@ class ThreadController extends Controller
 	{
 		if (Permission::getPermission(null, 'createthread') == 0) {
 			$this->setnotice('thread_create_nopermission', 'error');
-			$this->move('thread/create');
-			exit;
+			return redirect('board');
 		}
 		$boards = new _list('board', 'board = 0', array('sort,a;name,a', array('sort' => 'sort', 'name' => 'name')));
 		$this->set('boards', $boards);
@@ -111,9 +110,9 @@ class ThreadController extends Controller
 			$newlastthread = new ThreadModel;
 			$newlastthread->id_from_order(array('id,d', array('id' => 'id')));
 			$newlastpost = $newlastthread->post;
-			$newlastpost = &end($newlastpost);
+			$newlastpost = end($newlastpost);
 			$board->update(array('thread__total' => ($board->thread__total - 1), 'post__total' => ($board->post__total - $postcount), 'post__last' => $newlastpost));
-			$this->move('board/view/' . $board->id);
+			$this->move('board');
 		}
 	}
 }

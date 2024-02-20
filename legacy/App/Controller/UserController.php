@@ -152,7 +152,6 @@ class UserController extends Controller
 	function editcontact($id = 1)
 	{
 		$this->obj = Cache::_('User_contactModel', $id);
-
 		if ((Permission::getPermission($this->obj, 'edituser') < 1 && $this->user->id != $this->obj->user->id) && Permission::getPermission($this->obj, 'edituser') < 2) {
 			$this->setnotice('user_edit_nopermission', 'error');
 			$this->move('user/view/' . $this->obj->user);

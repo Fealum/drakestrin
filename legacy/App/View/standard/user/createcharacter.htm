@@ -7,6 +7,7 @@
 {block name=content}
 {include file='../_function/textinput.htm'}
 <form name="createcharacter" action="{$config->url}/user/createcharacter/{$obj}" method="post">
+    @csrf
 {textinput formname='createcharacter' inputname='name' displayname='Name'}
 <p><input type="submit" value="Neuen Charakter erstellen" name="submit" /></p>
 </form>

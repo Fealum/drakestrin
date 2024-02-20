@@ -18,15 +18,15 @@
 {if $obj->board__1}
 <h3>Unterforen</h3>
 <div id="boards">
-{bit_board data=$obj->board__1}
+{call bit_board data=$obj->board__1}
 </div>
 {/if}
 {if $obj->thread}
 <h3>Themen{if $permission->getPermission($obj, 'createthread') > 0} <a href="{$config->url}/thread/create/{$obj}" class="option create" title="neues Thema erstellen">neues Thema erstellen</a>{/if}</h3>
 <div id="threads">
-{pagination link="/board/view/$obj" total=ceil((int)count($obj->thread) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
-{bit_thread data=$obj->thread page=$page entries=$configuration->getConfiguration($obj, 'pageentries')}
-{pagination link="/board/view/$obj" total=ceil((int)count($obj->thread) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
+{call pagination link="/board/view/$obj" total=ceil((int)count($obj->thread) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
+{call bit_thread data=$obj->thread page=$page entries=$configuration->getConfiguration($obj, 'pageentries')}
+{call pagination link="/board/view/$obj" total=ceil((int)count($obj->thread) / $configuration->getConfiguration($obj, 'pageentries')) cur=$page}
 </div>
 {/if}
 {else}

@@ -1,6 +1,6 @@
 {extends file='../legacy.htm'}
 
-{block name=title}&raquo;{$obj->name|escape:'htmlall'}&laquo; bearbeiten{/block}
+{block name=title}»{$obj->name|escape:'htmlall'}« bearbeiten{/block}
 {block name=alttitle}Charakter bearbeiten{/block}
 {block name=css}user_edit{/block}
 {block name=path}
@@ -12,6 +12,7 @@
 {block name=content}
 {include file='../_function/textinput.htm'}
 <form name="editcharacter" action="{$config->url}/user/editcharacter/{$obj}" method="post" enctype="multipart/form-data">
+	@csrf
 <h3>Avatar</h3>
 {if $obj->avatar}<img src="{$config->url}/img/character_avatar.id/{$obj}.jpg" id="user_avatar" />{/if}
 <input type="radio" name="changeavatar" id="avatar-0" value="0" checked="checked" /><label for="avatar-0" class="labelradio">Avatar nicht &auml;ndern</label><br />
@@ -22,7 +23,7 @@
 <p><textarea name="usertext">{if $obj->usertext}{$obj->usertext|escape:'htmlall'}{/if}</textarea></p>
 <p><label for="gender">Geschlecht: </label><select name="gender" id="gender">
 	<option label="keine Angabe" value="0"{if $obj->gender == 0} selected="selected"{/if}>keine Angabe</option>
-	<option label="m&auml;nnlich" value="1"{if $obj->gender == 1} selected="selected"{/if}>m&auml;nnlich</option>
+	<option label="männlich" value="1"{if $obj->gender == 1} selected="selected"{/if}>männlich</option>
 	<option label="weiblich" value="2"{if $obj->gender == 2} selected="selected"{/if}>weiblich</option>
 </select></p>
 {call textinput formname='editcharacter' inputname='birthday' displayname='Geburtsjahr' value=$obj->birthday}

@@ -2,13 +2,13 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Conversation;
+use App\Models\Message;
 use Illuminate\Http\Request;
 use Closure;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 
-class CheckNewConversation
+class CheckNewMessage
 {
     public function handle(Request $request, Closure $next)
     {
@@ -16,11 +16,11 @@ class CheckNewConversation
             return $next($request);
         }
 
-        $conversation = Conversation::where('user__recipient', Auth::id())
+        $message = Message::where('recipient_user_id', Auth::id())
             ->where('view', 0)
             ->exists();
 
-        View::share('newConv', $conversation);
+        View::share('newMessage', $message);
 
         return $next($request);
     }

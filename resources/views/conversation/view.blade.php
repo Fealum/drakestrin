@@ -5,17 +5,17 @@
 <input type="submit" value="Neue Nachricht erstellen" />
 </form>
 <ol>
-@forelse ($conversations as $conversation)
+@forelse ($messages as $message)
 	<li>
         <h4>
-        @if ($conversation->user__sender === $user->id)
-        <a href="{{ url('/') }}/user/view/{{ $conversation->sender->id }}">{{ $conversation->sender->name  }}</a>,
+        @if ($message->sender_user_id === $user->id)
+        <a href="{{ url('/') }}/user/view/{{ $message->sender->id }}">{{ $message->sender->name }}</a>,
         @else
         Du,
         @endif
-        <x-datetime :time="$conversation->time" />
+        <x-datetime :time="$message->created_at" />
         </h4>
-	<div class="postcontent">{{ $conversation->message }}</div>
+	<div class="postcontent">{!! nl2br(e($message->message)) !!}</div>
 	</li>
 @empty
 <li><p>Diese Konversation ist noch leer! Verfasse oben die erste Nachricht.</p></li>

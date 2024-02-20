@@ -69,7 +69,7 @@
 			<div id="userbarcontent"@auth class="user-loggedin"@endauth>
 			@if (Auth::check())
 				<a id="notifypic" href="#sidebar"><img src="{{ url('/') }}/img/character_avatar.id/thumb/{{ auth()->user()->character__avatar ?? 0 }}.jpg" /></a>
-				@if ($newConv)
+				@if ($newMessage)
                 <a href="{{ route('conversation') }}" class="fa-envelope newconv"> </a>
                 @endif
                 Sali Vuz,<br />{{ auth()->user()->name }}!

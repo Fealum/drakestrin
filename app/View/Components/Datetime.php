@@ -30,7 +30,7 @@ class DateTime extends Component
         } elseif ($time->isYesterday()) {
             $this->dateString = 'gestern';
         } elseif ($this->isCurrent) {
-            $this->dateString = match ($time->dayOfWeekIso()) {
+            $this->dateString = match ((int)$time->isoFormat('E')) {
                 1 => 'Montag',
                 2 => 'Dienstag',
                 3 => 'Mittwoch',

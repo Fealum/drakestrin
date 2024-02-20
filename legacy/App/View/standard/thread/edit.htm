@@ -1,6 +1,6 @@
 {extends file='../legacy.htm'}
 
-{block name=title}Thema &raquo;{$obj->name|escape:'htmlall'}&laquo; bearbeiten{/block}
+{block name=title}Thema »{$obj->name|escape:'htmlall'}« bearbeiten{/block}
 {block name=path}
 {assign var=path value=[join('/', array('thread/view', $obj)) => $obj->name]}
 {assign var=pathdata value=$obj->board}
@@ -20,6 +20,7 @@
 {/foreach}
 {/function}
 <form name="editthread" action="{$config->url}/thread/edit/{$obj}" method="post">
+	@csrf
 {call textinput formname='editthread' inputname='name' displayname='Name' autofocus=true value=$obj->name}
 <label for="important">Wichtig: </label><input type="checkbox" name="important" id="important" value="1" {if $thread['important'] == 1}checked="checked"{/if} />
 <p><label for="board">Forum: </label><select name="board" id="board">

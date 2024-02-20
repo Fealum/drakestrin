@@ -37,6 +37,10 @@ class LegacyController extends Controller
         require app_path('Http') . '/legacy.php';
         $output = ob_get_clean();
 
+        if (str_starts_with($output, '##REDIRECT##')) {
+            return redirect(substr($output, 12));
+        }
+
         return new Response($output);
     }
 }

@@ -1,6 +1,6 @@
 {extends file='../legacy.htm'}
 
-{block name=title}{if $obj->name}Thema &raquo;{$obj->name|escape:htmlall}&laquo; l&ouml;schen{else}Zugriff nicht gestattet{/if}{/block}
+{block name=title}{if $obj->name}Thema »{$obj->name|escape:htmlall}« löschen{else}Zugriff nicht gestattet{/if}{/block}
 {block name=path}
 {assign var=path value=[join('/', array('thread/view', $obj)) => $obj->name]}
 {assign var=pathdata value=$obj->board}
@@ -12,9 +12,10 @@
 {/block}
 {block name=content}
 <h3>Sicher?</h3>
-<p>Bist Du Dir sicher, dass Du dieses Thema und all seine Beitr&auml;ge l&ouml;schen m&ouml;chtest?</p>
+<p>Bist Du Dir sicher, dass Du dieses Thema und all seine Beiträge löschen möchtest?</p>
 <form name="deletethread" action="{$config->url}/thread/delete/{$obj}" method="post">
+    @csrf
 <input type="hidden" name="delete" value="1" />
-<p><input type="submit" value="Thema l&ouml;schen" name="submit" /></p>
+<p><input type="submit" value="Thema löschen" name="submit" /></p>
 </form>
 {/block}

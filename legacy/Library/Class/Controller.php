@@ -72,17 +72,15 @@ abstract class Controller
 		$messages = session('flash_messages', []);
 		$messages[] = [
 			'level' => $type,
-			'content' => view('notifications.' . $notice, $vars)->render(),
+			'content' => $this->_view->fetch(createPath(array('App', 'View', 'standard', '_notice', $notice . '.htm'))),
 		];
-
 		session()->flash('flash_messages', $messages);
 	}
 
 	function move($path)
 	{
 		$this->move = TRUE;
-		redirect($path);
-		exit;
+		echo '##REDIRECT##' . $path;
 	}
 
 	function set($name, $value = NULL)

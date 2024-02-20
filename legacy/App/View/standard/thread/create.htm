@@ -26,8 +26,9 @@ configurl = "{$config->url}";
 {/function}
 <div class="post">
 <form name="createthread" action="{$config->url}/thread/create" method="post">
+	@csrf
 {call textinput formname='createthread' inputname='name' displayname='Name' autofocus=true}
-<label for="important">Wichtig: </label><input type="checkbox" name="important" id="important" value="1" {if $thread['important'] == 1}checked="checked"{/if} />
+<label for="important">Wichtig: </label><input type="checkbox" name="important" id="important" value="1" {if isset($thread) && $thread['important'] == 1}checked="checked"{/if} />
 <p><label for="board">Forum: </label><select name="board" id="board">
 	{bit_board data=$boards->data}
 </select></p>

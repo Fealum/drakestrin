@@ -1,6 +1,6 @@
 {extends file='../legacy.htm'}
 
-{block name=title}{if $obj->name}Seite &raquo;{$obj->name|escape:htmlall}&laquo; editieren{else}Zugriff nicht gestattet{/if}{/block}
+{block name=title}{if $obj->name}Seite »{$obj->name|escape:htmlall}« editieren{else}Zugriff nicht gestattet{/if}{/block}
 {block name=path}
 {assign var=pathdata value=$obj}
 {while $pathdata}
@@ -29,12 +29,13 @@ configurl = "{$config->url}";
 {/foreach}
 {/function}
 <form name="editencyclopedia" action="{$config->url}/encyclopedia/edit/{$obj}" method="post">
+	@csrf
 {call textinput formname='editencyclopedia' inputname='name' displayname='Seitentitel (kurz)' value=$obj->name}
 {call textinput formname='editencyclopedia' inputname='title' displayname='Seitentitel (lang)' value=$obj->title}
 {call textinput formname='editencyclopedia' inputname='sort' displayname='Sortierungsrang' value=$obj->sort}
-<p><label for="encyclopedia">&Uuml;bergeordnete Seite: </label><select name="encyclopedia" id="encyclopedia">
+<p><label for="encyclopedia">Übergeordnete Seite: </label><select name="encyclopedia" id="encyclopedia">
 	<option value="0"{if !isset($obj->encyclopedia)} selected="selected"{/if}>(keine)</option>
-	{bit_page data=$pages->data}
+	{call bit_page data=$pages->data}
 </select></p>
 <textarea class="textarea-bbcode" name="text">{$obj->text|escape:'htmlall'}</textarea>
 <p><input type="submit" value="Seite bearbeiten" name="submit" /></p>

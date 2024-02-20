@@ -1,14 +1,15 @@
 {extends file='../legacy.htm'}
-{block name=title}Neue Kontaktm&ouml;glichkeit erstellen{/block}
+{block name=title}Neue Kontaktmöglichkeit erstellen{/block}
 {block name=path}
  &raquo; <a href="{$config->url}/user">Mitglieder</a> &raquo; <a href="{$config->url}/user/view/{$obj}">{$obj->name|escape:'htmlall'}</a>{/block}
 {block name=content}
 {include file='../_function/textinput.htm'}
 <form name="createusercontact" action="{$config->url}/user/createcontact/{$obj}" method="post">
+    @csrf
 <p><label for="protocol">Protokoll: </label><select name="protocol">
 {foreach $protocols->data as $i}	<option label="{$i->name}" value="{$i}">{$i->name}</option>{/foreach}
 </select></p>
-{textinput formname='createusercontact' inputname='contact' displayname='Kontakt'}
-<p><input type="submit" value="Neue Kontaktm&ouml;glichkeit erstellen" name="submit" /></p>
+{call textinput formname='createusercontact' inputname='contact' displayname='Kontakt'}
+<p><input type="submit" value="Neue Kontaktmöglichkeit erstellen" name="submit" /></p>
 </form>
 {/block}

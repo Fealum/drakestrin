@@ -1,6 +1,6 @@
 {extends file='../legacy.htm'}
 
-{block name=title}{if $permission->getPermission($obj, 'show') > 0}Beitrag im Thema &raquo;{$obj->thread->name|escape:'htmlall'}&laquo; bearbeiten{else}Zugriff nicht gestattet{/if}{/block}
+{block name=title}{if $permission->getPermission($obj, 'show') > 0}Beitrag im Thema »{$obj->thread->name|escape:'htmlall'}« bearbeiten{else}Zugriff nicht gestattet{/if}{/block}
 {block name=alttitle}Beitrag bearbeiten{/block}
 {block name=css}thread{/block}
 {block name=js}
@@ -27,6 +27,7 @@ configurl = "{$config->url}";
 {if $permission->getPermission($obj, 'show') > 0 && ($permission->getPermission($obj, 'editpost') == 2 || ($permission->getPermission($obj, 'editpost') == 1 && $user->id == $obj->user->id))}
 <div class="post">
 <form name="editpost" action="{$config->url}/post/edit/{$obj}" method="post">
+    @csrf
 <div class="post-charselect">
 <ul>
 {foreach $obj->user->character as $char}
