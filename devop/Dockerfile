@@ -1,4 +1,4 @@
-FROM php:8.2-apache
+FROM php:8.1-apache
 
 # Update und Upgrade der Paketlisten sowie Installieren von Hilfswerkzeugen
 RUN apt-get update && apt-get upgrade -y && apt-get install -y zip unzip openssh-client git rsync
