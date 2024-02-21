@@ -60,9 +60,9 @@ function callHook($object, $action, $queryString)
 {
     $config = (object) array(
         'title' => 'Kaiserreich Drachenstein',
-        'url' => $_ENV['APP_URL'],
-        'niceurl' => $_ENV['NICEURL'],
-        'email' => $_ENV['APP_ADMIN_MAIL'],
+        'url' => config('app.url'),
+        'niceurl' => config('app.nice_url'),
+        'email' => config('app.admin_mail'),
         'datetime' => '%d.%m.%Y, %R',
         'date' => '%d.%m.%Y',
         'time' => '%R',
@@ -70,7 +70,7 @@ function callHook($object, $action, $queryString)
         'timeout' => 900,
         'pageentries' => 20,
         'avatarsize' => 500000,
-        'salt' => $_ENV['SALT']
+        'salt' => config('app.salt')
     );
 
     $tables = array(

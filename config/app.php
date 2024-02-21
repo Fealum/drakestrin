@@ -57,6 +57,11 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // LEGACY
+
+    'nice_url' => env('NICEURL', 'localhost'),
+    'salt' => env('SALT', 'salt'),
+
     'asset_url' => env('ASSET_URL'),
 
     /*

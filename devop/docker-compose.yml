@@ -1,7 +1,7 @@
 version: '3.8'
 services:
-  php-apache-environment:
-    container_name: php-apache
+  app:
+    container_name: app
     build:
       context: .
       dockerfile: Dockerfile
@@ -11,22 +11,29 @@ services:
       - 80:80
     depends_on:
       - db
+    secrets:
+      - ssh_key
   db:
     container_name:  db
     image: mysql:latest
     environment:
-      MYSQL_ROOT_PASSWORD: drakestrin
-      MYSQL_DATABASE: drakestrin
-      MYSQL_USER: drakestrin
-      MYSQL_PASSWORD: drakestrin
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - 3306:3306
     volumes:
       - mysql_data:/var/lib/mysql
-  drakestrin-adminer:
+  adminer:
     image: adminer
     restart: always
     ports:
       - 8080:8080
+
 volumes:
   mysql_data:
+
+secrets:
+  ssh_key:
+    file: "${SSH_KEY}"
