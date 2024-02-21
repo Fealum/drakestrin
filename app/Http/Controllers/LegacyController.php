@@ -15,8 +15,8 @@ class LegacyController extends Controller
 {
     public function __invoke(Request $request)
     {
-        $urlArray = explode("/", $request->path() ?? 'index');
-
+        $path = $request->path() === '/' ? 'index' : $request->path();
+        $urlArray = explode("/", $path);
         $object = $urlArray[0];
         array_shift($urlArray);
         $action = (isset($urlArray[0]) && $urlArray[0] != '') ? $urlArray[0] : 'std';
