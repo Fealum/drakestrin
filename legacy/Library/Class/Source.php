@@ -16,10 +16,10 @@ class Source
 		if (!isset(self::$instance[$instance])) {
 			$sources['mysql1'] = array(
 				'type' => 'MySQL',
-				'host' => $_ENV['DB_HOST'],
-				'user' => $_ENV['DB_USERNAME'],
-				'password' => $_ENV['DB_PASSWORD'],
-				'database' => $_ENV['DB_DATABASE'],
+				'host' => config('database.connections.mysql.host'),
+				'user' => config('database.connections.mysql.username'),
+				'password' => config('database.connections.mysql.password'),
+				'database' => config('database.connections.mysql.database'),
 				'prefix' => 'dra_'
 			);
 			$classname = '\Legacy\Library\Class\Source_' . $sources[$instance]['type'];
