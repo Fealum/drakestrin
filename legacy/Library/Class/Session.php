@@ -35,7 +35,9 @@ class Session
 
 	function savecookie()
 	{
-		setcookie('savecookie_' . $this->name, json_encode($_SESSION[$this->name]), (time() + 365 * 86400), '/');
+		if (array_key_exists($this->name, $_SESSION)) {
+			setcookie('savecookie_' . $this->name, json_encode($_SESSION[$this->name]), (time() + 365 * 86400), '/');
+		}
 	}
 
 	function __set($setting, $value)
