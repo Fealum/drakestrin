@@ -6,7 +6,7 @@ use Illuminate\View\View;
 use Illuminate\View\Component;
 use Carbon\Carbon;
 
-class DateTime extends Component
+class Datetime extends Component
 {
     public Carbon $time;
     public bool $onlyDate;

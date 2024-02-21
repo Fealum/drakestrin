@@ -11,15 +11,15 @@
 		document.documentElement.classList.add('js');
 	</script>
 
-	<link rel="stylesheet" type="text/css" href="{{ url('/') }}/templates/standard/_css/_header{{ $headerImg }}.css" />
-	<link rel="stylesheet" type="text/css" href="{{ url('/') }}/templates/standard/_css/{{ $css }}.css" />
+	<link rel="stylesheet" type="text/css" href="{{ asset('css/_header'.$headerImg.'.css') }}" />
+	<link rel="stylesheet" type="text/css" href="{{ asset('css/'.$css.'.css') }}" />
     {{ $moreCss }}
 
 	<meta name="description" content="Das Kaiserreich Drachenstein ist eine sogenannte Micronation, ein Browser-basiertes Rollenspiel, in dem ein virtueller mittelalterlicher Fantasy-Staat simuliert wird. " />
 	<meta name="keywords" content="Drachenstein, Kaiserreich, Mikronation, Virtuelle Nation, Forenrollenspiel, Forumrollenspiel, Rollenspiel, Browserspiel, Browser-Rollenspiel, Mittelalter, Fantasy, Drache, kostenlos, Kaiser, Hobbit, Vampir, Elb, Elf" />
 
-	<link rel="icon" href="{{ url('/') }}/templates/standard/_img/favicon.ico" type="image/x-icon" />
-	<link rel="shortcut icon" href="{{ url('/') }}/templates/standard/_img/favicon.ico" type="image/x-icon" />
+	<link rel="icon" href="{{ asset('css/img/favicon.ico') }}" type="image/x-icon" />
+	<link rel="shortcut icon" href="{{ asset('css/img/favicon.ico') }}" type="image/x-icon" />
 	<script
 		src="https://code.jquery.com/jquery-2.2.4.min.js"
 		integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="

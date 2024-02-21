@@ -1,12 +1,3 @@
 RewriteEngine On
-
-# Redirect requests to /img/ to /legacy/img/
-RewriteCond %{REQUEST_URI} ^/img/
-RewriteRule ^img/(.*)$ /legacy/img/$1 [L]
-
-# Redirect requests to /templates/ to /legacy/App/View/
-RewriteCond %{REQUEST_URI} ^/templates/
-RewriteRule ^templates/(.*)$ /legacy/App/View/$1 [L]
-
-# Redirect all other requests to /new/public/
-RewriteRule ^(.*)$ /public/index.php?url=$1 [L]
+RewriteCond %{REQUEST_URI} !^/public
+RewriteRule ^(.*)$ /public/$1 [L,QSA]
