@@ -1,6 +1,6 @@
 {extends file='../legacy.htm'}
 
-{block name=title}{if isset($obj) && $obj->name}{$obj->name|escape:'htmlall'}{else}Zugriff nicht gestattet{/if}{/block}
+{block name=title}{if isset($obj) && $obj->name}{$obj->name}{else}Zugriff nicht gestattet{/if}{/block}
 {block name=path}
 {assign var=pathdata value=$obj->board}
 {while $pathdata}

@@ -1,6 +1,6 @@
 {extends file='../legacy.htm'}
 
-{block name=title}Thema »{$obj->name|escape:'htmlall'}« bearbeiten{/block}
+{block name=title}Thema »{$obj->name}« bearbeiten{/block}
 {block name=path}
 {assign var=path value=[join('/', array('thread/view', $obj)) => $obj->name]}
 {assign var=pathdata value=$obj->board}

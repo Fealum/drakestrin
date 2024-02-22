@@ -1,6 +1,6 @@
 {extends file='../legacy.htm'}
 
-{block name=title}{if $obj->name}Thema »{$obj->name|escape:htmlall}« löschen{else}Zugriff nicht gestattet{/if}{/block}
+{block name=title}{if $obj->name}Thema »{$obj->name}« löschen{else}Zugriff nicht gestattet{/if}{/block}
 {block name=path}
 {assign var=path value=[join('/', array('thread/view', $obj)) => $obj->name]}
 {assign var=pathdata value=$obj->board}
