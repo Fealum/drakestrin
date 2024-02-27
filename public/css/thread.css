@@ -119,10 +119,11 @@ div.post-charselect label {
 	height: 30px;
 	padding-right: 5px;
 	opacity: 0.5;
-   transition: opacity .25s ease-in-out;
-   -moz-transition: opacity .25s ease-in-out;
-   -webkit-transition: opacity .25s ease-in-out;
-   cursor: pointer;
+    transition: opacity .25s ease-in-out;
+    -moz-transition: opacity .25s ease-in-out;
+    -webkit-transition: opacity .25s ease-in-out;
+    cursor: pointer;
+	padding-left: 0;
 }
 
 div.post-charselect label:hover {
@@ -149,6 +150,7 @@ div.post-charselect input[type="radio"]:checked ~ label {
 	left: -65px;
 	width: 60px;
 	cursor: auto;
+	padding-left: 0;
 }
 
 div.post-charselect label img {
