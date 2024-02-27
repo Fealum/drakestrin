@@ -48,7 +48,7 @@ $(document).ready(function() {
 			.attr('d', path)
 			.attr('class', 'map_territory');
 
-		d3.json("{$config->url}/templates/standard/_js/ajax__getterritoryland.json", function(error, obj) {
+		d3.json("{$config->url}/js/ajax__getterritoryland.json", function(error, obj) {
 			landmass.selectAll('path')
 				.data(obj.features)
 				.enter()

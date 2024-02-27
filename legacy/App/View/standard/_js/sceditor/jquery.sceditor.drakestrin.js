@@ -99,7 +99,7 @@ $(document).ready(function() {
 				":verliebt:": "67.gif"
 			}
 		},
-		style: configurl + "/templates/standard/_js/sceditor/development/jquery.sceditor.drakestrin.css",
+		style: configurl + "/js/sceditor/development/jquery.sceditor.drakestrin.css",
 		resizeWidth: false,
 		autoExpand: true,
 		locale: "de"

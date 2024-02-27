@@ -5,14 +5,14 @@
 {block name=css}thread{/block}
 {block name=js}
 <!-- SCEditor -->
-<script type="text/javascript" src="{$config->url}/templates/standard/_js/sceditor/development/jquery.sceditor.bbcode.js"></script>
-<script type="text/javascript" src="{$config->url}/templates/standard/_js/sceditor/languages/de.js"></script>
+<script type="text/javascript" src="{$config->url}/js/sceditor/development/jquery.sceditor.bbcode.js"></script>
+<script type="text/javascript" src="{$config->url}/js/sceditor/languages/de.js"></script>
 <!-- SCEditor skin -->
-<link rel="stylesheet" type="text/css" href="{$config->url}/templates/standard/_js/sceditor/development/themes/square.css" />
+<link rel="stylesheet" type="text/css" href="{$config->url}/js/sceditor/development/themes/square.css" />
 <script type="text/javascript">
 configurl = "{$config->url}";
 </script>
-<script type="text/javascript" src="{$config->url}/templates/standard/_js/sceditor/jquery.sceditor.drakestrin.js"></script>
+<script type="text/javascript" src="{$config->url}/js/sceditor/jquery.sceditor.drakestrin.js"></script>
 {/block}
 {block name=path}
 {append var=path value=$obj->thread->name index=join('/', array('thread/view', $obj->thread))}

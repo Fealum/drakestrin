@@ -1,4 +1,7 @@
 <x-main-layout title="Konversationen" css="conversation">
+    @permission('show')
+    <p>Test!</p>
+    @endpermission
     <ol id="conversations">
         @forelse ($conversations as $conversation)
         <li>
@@ -11,7 +14,7 @@
                 <a href="{{ url('/') }}/conversation/view/{{ $conversation['other_user']->id }}">{{ $conversation['message_count'] }} Nachricht{{ ($conversation['message_count'] === 1) ? '' : 'en' }}</a>
             </h4>
             <p>
-                {!! ($conversation['latest_message']->user__recipient === auth()->user()->id) ? '&#11106;' : '&#10550;' !!}
+                {!! ($conversation['latest_message']->recipient_user_id === auth()->user()->id) ? '&#11106;' : '&#10550;' !!}
                 @php
                     $message = $conversation['latest_message']->message;
 
