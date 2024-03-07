@@ -1,4 +1,4 @@
-<x-main-layout title="Nutzungsbedingungen">
+<x-main-layout title="Nutzungsbedingungen" :no-breadcrumbs="true">
     <h3>1. Geltungsbereich</h3>
 	<p>Für die Nutzung des unter <em>drakestrin.de</em> erreichbaren Angebots »Kaiserreich Drachenstein« von Fabian Müller (nachfolgend »Anbieter« genannt) gelten nachfolgende Bedingungen. 
 		Die Nutzung des Angebots ist nur unter Zustimmung zu diesen Nutzungsbedingungen zulässig.</p>

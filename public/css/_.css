@@ -169,7 +169,7 @@ nav {
 	grid-area: navbar;
 }
 
-nav>ul, #breadcrumbs {
+nav>ul, .breadcrumb {
 	display: block;
 }
 
@@ -206,8 +206,24 @@ nav>ul a:hover, nav>ul a:focus {
 	min-height: 0.75rem;
 }
 
-#breadcrumbs:hover {
+.breadcrumb:hover {
 	opacity: 1;
+}
+
+.breadcrumb {
+	display: flex;
+	flex-wrap: wrap;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+	float: left;
+	padding: 0 0.2rem;
+	opacity: 0.8;
+	content: '/';
+
 }
 
 nav>ul li {

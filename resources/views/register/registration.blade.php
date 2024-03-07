@@ -1,4 +1,4 @@
-<x-main-layout title="Registrieren">
+<x-main-layout title="Registrieren" :no-breadcrumbs="true">
     <h3>Zweiter Schritt</h3>
     <p>Deine Email-Adresse <em>{{ $email }}</em> wurde bestätigt! Wähle nun einen Nutzernamen und ein Passwort.</p>
     <form name="register" action="{{ route('register.registration', ['email' => $email, 'key' => $key]) }}" method="post">

@@ -4,35 +4,36 @@ namespace App\Services;
 
 use App\Models\Permit;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Auth;
 
 class PermissionService
 {
-    public function check($user, $object, $action)
-    {
-        $cacheKey = $this->generateCacheKey($user, $object, $action);
+    private ?array $permissions = null;
+    private ?array $permits = null;
 
-        // Try to get the result from the cache
-        return Cache::remember($cacheKey, now()->addDays(1), function () use ($user, $object, $action) {
-            // Perform the permission check and return the result
-            // This is where you would implement the actual check logic
-            return $this->performPermissionCheck($user, $object, $action);
-        });
+    public function __construct()
+    {
     }
 
-    protected function generateCacheKey($subject, $object, $action)
+    private function instanciate()
     {
-        // Generate a unique cache key based on the user, object, and action
-        // Ensure that this key uniquely identifies the permission check
-        return sprintf(
-            'permissions:%s:%s:%s',
-            $action,
-            is_null($subject) ? 'global' : get_class($subject) . $subject->id,
-            is_null($object) ? 'global' : get_class($object) . $object->id,
-        );
+        $userId = auth()->id();
+        $permissionCacheKey = 'user_permissions:' . ($userId ?? 'global');
+        $permitCacheKey = 'user_permits:' . ($userId ?? 'global');
+
+        $this->permissions = Cache::get($permissionCacheKey, []);
+        $this->permits = Cache::get($permitCacheKey, []);
     }
 
-    protected function performPermissionCheck($subject, $object, $action)
+    public function check($action, $object = NULL)
     {
+        // Legacy conversion
+        $action = strtolower($action);
+        // End Legacy conversion
+
+        if (!$this->permissions) {
+            $this->instanciate();
+        }
         $tables = array(
             0 => 'user',
             1 => 'thread',
@@ -44,20 +45,16 @@ class PermissionService
             8 => 'company_worker'
         );
 
-        if ($subject === NULL && $object === NULL) return $this->getPermit($action);
+        if ($object == NULL) return $this->permits[$action];
 
-        if (is_object($object->{$object->permission})) {
-            return self::$permissions[array_search($object->table, $tables)][$object->id][$permit] = self::getPermission($object->{$object->permission}, $permit);
+        $tablesKey = array_search($object->table, $tables);
+
+        if (isset($this->permissions[$tablesKey][$object->id][$action])) {
+            return $this->permissions[$tablesKey][$object->id][$action];
+        } elseif (is_object($object->{$object->permission})) {
+            return $this->permissions[$tablesKey][$object->id][$action] = $this->check($action, $object->{$object->permission});
+        } else {
+            return $this->permits[$action];
         }
-
-        return $this->getPermit($action);
-        // Implement the actual permission checking logic here
-    }
-
-    protected function getPermit(string $action)
-    {
-        return Cache::remember('permits:' . $action, now()->addDays(1), function () use ($action) {
-            return Permit::where('name', $action)->first();
-        });
     }
 }

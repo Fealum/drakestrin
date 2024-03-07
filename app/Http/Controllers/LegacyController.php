@@ -23,6 +23,11 @@ class LegacyController extends Controller
         array_shift($urlArray);
         $queryString = $urlArray;
 
+        return $this->render($object, $action, $queryString);
+    }
+
+    public function render($object, $action, $queryString = [])
+    {
         if (Auth::check() && $this->setonline) {
             $this->online = Online::where('user', Auth::id())
                 ->update([

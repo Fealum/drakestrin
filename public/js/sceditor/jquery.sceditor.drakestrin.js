@@ -37,7 +37,7 @@ $(document).ready(function() {
 	
 	$(".textarea-bbcode").sceditor({
 		plugins: "bbcode",
-		toolbar: "bold,italic,underline|left,center,right|size,color|bulletlist,orderedlist,table|handlung,simoff,quote,code|image,link,unlink|emoticon|removeformat,maximize,source",
+		toolbar: "bold,italic|bulletlist,orderedlist|handlung,simoff,quote,code|image,link,unlink|emoticon|removeformat,maximize,source",
 		colors: '#FCE94F,#EDD400,#C4A000,#FCAF3E,#F57900,#CE5C00|#E9B96E,#C17D11,#8F5902,#8AE234,#73D216,#4E9A06|#729FCF,#3465A4,#204A87,#AD7FA8,#75507B,#5C3566|#EF2929,#CC0000,#A40000,#EF299E,#CC0078,#A40060|#FFFFFF,#D3D7CF,#BABDB6,#888A85,#555753,#000000',
 		emoticonsRoot: configurl + "/img/emoticon/",
 		emoticons: {

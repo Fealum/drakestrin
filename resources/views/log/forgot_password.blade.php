@@ -1,4 +1,4 @@
-<x-main-layout title="Passwort vergessen">
+<x-main-layout title="Passwort vergessen" :no-breadcrumbs="true">
 	<p>Um ein neues Passwort zu erhalten, gib unten die Email-Adresse ein, auf welche Dein Account registriert wurde. An diese wird sodann ein Link geschickt, mit dem Du ein neues Passwort beantragen kannst.</p>
     <p>
         <form name="forgot_password" action="{{ route('log.forgot_password') }}" method="post">

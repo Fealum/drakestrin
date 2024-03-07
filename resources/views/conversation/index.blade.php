@@ -1,7 +1,4 @@
-<x-main-layout title="Konversationen" css="conversation">
-    @permission('show')
-    <p>Test!</p>
-    @endpermission
+<x-main-layout title="Konversationen" css="conversation" :no-breadcrumbs="true">
     <ol id="conversations">
         @forelse ($conversations as $conversation)
         <li>

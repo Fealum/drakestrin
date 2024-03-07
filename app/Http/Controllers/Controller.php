@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Carbon\Carbon;
 use App\Models\Online;
+use App\Services\PermissionService;
 
 class Controller extends BaseController
 {
@@ -18,6 +19,13 @@ class Controller extends BaseController
 
     protected $setonline = true;
     protected $online = null;
+
+    protected $permissionService;
+
+    public function __construct(PermissionService $permissionService)
+    {
+        $this->permissionService = $permissionService;
+    }
 
     protected function flashMessage(string $level, string $template, array $data = [])
     {

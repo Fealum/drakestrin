@@ -39,7 +39,7 @@ main > ol > li {
 	background-size: contain;
 }
 
-main > ol > li > a {
+main > ol > li > a, main > ol > li > a:visited {
 	display: block;
 	color: white;
 	text-shadow: 0px 0px 4px rgba(0, 0, 0, 1);
@@ -81,7 +81,7 @@ main > ol > li > ol > li ol ol {
 	padding-left: 1em;
 }
 
-.notext {
+.stub {
 	opacity: 0.5;
 }
 

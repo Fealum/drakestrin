@@ -1,4 +1,4 @@
-<x-main-layout title="Registrieren">
+<x-main-layout title="Registrieren" :no-breadcrumbs="true">
     <h3>Erster Schritt</h3>
     <p>Die Registrierung im {{ config('app.name') }} verläuft in zwei Schritten: 
         <ol>

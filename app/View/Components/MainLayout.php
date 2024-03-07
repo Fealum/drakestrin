@@ -14,6 +14,7 @@ class MainLayout extends Component
     public $notice;
     public $css;
     public $moreCss;
+    public $noBreadcrumbs;
 
     /**
      * Create a new component instance.
@@ -24,6 +25,7 @@ class MainLayout extends Component
         $notice = null,
         $css = null,
         $moreCss = null,
+        $noBreadcrumbs = false,
     ) {
         $this->title = $title ?? 'Startseite';
         $this->altTitle = $altTitle ?? $this->title;
@@ -31,6 +33,7 @@ class MainLayout extends Component
         $this->notice = $notice ?? [];
         $this->css = $css ?? '_';
         $this->moreCss = $moreCss ?? '';
+        $this->noBreadcrumbs = $noBreadcrumbs ?? false;
     }
 
     /**

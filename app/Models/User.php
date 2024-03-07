@@ -10,6 +10,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class User extends Authenticatable
 {
@@ -80,12 +81,17 @@ class User extends Authenticatable
         return $this->belongsToMany(Group::class, 'dra_group2user', 'user', 'group');
     }
 
-    public function sentMessages()
+    public function permissions(): MorphMany
+    {
+        return $this->morphMany(Permission::class, 'recipient_legacy', 'table__recipient', 'recipient');
+    }
+
+    public function sentMessages(): HasMany
     {
         return $this->hasMany(Message::class, 'sender_user_id');
     }
 
-    public function receivedMessages()
+    public function receivedMessages(): HasMany
     {
         return $this->hasMany(Message::class, 'recipient_user_id');
     }

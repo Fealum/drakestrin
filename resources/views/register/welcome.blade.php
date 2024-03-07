@@ -1,4 +1,4 @@
-<x-main-layout title="Registrieren">
+<x-main-layout title="Registrieren" :no-breadcrumbs="true">
     <h3>Geschafft!</h3>
     <p>Die Registrierung war erfolgreich! Herzlich Willkommen im {{ config('app.name') }}. Was Du jetzt machen kannst?</p>
     <p>

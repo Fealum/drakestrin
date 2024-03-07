@@ -1,4 +1,4 @@
-<x-main-layout title="Impressum">
+<x-main-layout title="Impressum" :no-breadcrumbs="true">
 	<p>Verantwortlich für den Inhalt dieses Angebots:</p>
 	<p>Fabian Müller<br />
 	Am Hochwald 19<br />

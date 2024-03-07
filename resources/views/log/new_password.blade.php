@@ -1,4 +1,4 @@
-<x-main-layout title="Neues Passwort setzen">
+<x-main-layout title="Neues Passwort setzen" :no-breadcrumbs="true">
 	<p>Bitte trage nun Dein neues Passwort ein.</p>
     <p>
         <form name="new_password" action="{{ route('log.new_password', ['email' => $email, 'key' => $key]) }}" method="post">

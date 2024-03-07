@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Group extends Model
 {
@@ -12,10 +14,12 @@ class Group extends Model
      *
      * @var string
      */
-    protected $table = 'dra_user';
+    protected $table = 'dra_group';
 
     protected $fillable = [
         'name',
+        'group__parent',
+        'priority',
     ];
 
     /**
@@ -24,6 +28,16 @@ class Group extends Model
      * @var bool
      */
     public $timestamps = false;
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(Group::class, 'group__parent');
+    }
+
+    public function permissions(): MorphMany
+    {
+        return $this->morphMany(Permission::class, 'recipient_legacy', 'table__recipient', 'recipient');
+    }
 
     public function users(): BelongsToMany
     {

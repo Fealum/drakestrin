@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\EncyclopediaController;
+use App\Http\Controllers\IndexController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\StaticPageController;
@@ -19,12 +21,21 @@ use App\Http\Controllers\LegacyController;
 |
 */
 
+Route::controller(IndexController::class)->group(function () {
+    Route::get('/', 'index')->name('index');
+});
+
 Route::get('/calendar', [CalendarController::class, 'view'])->name('calendar');
 
 Route::controller(ConversationController::class)->group(function () {
     Route::get('/conversation', 'index')->name('conversation');
     Route::get('/conversation/view/{user}', 'view')->name('conversation.view');
     Route::post('/conversation/create/{user}', 'create')->name('conversation.create');
+});
+
+Route::controller(EncyclopediaController::class)->group(function () {
+    Route::get('/encyclopedia', 'index')->name('encyclopedia');
+    Route::get('/encyclopedia/page/{page}', 'view')->name('encyclopedia.view');
 });
 
 Route::controller(LogController::class)->group(function () {

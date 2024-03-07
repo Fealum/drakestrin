@@ -51,7 +51,7 @@
 {{ $js ?? '' }}
 </head>
 <body>
-	<h1><a href="{{ url('/') }}">{{ config('app.name') }}</a></h1>
+	<h1><a href="{{ route('index') }}">{{ config('app.name') }}</a></h1>
 	<header>
 		<a class="nav-open" id="nav-open" href="#nav">Zur Navigation</a>
 		<nav id="nav">
@@ -86,16 +86,11 @@
 		</div>
 	</header>
 	<main>
-		{{ $patharray ?? '' }}
 		<div id="breadcrumbs">
-            @isset($path)
-            <a href="{{ url('/') }}/">{{ config('app.name') }}</a> 
-            @foreach (array_reverse($path) as $url => $name)
-            / <a href="{{ url('/') }}/{{ $url }}">{{ $name }}</a>
-            @endforeach
-            / {{ $altTitle }}
-            @endisset
-        </div>
+		@unless($noBreadcrumbs)
+		{{ Breadcrumbs::render() }}
+		@endunless
+		</div>
 		<h2>{{ $title }}</h2>
 		@foreach ($notice as $i)
 		<p class="notice notice_{$i.type}">{if $i.notice != '' && file_exists("./_notice/{$i.notice}.htm")}{include "./_notice/{$i.notice}.htm"}{else}Fehler bei der Notizerstellung: {var_dump($i)}{/if}</p>

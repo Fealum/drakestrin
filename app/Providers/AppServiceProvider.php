@@ -5,7 +5,9 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\View\View;
+use App\Services\PermissionService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,7 +16,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(PermissionService::class, function ($app) {
+            return new PermissionService();
+        });
     }
 
     /**
@@ -36,6 +40,19 @@ class AppServiceProvider extends ServiceProvider
             'thread' => 'App\Models\Thread',
             'user' => 'App\Models\User',
         ]);
+
+        Blade::if('permission', function ($permission, $object = null, $user = null) {
+            $permissionService = app(PermissionService::class);
+            $permission = $permissionService->check(strtolower($permission), $object);
+            if ($user) {
+                if ($permission === 2 || $permission === 1 && $object->userLegacy->id === $user->id) {
+                    return true;
+                }
+            } elseif ($permission > 0) {
+                return true;
+            }
+            return false;
+        });
 
         // Register a view composer for all views
         Facades\View::composer('*', function (View $view) {
