@@ -35,7 +35,10 @@ Route::controller(ConversationController::class)->group(function () {
 
 Route::controller(EncyclopediaController::class)->group(function () {
     Route::get('/encyclopedia', 'index')->name('encyclopedia');
-    Route::get('/encyclopedia/page/{page}', 'view')->name('encyclopedia.view');
+    Route::get('/encyclopedia/view/{page}', 'view')->name('encyclopedia.view');
+    Route::match(['get', 'post'], '/encyclopedia/create/{page}', 'create')->name('encyclopedia.create');
+    Route::match(['get', 'post'], '/encyclopedia/edit/{page}', 'edit')->name('encyclopedia.edit');
+    Route::match(['get', 'post'], '/encyclopedia/delete/{page}', 'delete')->name('encyclopedia.delete');
 });
 
 Route::controller(LogController::class)->group(function () {

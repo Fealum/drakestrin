@@ -19,28 +19,90 @@ class EncyclopediaController extends Controller
 
     public function view(Page $page)
     {
+        if ($this->permissionService->check('show', $page) === 0) {
+            abort(403);
+        }
+
+        $this->setLocation($page);
+
         return view('encyclopedia.page', ['page' => $page]);
     }
 
-    public function create(Request $request)
+    public function create(Page $page, Request $request)
     {
         if ($this->permissionService->check('createEncyclopedia') === 0) {
             abort(403);
         }
 
         if ($request->isMethod('post')) {
+            $validated = $request->validate([
+                'name' => 'required',
+                'title' => 'required',
+                'text' => 'required',
+            ]);
+
+            $newPage = new Page;
+
+            $newPage->user = auth()->id();
+            $newPage->name = trim($validated['name']);
+            $newPage->title = trim($validated['title']);
+            $newPage->text = trim($validated['text']);
+            $newPage->sort = $validated['sort'] ?? 0;
+            $newPage->activated = 1;
+            $newPage->encyclopedia = $page->id;
+
+            $newPage->save();
+
+            return to_route('encyclopedia.view', ['page' => $newPage->id]);
         }
 
-        return view('encyclopedia.create');
+        return view('encyclopedia.create', ['page' => $page]);
     }
 
-    public function edit()
+    public function edit(Page $page, Request $request)
     {
-        return view('encyclopedia.edit');
+        if ($this->permissionService->check('editEncyclopedia', $page) === 0 || $this->permissionService->check('editEncyclopedia', $page) === 1 && $page->userLegacy->id !== auth()->id()) {
+            abort(403);
+        }
+
+        if ($request->isMethod('post')) {
+            $validated = $request->validate([
+                'name' => 'required',
+                'title' => 'required',
+                'text' => 'required',
+                'parent' => 'required',
+            ]);
+
+            $page->name = trim($validated['name']);
+            $page->title = trim($validated['title']);
+            $page->text = trim($validated['text']);
+            $page->sort = $validated['sort'] ?? 0;
+            $page->encyclopedia = $validated['parent'] ?? 0;
+
+            $page->save();
+
+            return to_route('encyclopedia.view', ['page' => $page->id]);
+        }
+
+        $allPages = Page::where('encyclopedia', 0)
+            ->orderBy('sort')
+            ->orderBy('name')
+            ->get();
+
+        return view('encyclopedia.edit', ['page' => $page, 'allPages' => $allPages]);
     }
 
-    public function delete()
+    public function delete(Page $page, Request $request)
     {
-        return view('encyclopedia.delete');
+        if ($this->permissionService->check('deleteEncyclopedia', $page) === 0 || $this->permissionService->check('deleteEncyclopedia', $page) === 1 && $page->userLegacy->id !== auth()->id()) {
+            abort(403);
+        }
+
+        if ($request->isMethod('post')) {
+            $page->delete();
+            return to_route('encyclopedia');
+        }
+
+        return view('encyclopedia.delete', ['page' => $page]);
     }
 }

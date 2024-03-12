@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\View;
 use Carbon\Carbon;
 use App\Models\Online;
 use App\Services\PermissionService;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class Controller extends BaseController
 {
@@ -36,5 +37,17 @@ class Controller extends BaseController
         ];
 
         session()->flash('flash_messages', $messages);
+    }
+
+    function setLocation($object)
+    {
+        if (Auth::check()) {
+            $online = Online::where('user', Auth::id())->first();
+            $online->locateable_type = array_search(get_class($object), Relation::morphMap(), true);
+            $online->locateable_id = $object->id;
+            $online->save();
+
+            View::share('online', Online::all());
+        }
     }
 }

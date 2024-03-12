@@ -6,7 +6,7 @@
     <label for="{{ $inputname }}">{{ $displayname }}: </label>
     <input type="{{ $type }}" name="{{ $inputname }}" id="{{ $inputname }}"
         @if ($maxlength) maxlength="{{ $maxlength }}" @endif
-        @if ($value) value="{{ $value }}" @elseif (isset(${$formname . $inputname})) value="{{ ${$formname . $inputname} }}" @endif
+        @if ($value) value="{{ $value }}" @endif
         @if ($placeholder) placeholder="{{ $placeholder }}" @endif
         @if ($autofocus) autofocus @endif
         @if ($required) required @endif

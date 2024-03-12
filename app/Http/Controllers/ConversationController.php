@@ -44,52 +44,6 @@ class ConversationController extends Controller
         return view('conversation.index', compact('conversations'));
     }
 
-    function seems_utf8($str)
-    {
-        $length = strlen($str);
-        for ($i = 0; $i < $length; $i++) {
-            $c = ord($str[$i]);
-            if ($c < 0x80) continue; // ASCII (0-127)
-
-            // Multibyte-Sequenzen (UTF-8)
-            if (($c & 0xE0) === 0xC0) $n = 1; // 2-byte sequence
-            elseif (($c & 0xF0) === 0xE0) $n = 2; // 3-byte sequence
-            elseif (($c & 0xF8) === 0xF0) $n = 3; // 4-byte sequence
-            else return false; // Ungültiges UTF-8-Zeichen
-
-            // Überprüfe die nächsten n Bytes
-            for ($j = 0; $j < $n; $j++) {
-                if (++$i == $length || (ord($str[$i]) & 0xC0) !== 0x80)
-                    return false; // Folgebytes entsprechen nicht dem Muster
-            }
-        }
-        return true; // Scheint gültiges UTF-8 zu sein
-    }
-
-    function fix_encoding($str)
-    {
-        return $str;
-
-        return mb_convert_encoding($str, 'ISO-8859-1', 'UTF-8');
-        if ($this->seems_utf8(mb_convert_encoding($str, 'ISO-8859-1', 'UTF-8'))) return 'unkonvertiert:' . $str; // Keine Konvertierung nötig
-        else return 'utf8konv' . mb_convert_encoding($str, 'ISO-8859-1', 'UTF-8'); // Konvertiere von ISO-8859-1 nach UTF-8
-    }
-
-    function convertToUTF8($message)
-    {
-        $message = mb_convert_encoding($message, 'ISO-8859-1', 'UTF-8');
-        if (!mb_check_encoding($message, 'ISO-8859-1')) {
-            // Versuche zu ermitteln, ob die Zeichenkette ISO-8859-1 ist
-            if (mb_check_encoding($message, '')) {
-                // Konvertiere von ISO-8859-1 nach UTF-8
-                return mb_convert_encoding($message, 'UTF-8', 'ISO-8859-1');
-            } else {
-                dd($message);
-            }
-        }
-        return 'ISO-8859-1: ' . $message; // Keine Konvertierung nötig, da bereits UTF-8
-    }
-
     public function view(User $user): View
     {
         $userAId = auth()->id();

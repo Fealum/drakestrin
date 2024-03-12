@@ -56,7 +56,7 @@
 		<a class="nav-open" id="nav-open" href="#nav">Zur Navigation</a>
 		<nav id="nav">
 			<ul>
-				<li><a href="{{ url('/') }}/encyclopedia">Kompendium</a></li>
+				<li><a href="{{ route('encyclopedia') }}">Kompendium</a></li>
 				<li><a href="{{ url('/') }}/board">Forum</a></li>
 				<li><a href="{{ url('/') }}/user">Mitglieder</a></li> 
 				<li><a href="{{ url('/') }}/territory">Atlas</a></li>
@@ -116,13 +116,35 @@
 			@foreach ($online as $value)
 			<span>
 				<a href="{{ url('/') }}/user/view/{{ $value->user }}"><img src="{{ url('/') }}/img/character_avatar.id/thumb/{{ $value->user_legacy->character__avatar ?? 0 }}.jpg" />{{ $value->user_legacy->name }}</a>, {{ $value->time->format('H:i') }}<br />
-	@if ($value->controller == 'index')
-		@if ($value->action == 'std')
-		<a href="{{ url('/') }}/{{ $value->controller }}">Index</a>
-		@elseif ($value->action == 'online')
-		<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">Wer ist online?</a>
+	@if (isset($value->route))
+		@if ($value->route === 'index')
+		<a href="{{ route('index') }}">Startseite</a>
+		@elseif ($value->route === 'calendar')
+		<a href="{{ route('calendar') }}">Kalendarium</a>
+		@elseif (str_starts_with($value->route, 'conversation'))
+		<a href="{{ route('conversation') }}">Konversationen</a>
+		@elseif ($value->route === 'encyclopedia')
+		<a href="{{ route($value->route) }}">Kompendium</a>
+		@elseif ($value->route === 'encyclopedia.view')
+		Kompendium, »<a href="{{ route($value->route, ['page' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		@elseif ($value->route === 'encyclopedia.create')
+		Kompendiumsseite erstellen
+		@elseif ($value->route === 'encyclopedia.edit')
+		»<a href="{{ route($value->route, ['page' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>« bearbeiten
+		@elseif ($value->route === 'encyclopedia.delete')
+		»<a href="{{ route($value->route, ['page' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>« löschen
+		@elseif (str_starts_with($value->route, 'log'))
+		Anmeldung
+		@elseif (str_starts_with($value->route, 'register'))
+		Registrierung
+		@elseif ($value->route === 'static.help')
+		<a href="{{ route('static.help') }}">Hilfe</a>
+		@elseif ($value->route === 'static.terms')
+		<a href="{{ route('static.terms') }}">Nutzungsbedingungen</a>
+		@elseif ($value->route === 'static.legal')
+		<a href="{{ route('static.legal') }}">Impressum</a>
 		@else
-		Index, Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->action }}</a>
+		Seite <a href="{{ route($value->route) }}">{{ $value->route }}</a>
 		@endif
 	@elseif ($value->controller == 'board')
 		@if ($value->action == 'std')
@@ -152,18 +174,8 @@
 		@else
 		Mitglieder, Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->action}}</a>
 		@endif
-	@elseif ($value->controller === 'StaticPage')
-		@if ($value->action == 'help')
-		<a href="{{ route('static.help') }}">Hilfe</a>
-		@elseif ($value->action == 'terms')
-		<a href="{{ route('static.terms') }}">Nutzungsbedingungen</a>
-		@elseif ($value->action == 'legal')
-		<a href="{{ route('static.legal') }}">Impressum</a>
-		@endif
 	@elseif ($value->controller)
 		Seite <a href="{{ url('/') }}/{{ Str::lower($value->controller) }}/{{ $value->action }}">{{ $value->controller }}/{{ $value->action }}</a>
-	@elseif (isset($value->route))
-		Seite <a href="{{ route($value->route) }}">{{ $value->route }}</a>
 	@endif
 			</span>
 			@endforeach

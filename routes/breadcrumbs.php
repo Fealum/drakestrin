@@ -45,3 +45,18 @@ Breadcrumbs::for('encyclopedia.view', function (BreadcrumbTrail $trail, Page $pa
 
     $trail->push($page->name, route('encyclopedia.view', $page->id));
 });
+
+Breadcrumbs::for('encyclopedia.create', function (BreadcrumbTrail $trail, Page $page) {
+    $trail->parent('encyclopedia.view', $page);
+    $trail->push('Unterseite anlegen', route('encyclopedia.create', $page->id));
+});
+
+Breadcrumbs::for('encyclopedia.edit', function (BreadcrumbTrail $trail, Page $page) {
+    $trail->parent('encyclopedia.view', $page);
+    $trail->push('Seite bearbeiten', route('encyclopedia.edit', $page->id));
+});
+
+Breadcrumbs::for('encyclopedia.delete', function (BreadcrumbTrail $trail, Page $page) {
+    $trail->parent('encyclopedia.view', $page);
+    $trail->push('Seite löschen', route('encyclopedia.delete', $page->id));
+});

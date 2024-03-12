@@ -33,7 +33,7 @@ class AppServiceProvider extends ServiceProvider
             2 => 'App\Models\Company',
             3 => 'App\Models\Board',
             4 => 'App\Models\Group',
-            5 => 'App\Models\Encyclopedia',
+            5 => 'App\Models\Page',
             6 => 'App\Models\Character',
             8 => 'App\Models\CompanyWorker',
             'character' => 'App\Models\Character',
