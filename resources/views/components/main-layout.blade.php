@@ -116,7 +116,7 @@
 			@foreach ($online as $value)
 			<span>
 				<a href="{{ url('/') }}/user/view/{{ $value->user }}"><img src="{{ url('/') }}/img/character_avatar.id/thumb/{{ $value->user_legacy->character__avatar ?? 0 }}.jpg" />{{ $value->user_legacy->name }}</a>, {{ $value->time->format('H:i') }}<br />
-	@if (isset($value->route))
+	@if (isset($value->route) && !str_sarts_with($value->route, 'generated'))
 		@if ($value->route === 'index')
 		<a href="{{ route('index') }}">Startseite</a>
 		@elseif ($value->route === 'calendar')
