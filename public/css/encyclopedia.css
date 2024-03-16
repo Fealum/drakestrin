@@ -1,85 +1,6 @@
 @charset "utf-8";
 @import url('_.css');
 @import url('_options.css');
-/* 
-main ol {
-	list-style-type: none;
-}
-
-main > ol {
-	padding: 0px;
-}
-
-main > ol:hover > li {
-	opacity: 0.5;
-	transition: opacity .25s ease-in-out;
-	-moz-transition: opacity .25s ease-in-out;
-	-webkit-transition: opacity .25s ease-in-out;
-}
-
-main > ol > li:hover {
-	opacity: 1;
-}
-
-main > ol > li {
-	color: #d40000;
-	margin: 0;
-	padding-bottom: 30px;
-	position: relative;
-	clear: both;
-	font-weight: normal;
-	font-style: italic;
-	font-size: 20px;
-	line-height: 30px;
-	width: 100%;
-	transition: opacity .25s ease-in-out;
-	-moz-transition: opacity .25s ease-in-out;
-	-webkit-transition: opacity .25s ease-in-out;
-	min-height: 270px;
-	background-size: contain;
-}
-
-main > ol > li > a, main > ol > li > a:visited {
-	display: block;
-	color: white;
-	text-shadow: 0px 0px 4px rgba(0, 0, 0, 1);
-	border-top: 1px solid #aaa;
-	padding: 5%;
-}
-
-main > ol a:hover {
-	background: none;
-	text-decoration: underline;
-}
-
-main > ol > li > ol {
-	margin-left: 20%;
-	column-width: 210px;
-	-moz-column-width: 210px;
-	-webkit-column-width: 210px;
-	column-rule: 1px solid #aaa;
-	-moz-column-rule: 1px solid #aaa;
-	-webkit-column-rule: 1px solid #aaa;
-	padding: 0px;
-	font-size: 1rem;
-	font-style: normal;
-	text-shadow: 0px 0px 2px rgba(255, 255, 255, 1);
-}
-
-main > ol > li > ol > li {
-	font-weight: bold;
-	display: inline-block;
-	width: 100%;
-}
-
-main > ol > li > ol > li ol {
-	font-weight: normal;
-	padding: 0;
-}
-
-main > ol > li > ol > li ol ol {
-	padding-left: 1em;
-} */
 
 main > ol {
 	padding: 0px;
@@ -135,7 +56,6 @@ main > ol > li > a, main > ol > li > a:active, main > ol > li > a:visited {
 	grid-area: title;
 	color: #d40000;
 	font-size: 1.5rem;
-	line-height: 9.375rem;
 	background: none;
 }
 
@@ -179,58 +99,19 @@ main > ol > li ol a:focus, main > ol > li ol a:hover {
 	opacity: 0.5;
 }
 
-/* main > ol > li > img {
-    content: url('dein-bild.jpg');
-    display: block;
-    width: 100px;
-    height: 100px;
-    background-image: url('dein-rahmen.svg');
-    background-size: cover;
-    -webkit-mask-image: url('deine-form.svg');
-    mask-image: url('deine-form.svg');
-    mask-size: cover;
-} */
-/* 
-.encyclopedia-1 {
-	background: url('../../../img/static/encyclopedia_1.jpg') no-repeat;
-}
+@media screen and (max-width: 51.8125em) {
+	main > ol > li::after {
+		content: none;
+	}
 
-.encyclopedia-2 {
-	background: url('../../../img/static/encyclopedia_2.jpg') no-repeat;
-}
+	main > ol > li {
+		margin-left: -4rem;
+	grid-template-columns: [leftmargin] 9.375rem [main] auto;
+	grid-template-areas: "image title"
+	"chapters chapters";
+	}
 
-.encyclopedia-3 {
-	background: url('../../../img/static/encyclopedia_3.jpg') no-repeat;
+	main > ol > li > ol {
+		margin-left: 4rem;
+	}
 }
-
-.encyclopedia-4 {
-	background: url('../../../img/static/encyclopedia_4.jpg') no-repeat;
-}
-
-.encyclopedia-6 {
-	background: url('../../../img/static/encyclopedia_6.jpg') no-repeat;
-}
-
-.encyclopedia-7 {
-	background: url('../../../img/static/encyclopedia_7.jpg') no-repeat;
-}
-
-.encyclopedia-42 {
-	background: url('../../../img/static/encyclopedia_42.jpg') no-repeat;
-}
-
-.encyclopedia-53 {
-	background: url('../../../img/static/encyclopedia_53.jpg') no-repeat;
-}
-
-.encyclopedia-66 {
-	background: url('../../../img/static/encyclopedia_66.jpg') no-repeat;
-}
-
-.encyclopedia-67 {
-	background: url('../../../img/static/encyclopedia_67.jpg') no-repeat;
-}
-
-.encyclopedia-68 {
-	background: url('../../../img/static/encyclopedia_68.jpg') no-repeat;
-} */
