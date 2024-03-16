@@ -39,6 +39,7 @@ class EncyclopediaController extends Controller
                 'name' => 'required',
                 'title' => 'required',
                 'text' => 'required',
+                'sort' => 'numeric',
             ]);
 
             $newPage = new Page;
@@ -71,6 +72,7 @@ class EncyclopediaController extends Controller
                 'title' => 'required',
                 'text' => 'required',
                 'parent' => 'required',
+                'sort' => 'numeric',
             ]);
 
             $page->name = trim($validated['name']);
