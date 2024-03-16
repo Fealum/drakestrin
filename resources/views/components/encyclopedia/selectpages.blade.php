@@ -7,7 +7,7 @@
         selected="selected"
         @endif
         >
-        @for ($i = 1; $i < $level; $i++)
+        @for ($i = 0; $i < $level; $i++)
         —
         @endfor
         {{ $page->name }}
