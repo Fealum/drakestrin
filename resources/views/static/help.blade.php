@@ -1,6 +1,6 @@
 <x-main-layout title="Hilfe" :no-breadcrumbs="true">
     <p>Du bist nun also hier gelandet, hast aber keine Ahnung, wo Du bist oder was Du hier machen kannst?<br/>
-    Dagegen gibt es diese Hilfe, die dir erklärt, wie du helfen kannst, eine fhantastische Welt mit auszugestalten!<br/>
+    Dagegen gibt es diese Hilfe, die dir erklärt, wie du helfen kannst, eine fantastische Welt mit auszugestalten!<br/>
     Fangen wir doch damit an, was man hier überhaupt machen kann.</p>
     <h3>Was ist Drachenstein?</h3>
     <h4>Definition einer Micronation</h4>
