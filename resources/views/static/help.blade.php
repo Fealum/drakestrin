@@ -1,3 +1,22 @@
 <x-main-layout title="Hilfe" :no-breadcrumbs="true">
-    <p><em>In Arbeit.</em></p>
+    <p>Du bist nun also hier gelandet, hast aber keine Ahnung, wo Du bist oder was Du hier machen kannst?<br/>
+    Dagegen gibt es diese Hilfe, die dir erklärt, wie du helfen kannst, eine fhantastische Welt mit auszugestalten!<br/>
+    Fangen wir doch damit an, was man hier überhaupt machen kann.</p>
+    <h3>Was ist Drachenstein?</h3>
+    <h4>Definition einer Micronation</h4>
+    <p>Eine Micronation ist die Simulation eines nicht existenten Staates. Dies erfolgt meistens über das Internet - so wie im Fall Drachensteins - und funktioniert wie ein Rollenspiel. Man schlüpft also in eine andere Rolle wie bei einem Theaterstück und lebt – ohne Drehbuch - in dieser fremden Welt vor sich hin. Wer schonmal DSA oder D&D gespielt hat, sich also mit Pen&Paper-Rollenspielen auskennt oder mit LARP, wird sich hier bestens zurechtfinden. Alles was hier simuliert wird, hat natürlich keineswegs den Anspruch, wirklich so zu sein - gespielt wird in einer Fantasiewelt, wie etwa Mittelerde aus dem Herrn der Ringe, Phantásien aus der Unendlichen Geschichte oder Narnia aus den Chroniken von Narnia.</p>
+    <h4>Die Situation Drachensteins</h4>
+    <p>Drachenstein simuliert ein fantasy-mittelalterliches Kaiserreich, in welchem es Könige und Fürsten gibt, Marktweiber und Tuchhändler, aber auch Orks und Oger, Vampire und Hobbits, Drachen und Magie. Die Welt Drachensteins ist recht eigenständig und hat ausgearbeitete Kulturen, die jedes Volk voneinander unterscheiden und Dinge wie Kleidung, Sprache und Kriegskunst umfassen. Man kennt in Drachenstein andere, "moderne" Dimensionen, ist jedoch nur wenig mit ihnen in Kontakt. Die Magie ist ein elementarer Bestandteil des drakischen Lebens, jedoch nimmt sie für viele Bewohner eher die Stellung einer Religion als die Stellung eines Alltagsgebrauchsmittels ein.</p>
+    <h4>Die Simulation</h4>
+    <p>Es gibt einfache Regeln für die Simulation. Diese läuft ab wie ein Buch, welches von allen Beteiligten geschrieben wird: Es gibt Handlungen und wörtliche Rede, die zu einem Teil von jedem Mitspieler hintereinander beigetragen werden können. Dennoch gibt es einige Regeln einzuhalten: So gilt ein geschriebener Fakt, der nicht unrealistisch ist, als stattgefunden und kann nicht ignoriert oder durch Anderes ersetzt werden, auch gilt es als sehr unhöflich und unerwünscht, selbst die Handlungen der Mitspielercharaktere zu bestimmen, etwa zu sagen, dass ein Duellgegner stirbt oder schwer verwundet wird - dies ist im Rahmen des Realismus dem Spieler des jeweiligen Charakters überlassen.</p>
+    <p>Wenn du jetzt noch am Lesen bist, stehen die Chancen nicht schlecht, dass du Interesse gewonnen hast und mitmachen möchtest! Das geht ganz einfach, indem du dich im Forum anmeldest.</p>
+    <h3>Wie meldet man sich an?</h3>
+    <h4>Anmeldung im Forum</h4>
+    <p>Um sich bei Drachenstein anzumelden, muss man zuerst oben rechts auf "Registrieren" klicken. Von dort wird man, nachdem man seine Mailadresse bestätigt hat, durch die Registrierung geführt.</p>
+    <p>Der Name, mit dem Du Dich im Forum anmeldest, ist Dein Benutzername, unter dem Dich andere Benutzer kennen werden. Für jeden Charakter, den Du spielst, kannst Du allerdings anschließend ein eigenes Charakterprofil anlegen, sodass Dein Benutzername nicht der Name Deines Charakters sein muss.</p>
+    <h4>Charaktererstellung</h4>
+    <p>Die Charaktererstellung spielt in Drachenstein eine wichtige Rolle. Man kann nicht einfach von einem Tag auf den anderen seinen Charakter ändern, allerdings kann man beliebig viele Charaktere gleichzeitig spielen.</p>
+    <p>Was ist mit einem Charakter gemeint? Damit ist gemeint, wer deine "Figur" im Rollenspiel ist, wo sie herkommt und wie sie sich verhält. Ist sie schüchtern, draufgängerisch, abenteuerlustig, friedlich? Ist sie eine reiche Adelsfrau, die nach dem nächsten Abenteuer sucht, oder ein armer Bauer, der schauen muss, wie er heute zu Essen bekommt? Du hast die freie Wahl!</p>
+    <h4>Vorstellung im Forum</h4>
+    <p>Nun musst du nur noch die anderen Benutzer im Forum wissen lassen, dass es Dich gibt. Erstelle ein neues Thema und stell Dich kurz vor! Da wird Dir auch geholfen, wenn Du weitere Fragen hast oder nicht weißt, wie du ins Spiel kommen kannst.</p>
 </x-main-layout>
