@@ -15,7 +15,7 @@ class UpdateController extends Controller
 	{
 		if ($this->user->id == 37) {
 			header('Content-Type: text/markdown');
-			# header('Content-Disposition: attachment; filename="dra_posts_board_' . $board . '.txt"');
+			header('Content-Disposition: attachment; filename="dra_posts_board_' . $board . '.txt"');
 			header('Pragma: no-cache');
 			header('Expires: 0');
 
