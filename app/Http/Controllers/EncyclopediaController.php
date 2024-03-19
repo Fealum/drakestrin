@@ -10,7 +10,7 @@ class EncyclopediaController extends Controller
 {
     public function index()
     {
-        $pages = Page::where('encyclopedia', 0)
+        $pages = Page::where('page_id', 0)
             ->orderBy('sort')
             ->orderBy('name')
             ->get();
@@ -44,13 +44,13 @@ class EncyclopediaController extends Controller
 
             $newPage = new Page;
 
-            $newPage->user = auth()->id();
+            $newPage->user_id = auth()->id();
             $newPage->name = trim($validated['name']);
             $newPage->title = trim($validated['title']);
             $newPage->text = trim($validated['text']);
             $newPage->sort = $validated['sort'] ?? 0;
             $newPage->activated = 1;
-            $newPage->encyclopedia = $page->id;
+            $newPage->page_id = $page->id;
 
             $newPage->save();
 
@@ -62,7 +62,7 @@ class EncyclopediaController extends Controller
 
     public function edit(Page $page, Request $request)
     {
-        if ($this->permissionService->check('editEncyclopedia', $page) === 0 || $this->permissionService->check('editEncyclopedia', $page) === 1 && $page->userLegacy->id !== auth()->id()) {
+        if ($this->permissionService->check('editEncyclopedia', $page) === 0 || $this->permissionService->check('editEncyclopedia', $page) === 1 && $page->user->id !== auth()->id()) {
             abort(403);
         }
 
@@ -79,14 +79,14 @@ class EncyclopediaController extends Controller
             $page->title = trim($validated['title']);
             $page->text = trim($validated['text']);
             $page->sort = $validated['sort'] ?? 0;
-            $page->encyclopedia = $validated['parent'] ?? 0;
+            $page->page_id = $validated['parent'] ?? 0;
 
             $page->save();
 
             return to_route('encyclopedia.view', ['page' => $page->id]);
         }
 
-        $allPages = Page::where('encyclopedia', 0)
+        $allPages = Page::where('page_id', 0)
             ->orderBy('sort')
             ->orderBy('name')
             ->get();
@@ -96,7 +96,7 @@ class EncyclopediaController extends Controller
 
     public function delete(Page $page, Request $request)
     {
-        if ($this->permissionService->check('deleteEncyclopedia', $page) === 0 || $this->permissionService->check('deleteEncyclopedia', $page) === 1 && $page->userLegacy->id !== auth()->id()) {
+        if ($this->permissionService->check('deleteEncyclopedia', $page) === 0 || $this->permissionService->check('deleteEncyclopedia', $page) === 1 && $page->user->id !== auth()->id()) {
             abort(403);
         }
 

@@ -13,46 +13,39 @@ class Page extends Model
 {
     use HasFactory;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'dra_encyclopedia';
-
     protected $fillable = [
         'sort',
         'name',
         'title',
-        'encyclopedia',
+        'slug',
+        'page_id',
         'text',
-        'user',
-        'time',
+        'user_id',
+        'created_at',
         'activated',
     ];
 
     protected $dateFormat = 'U';
 
-    const CREATED_AT = 'time';
     const UPDATED_AT = null;
 
     protected $casts = [
-        'time' => 'datetime',
+        'created_at' => 'datetime',
     ];
 
-    public function userLegacy(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user');
+        return $this->belongsTo(User::class);
     }
 
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(Page::class, 'encyclopedia');
+        return $this->belongsTo(Page::class, 'page_id');
     }
 
     public function children(): HasMany
     {
-        return $this->hasMany(Page::class, 'encyclopedia')->orderBy('sort')->orderBy('name');
+        return $this->hasMany(Page::class, 'page_id')->orderBy('sort')->orderBy('name');
     }
 
     public function textFormatted(): Attribute

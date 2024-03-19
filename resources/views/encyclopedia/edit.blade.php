@@ -8,7 +8,7 @@
             <label for="parent">Übergeordnete Seite: </label>
             <select name="parent" id="parent">
                 <option value="0"
-                @if (!isset($page->encyclopedia))
+                @if (!isset($page->page_id))
                 selected="selected"
                 @endif
                 >(keine)</option>

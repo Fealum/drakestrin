@@ -11,9 +11,16 @@ class UpdateController extends Controller
 
 	protected $stdaction = 'std';
 
-	function std($page = 0)
+	function std($board = 0)
 	{
-		if ($this->user->id == 37) $this->correctutf8('encyclopedia', 3000, $page * 3000, array('name', 'title', 'text'));
+		if ($this->user->id == 37) {
+			header('Content-Type: text/markdown');
+			header('Content-Disposition: attachment; filename="dra_posts_board_' . $board . '.txt"');
+			header('Pragma: no-cache');
+			header('Expires: 0');
+
+			$this->outputThreads((int) $board);
+		}
 	}
 
 	/**
@@ -39,6 +46,29 @@ class UpdateController extends Controller
 				$updatearray = array();
 				foreach ($objects as $i) $updatearray[$i] = utf8ify($cur->$i);
 				$cur->update($updatearray);
+			}
+		}
+	}
+
+	function outputThreads($board)
+	{
+		$board = Cache::_('BoardModel', $board);
+		echo '# Forum ' . $board . ': ' . $board->name . PHP_EOL . PHP_EOL;
+		if ($board->thread) {
+			foreach ($board->thread as $thread) {
+				echo '## Thema ' . $thread . ': ' . $thread->name . PHP_EOL . PHP_EOL;
+				if ($thread->post) {
+					foreach ($thread->post as $post) {
+						echo '### Beitrag von ' . $post->character->name . ', ' . date('Y-m-d H:m:s', $post->time) . PHP_EOL . PHP_EOL;
+						echo $post->message . PHP_EOL . PHP_EOL;
+					}
+				}
+			}
+		}
+
+		if ($board->board__1) {
+			foreach ($board->board__1 as $board) {
+				$this->outputThreads($board);
 			}
 		}
 	}

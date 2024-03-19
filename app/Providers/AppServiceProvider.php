@@ -45,7 +45,10 @@ class AppServiceProvider extends ServiceProvider
             $permissionService = app(PermissionService::class);
             $permission = $permissionService->check(strtolower($permission), $object);
             if ($user) {
-                if ($permission === 2 || $permission === 1 && $object->userLegacy->id === $user->id) {
+                // LEGACY
+                $objectUserId = $object->userLegacy ? $object->userLegacy->id : $object->user->id;
+                // END LEGACY
+                if ($permission === 2 || $permission === 1 && $objectUserId === $user->id) {
                     return true;
                 }
             } elseif ($permission > 0) {
