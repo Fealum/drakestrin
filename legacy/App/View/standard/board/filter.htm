@@ -92,6 +92,7 @@ $(document).ready(function () {
 {/function}
 <div id="filter">
 	<form method=post action="{$config->url}/board/setfilter/">
+		@csrf
 		<input type="text" name="title" placeholder="Thementitel &hellip;"{if isset($filter.title)} value="{$filter.title|escape:'htmlall'}"{/if} />
 		<input type="text" name="message" placeholder="Beitrag &hellip;"{if isset($filter.message)} value="{$filter.message|escape:'htmlall'}"{/if} />
 		{bit_board data=$boards->data}
