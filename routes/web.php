@@ -9,6 +9,7 @@ use App\Http\Controllers\IndexController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\StaticPageController;
+use App\Http\Controllers\TerritoryController;
 use App\Http\Controllers\LegacyController;
 use App\Http\Middleware\VerifyCsrfToken;
 
@@ -29,6 +30,10 @@ Route::controller(IndexController::class)->group(function () {
 
 Route::get('/calendar', [CalendarController::class, 'view'])->name('calendar');
 
+Route::get('/img/territory.id/{file}', function (string $file) {
+    return redirect(asset('images/territory/' . $file), 301);
+})->where('file', '[0-9]+\.png')->name('territory.legacy_coat_of_arms');
+
 Route::controller(ConversationController::class)->group(function () {
     Route::get('/conversation', 'index')->name('conversation');
     Route::get('/conversation/view/{user}', 'view')->name('conversation.view');
@@ -44,7 +49,7 @@ Route::controller(EncyclopediaController::class)->group(function () {
 });
 
 Route::controller(DictionaryController::class)->group(function () {
-    Route::get('/dictionary', 'index')->name('dictionary.index');
+    Route::get('/dictionary', 'index')->name('dictionary');
     Route::get('/dictionary/viewall/{languageFrom?}/{languageTo?}/{order?}', 'viewAll')->name('dictionary.viewall');
     Route::get('/dictionary/view/{word}', 'view')->name('dictionary.view');
     Route::match(['get', 'post'], '/dictionary/create', 'create')->name('dictionary.create');
@@ -56,6 +61,15 @@ Route::controller(DictionaryController::class)->group(function () {
         ->name('dictionary.ajax_get_words')
         ->withoutMiddleware([VerifyCsrfToken::class]);
 });
+
+Route::controller(TerritoryController::class)->group(function () {
+    Route::get('/territory', 'index')->name('territory');
+    Route::get('/territory/view/{territory}', 'view')->name('territory.view');
+    Route::get('/territory/land.geojson', 'landGeoJson')->name('territory.land_geojson');
+    Route::get('/territory/{territory}/children.geojson', 'childrenGeoJson')->name('territory.children_geojson');
+    Route::get('/territory/{territory}/settlements.geojson', 'settlementsGeoJson')->name('territory.settlements_geojson');
+});
+Route::any('/territory/{legacyPath}', fn () => abort(404))->where('legacyPath', '.*');
 
 Route::controller(LogController::class)->group(function () {
     Route::post('/log/in', 'in')->name('log.in');

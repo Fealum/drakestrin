@@ -59,9 +59,9 @@
 				<li><a href="{{ route('encyclopedia') }}">Kompendium</a></li>
 				<li><a href="{{ url('/') }}/board">Forum</a></li>
 				<li><a href="{{ url('/') }}/user">Mitglieder</a></li> 
-				<li><a href="{{ url('/') }}/territory">Atlas</a></li>
+				<li><a href="{{ route('territory') }}">Atlas</a></li>
 				<li><a href="{{ route('calendar') }}">Kalendarium</a></li> 
-				<li><a href="{{ url('/') }}/dictionary">Diktionar</a></li>
+				<li><a href="{{ route('dictionary') }}">Diktionar</a></li>
 			</ul>
 			<a class="nav-close" id="nav-close" href="#nav-open">Nach oben</a>
 		</nav>
@@ -133,13 +133,13 @@
 		»<a href="{{ route($value->route, ['page' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>« bearbeiten
 		@elseif ($value->route === 'encyclopedia.delete')
 		»<a href="{{ route($value->route, ['page' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>« löschen
-		@elseif ($value->route === 'dictionary.index' || $value->route === 'dictionary.viewall')
-		<a href="{{ route('dictionary.index') }}">Diktionar</a>
+		@elseif ($value->route === 'dictionary' || $value->route === 'dictionary.viewall')
+		<a href="{{ route('dictionary') }}">Diktionar</a>
 		@elseif ($value->route === 'dictionary.view')
 		@if ($value->locateable)
 		Diktionar, »<a href="{{ route($value->route, ['word' => $value->locateable->id]) }}">{{ $value->locateable->word }}</a>«
 		@else
-		<a href="{{ route('dictionary.index') }}">Diktionar</a>
+		<a href="{{ route('dictionary') }}">Diktionar</a>
 		@endif
 		@elseif ($value->route === 'dictionary.create')
 		Neues Wort erstellen
@@ -165,6 +165,16 @@
 		Verknüpfung löschen
 		@elseif ($value->route === 'dictionary.ajax_get_words')
 		Diktionar
+		@elseif ($value->route === 'territory')
+		<a href="{{ route('territory') }}">Atlas</a>
+		@elseif ($value->route === 'territory.view')
+		@if ($value->locateable)
+		Atlas, »<a href="{{ route($value->route, ['territory' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		@else
+		<a href="{{ route('territory') }}">Atlas</a>
+		@endif
+		@elseif (str_starts_with($value->route, 'territory.') && str_contains($value->route, 'geojson'))
+		Atlas
 		@elseif (str_starts_with($value->route, 'log'))
 		Anmeldung
 		@elseif (str_starts_with($value->route, 'register'))

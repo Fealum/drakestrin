@@ -38,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
             8 => 'App\Models\CompanyWorker',
             'character' => 'App\Models\Character',
             'dictionary_word' => 'App\Models\Dictionary\Word',
+            'territory' => 'App\Models\Territory\Territory',
             'thread' => 'App\Models\Thread',
             'user' => 'App\Models\User',
         ]);

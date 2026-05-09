@@ -22,13 +22,20 @@ main > ol{
 	padding: 0px;
 }
 
-#main > ol#territory_children {
+main > div > ol#territory_children {
 	column-width: 210px;
 	-moz-column-width: 210px;
 	-webkit-column-width: 210px;
 	column-rule: 1px solid #aaa;
 	-moz-column-rule: 1px solid #aaa;
 	-webkit-column-rule: 1px solid #aaa;
+}
+
+#territory_map svg {
+	display: block;
+	width: 100%;
+	height: auto;
+	max-height: 500px;
 }
 
 #territory_info_ruler > a > img {

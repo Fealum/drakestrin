@@ -78,7 +78,7 @@ class DictionaryController extends Controller
 
                 $this->writer->createAdvancedWords($validated);
 
-                return to_route('dictionary.index');
+                return to_route('dictionary');
             }
 
             $validated = $request->validate([
@@ -135,7 +135,7 @@ class DictionaryController extends Controller
         if ($request->isMethod('post')) {
             $this->writer->deleteWordWithKeys($word);
 
-            return to_route('dictionary.index');
+            return to_route('dictionary');
         }
 
         return view('dictionary.delete', ['word' => $word]);

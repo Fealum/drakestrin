@@ -7,6 +7,7 @@ use App\Models\Page;
 use App\Models\User;
 use App\Models\Dictionary\Key;
 use App\Models\Dictionary\Word;
+use App\Models\Territory\Territory;
 use Diglactic\Breadcrumbs\Breadcrumbs;
 
 // This import is also not required, and you could replace `BreadcrumbTrail $trail`
@@ -63,22 +64,22 @@ Breadcrumbs::for('encyclopedia.delete', function (BreadcrumbTrail $trail, Page $
     $trail->push('Seite löschen', route('encyclopedia.delete', $page->id));
 });
 
-Breadcrumbs::for('dictionary.index', function (BreadcrumbTrail $trail) {
+Breadcrumbs::for('dictionary', function (BreadcrumbTrail $trail) {
     $trail->parent('index');
-    $trail->push('Diktionar', route('dictionary.index'));
+    $trail->push('Diktionar', route('dictionary'));
 });
 
 Breadcrumbs::for('dictionary.viewall', function (BreadcrumbTrail $trail) {
-    $trail->parent('dictionary.index');
+    $trail->parent('dictionary');
 });
 
 Breadcrumbs::for('dictionary.view', function (BreadcrumbTrail $trail, Word $word) {
-    $trail->parent('dictionary.index');
+    $trail->parent('dictionary');
     $trail->push($word->word, route('dictionary.view', $word->id));
 });
 
 Breadcrumbs::for('dictionary.create', function (BreadcrumbTrail $trail) {
-    $trail->parent('dictionary.index');
+    $trail->parent('dictionary');
     $trail->push('Neues Wort erstellen', route('dictionary.create'));
 });
 
@@ -100,4 +101,21 @@ Breadcrumbs::for('dictionary.create_key', function (BreadcrumbTrail $trail, Word
 Breadcrumbs::for('dictionary.delete_key', function (BreadcrumbTrail $trail, Key $key) {
     $trail->parent('dictionary.view', $key->fromWord);
     $trail->push('Verknüpfung löschen', route('dictionary.delete_key', $key->id));
+});
+
+Breadcrumbs::for('territory', function (BreadcrumbTrail $trail) {
+    $trail->parent('index');
+    $trail->push('Atlas', route('territory'));
+});
+
+Breadcrumbs::for('territory.view', function (BreadcrumbTrail $trail, Territory $territory) {
+    if ($territory->parent && $territory->parent->id !== 1) {
+        $trail->parent('territory.view', $territory->parent);
+    } else {
+        $trail->parent('territory');
+    }
+
+    if ($territory->id !== 1) {
+        $trail->push($territory->name, route('territory.view', $territory->id));
+    }
 });
