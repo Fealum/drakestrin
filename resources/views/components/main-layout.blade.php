@@ -133,6 +133,38 @@
 		»<a href="{{ route($value->route, ['page' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>« bearbeiten
 		@elseif ($value->route === 'encyclopedia.delete')
 		»<a href="{{ route($value->route, ['page' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>« löschen
+		@elseif ($value->route === 'dictionary.index' || $value->route === 'dictionary.viewall')
+		<a href="{{ route('dictionary.index') }}">Diktionar</a>
+		@elseif ($value->route === 'dictionary.view')
+		@if ($value->locateable)
+		Diktionar, »<a href="{{ route($value->route, ['word' => $value->locateable->id]) }}">{{ $value->locateable->word }}</a>«
+		@else
+		<a href="{{ route('dictionary.index') }}">Diktionar</a>
+		@endif
+		@elseif ($value->route === 'dictionary.create')
+		Neues Wort erstellen
+		@elseif ($value->route === 'dictionary.edit')
+		@if ($value->locateable)
+		»<a href="{{ route($value->route, ['word' => $value->locateable->id]) }}">{{ $value->locateable->word }}</a>« bearbeiten
+		@else
+		Wort bearbeiten
+		@endif
+		@elseif ($value->route === 'dictionary.delete')
+		@if ($value->locateable)
+		»<a href="{{ route($value->route, ['word' => $value->locateable->id]) }}">{{ $value->locateable->word }}</a>« löschen
+		@else
+		Wort löschen
+		@endif
+		@elseif ($value->route === 'dictionary.create_key')
+		@if ($value->locateable)
+		Übersetzung zu »<a href="{{ route('dictionary.view', ['word' => $value->locateable->id]) }}">{{ $value->locateable->word }}</a>« verknüpfen
+		@else
+		Übersetzung verknüpfen
+		@endif
+		@elseif ($value->route === 'dictionary.delete_key')
+		Verknüpfung löschen
+		@elseif ($value->route === 'dictionary.ajax_get_words')
+		Diktionar
 		@elseif (str_starts_with($value->route, 'log'))
 		Anmeldung
 		@elseif (str_starts_with($value->route, 'register'))
@@ -187,5 +219,6 @@
         Drachenstein <span class="fa fa-paw"></span> Fabian Müller, 2003—{{ now()->year }}.<br />
         <a href="{{ route('static.help') }}">Hilfe</a>, <a href="{{ route('static.terms') }}">Nutzungsbedingungen</a>, <a href="{{ route('static.legal') }}">Impressum</a>.
     </footer>
+	@stack('scripts')
 </body>
 </html>

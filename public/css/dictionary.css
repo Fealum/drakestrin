@@ -7,3 +7,37 @@
 	padding-left: 15px;
 	text-indent: -15px;
 }
+
+.dictionary-key-search {
+	margin-top: 1.875rem;
+}
+
+.dictionary-key-search form {
+	margin: 0;
+}
+
+.dictionary-key-search input[type="search"] {
+	min-width: 18rem;
+	max-width: 100%;
+}
+
+.dictionary-key-results {
+	margin-top: 0.9375rem;
+	padding-left: 0;
+	list-style: none;
+}
+
+.dictionary-key-results li {
+	margin-bottom: 0.9375rem;
+	padding-left: 0;
+	text-indent: 0;
+}
+
+.dictionary-key-result-form {
+	display: inline;
+	margin-left: 0.5rem;
+}
+
+.dictionary-key-result-form button {
+	margin-left: 0.25rem;
+}

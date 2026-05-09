@@ -3,12 +3,14 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\DictionaryController;
 use App\Http\Controllers\EncyclopediaController;
 use App\Http\Controllers\IndexController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\StaticPageController;
 use App\Http\Controllers\LegacyController;
+use App\Http\Middleware\VerifyCsrfToken;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,6 +41,20 @@ Route::controller(EncyclopediaController::class)->group(function () {
     Route::match(['get', 'post'], '/encyclopedia/create/{page}', 'create')->name('encyclopedia.create');
     Route::match(['get', 'post'], '/encyclopedia/edit/{page}', 'edit')->name('encyclopedia.edit');
     Route::match(['get', 'post'], '/encyclopedia/delete/{page}', 'delete')->name('encyclopedia.delete');
+});
+
+Route::controller(DictionaryController::class)->group(function () {
+    Route::get('/dictionary', 'index')->name('dictionary.index');
+    Route::get('/dictionary/viewall/{languageFrom?}/{languageTo?}/{order?}', 'viewAll')->name('dictionary.viewall');
+    Route::get('/dictionary/view/{word}', 'view')->name('dictionary.view');
+    Route::match(['get', 'post'], '/dictionary/create', 'create')->name('dictionary.create');
+    Route::match(['get', 'post'], '/dictionary/edit/{word}', 'edit')->name('dictionary.edit');
+    Route::match(['get', 'post'], '/dictionary/delete/{word}', 'delete')->name('dictionary.delete');
+    Route::match(['get', 'post'], '/dictionary/createkey/{word}', 'createKey')->name('dictionary.create_key');
+    Route::match(['get', 'post'], '/dictionary/deletekey/{key}', 'deleteKey')->name('dictionary.delete_key');
+    Route::match(['get', 'post'], '/dictionary/ajax__getwords', 'ajaxGetWords')
+        ->name('dictionary.ajax_get_words')
+        ->withoutMiddleware([VerifyCsrfToken::class]);
 });
 
 Route::controller(LogController::class)->group(function () {
