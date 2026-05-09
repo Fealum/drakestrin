@@ -15,5 +15,8 @@ class ExampleTest extends TestCase
         $response = $this->get('/');
 
         $response->assertStatus(200);
+        $response->assertSee('Sali Vuz!');
+        $response->assertSee('Herzlich Willkommen in Drachenstein');
+        $response->assertSee('Beiträge in den letzten 24 Stunden');
     }
 }
