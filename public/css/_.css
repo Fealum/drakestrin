@@ -656,6 +656,15 @@ blockquote {
 	border-color: #D40000;
 }
 
+blockquote > cite {
+	display: block;
+}
+
+blockquote > cite:after {
+	content: ':';
+}
+
+
 code {
 	margin-left: 2em;
 	position: relative;

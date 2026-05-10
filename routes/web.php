@@ -2,14 +2,19 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\BoardController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DictionaryController;
 use App\Http\Controllers\EncyclopediaController;
 use App\Http\Controllers\IndexController;
 use App\Http\Controllers\LogController;
+use App\Http\Controllers\PostController;
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\StaticPageController;
 use App\Http\Controllers\TerritoryController;
+use App\Http\Controllers\ThreadController;
+use App\Http\Controllers\TransferController;
 use App\Http\Controllers\LegacyController;
 use App\Http\Middleware\VerifyCsrfToken;
 
@@ -29,6 +34,50 @@ Route::controller(IndexController::class)->group(function () {
 });
 
 Route::get('/calendar', [CalendarController::class, 'view'])->name('calendar');
+
+Route::controller(BoardController::class)->group(function () {
+    Route::get('/board', 'index')->name('board');
+    Route::get('/board/view/{board}/{page?}', function (int|string $board, int|string|null $page = null) {
+        return redirect('/board/filter/board:' . $board . ($page && (int) $page > 1 ? '/' . $page : ''), 301);
+    })->name('board.view.legacy');
+    Route::get('/board/permissions/{board}', 'permissions')->name('board.permissions');
+    Route::get('/board/filter/board:{board}/{page?}', 'filterBoard')->name('board.view');
+    Route::get('/board/filter/{filter?}/{page?}', 'filter')->name('board.filter');
+    Route::post('/board/setfilter', 'filterRedirect')->name('board.setfilter');
+    Route::get('/board/ajax__getusers', 'ajaxGetUsers')->name('board.ajax_get_users');
+    Route::get('/board/ajax__getchars', 'ajaxGetCharacters')->name('board.ajax_get_chars');
+    Route::get('/board/changeshow/{board}/{change?}/{ajax?}', 'changeShow')->name('board.change_show');
+});
+
+Route::controller(PermissionController::class)->group(function () {
+    Route::match(['get', 'post'], '/permission/create/board/{board}', 'createForBoard')->name('permission.create_board');
+    Route::match(['get', 'post'], '/permission/edit/{permission}', 'edit')->name('permission.edit');
+    Route::match(['get', 'post'], '/permission/delete/{permission}', 'delete')->name('permission.delete');
+});
+
+Route::controller(ThreadController::class)->group(function () {
+    Route::match(['get', 'post'], '/thread/create/{board?}', 'create')->name('thread.create');
+    Route::get('/thread/view/{thread}/{page?}', 'view')->name('thread.view');
+    Route::match(['get', 'post'], '/thread/edit/{thread}', 'edit')->name('thread.edit');
+    Route::get('/thread/delete/{thread}', 'delete')->name('thread.delete');
+    Route::post('/thread/delete/{thread}', 'destroy')->name('thread.destroy');
+});
+
+Route::controller(PostController::class)->group(function () {
+    Route::post('/post/create/{thread}', 'create')->name('post.create');
+    Route::get('/post/view/{post}', 'view')->name('post.view');
+    Route::get('/post/edit/{post}', 'edit')->name('post.edit');
+    Route::post('/post/edit/{post}', 'update')->name('post.update');
+    Route::get('/post/ip/{post}', 'ip')->name('post.ip');
+    Route::get('/post/delete/{post}', 'delete')->name('post.delete');
+    Route::post('/post/delete/{post}', 'destroy')->name('post.destroy');
+});
+
+Route::post('/transfer/transfer/{thread}', [TransferController::class, 'transfer'])->name('transfer.transfer');
+
+Route::get('/img/emoticon/{file}', function (string $file) {
+    return redirect(asset('images/emoticon/' . $file), 301);
+})->where('file', '[0-9]+\.gif');
 
 Route::get('/img/territory.id/{file}', function (string $file) {
     return redirect(asset('images/territory/' . $file), 301);

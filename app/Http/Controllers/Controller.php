@@ -43,11 +43,13 @@ class Controller extends BaseController
     {
         if (Auth::check()) {
             $online = Online::where('user', Auth::id())->first();
-            $online->locateable_type = array_search(get_class($object), Relation::morphMap(), true);
-            $online->locateable_id = $object->id;
-            $online->save();
+            if ($online) {
+                $online->locateable_type = array_search(get_class($object), Relation::morphMap(), true);
+                $online->locateable_id = $object->id;
+                $online->save();
+            }
 
-            View::share('online', Online::all());
+            View::share('online', Online::currentEntries());
         }
     }
 }

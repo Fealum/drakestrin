@@ -2,6 +2,10 @@
 @import url('_.css');
 @import url('_options.css');
 
+[x-cloak] {
+	display: none !important;
+}
+
 div#filter {
 	float: left;
 	width: 100%;
@@ -22,6 +26,11 @@ div#filter input {
 
 div#filter .contrexp {
 	font-size: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+	font-family: FontAwesome, Linux Biolinum, sans-serif;
+	padding: 0;
 }
 
 div#filter .contrexp:before {
@@ -72,6 +81,82 @@ div#filter ol {
 
 div#filter > form > ol {
 	margin-bottom: 30px;
+}
+
+div#filter .person-filter {
+	margin: 0 0 1em;
+	position: relative;
+}
+
+div#filter .person-filter > label,
+div#filter > form > label {
+	display: block;
+	padding: 0;
+	margin-top: 0.8em;
+	cursor: default;
+}
+
+.js div#filter .person-filter-ids {
+	display: none;
+}
+
+div#filter .person-filter-selected a,
+div#filter .person-filter-search a,
+div#filter .person-filter-search li > span {
+	width: 100%;
+	background: white;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	min-height: 30px;
+	margin: 0;
+	padding: 0;
+	text-align: left;
+	font: inherit;
+	color: #555;
+}
+
+div#filter .person-filter-selected {
+	margin: 0.2em 0;
+}
+
+div#filter .person-filter-selected a:hover,
+div#filter .person-filter-search a:hover {
+	background: #D7EBD7;
+}
+
+div#filter .person-filter img {
+	width: 15px;
+	height: 15px;
+	padding: 7.5px;
+	vertical-align: middle;
+	margin: 0;
+}
+
+div#filter .person-filter-selected a span:last-child {
+	margin-left: auto;
+	background: #777;
+	color: white;
+	padding: 0 0.35em;
+	line-height: 1.2em;
+}
+
+div#filter .person-filter-search ol {
+	position: absolute;
+	z-index: 2;
+	width: 100%;
+	background: white;
+	border: 1px solid #ccc;
+	box-sizing: border-box;
+	margin-top: -5px;
+}
+
+div#filter .person-filter-search .fa-refresh {
+	position: absolute;
+	right: 0.45em;
+	margin-top: 0.75em;
+	color: #777;
+	z-index: 3;
 }
 
 div#filter ol ol {

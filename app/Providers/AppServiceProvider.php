@@ -29,9 +29,9 @@ class AppServiceProvider extends ServiceProvider
         // Custom polymorphic types
         Relation::enforceMorphMap([
             0 => 'App\Models\User',
-            1 => 'App\Models\Thread',
+            1 => 'App\Models\Board\Thread',
             2 => 'App\Models\Company',
-            3 => 'App\Models\Board',
+            3 => 'App\Models\Board\Board',
             4 => 'App\Models\Group',
             5 => 'App\Models\Page',
             6 => 'App\Models\Character',
@@ -39,24 +39,22 @@ class AppServiceProvider extends ServiceProvider
             'character' => 'App\Models\Character',
             'dictionary_word' => 'App\Models\Dictionary\Word',
             'territory' => 'App\Models\Territory\Territory',
-            'thread' => 'App\Models\Thread',
+            'thread' => 'App\Models\Board\Thread',
             'user' => 'App\Models\User',
         ]);
 
         Blade::if('permission', function ($permission, $object = null, $user = null) {
             $permissionService = app(PermissionService::class);
-            $permission = $permissionService->check(strtolower($permission), $object);
+            $permission = strtolower($permission);
+
             if ($user) {
-                // LEGACY
-                $objectUserId = $object->userLegacy ? $object->userLegacy->id : $object->user->id;
-                // END LEGACY
-                if ($permission === 2 || $permission === 1 && $objectUserId === $user->id) {
-                    return true;
-                }
-            } elseif ($permission > 0) {
-                return true;
+                $objectUserId = $object->user_id ?? $object->user ?? $object->user?->id ?? null;
+                $objectUserId = is_object($objectUserId) ? $objectUserId->id : $objectUserId;
+
+                return $permissionService->allowsOwn($permission, $object, $objectUserId, $user);
             }
-            return false;
+
+            return $permissionService->allows($permission, $object);
         });
 
         // Register a view composer for all views

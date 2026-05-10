@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Collection;
 
 class Online extends Model
 {
@@ -58,5 +59,29 @@ class Online extends Model
     public function locateable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public static function pruneStale(int $timeoutMinutes): void
+    {
+        foreach (static::with('user_legacy')->where('time', '<', now()->subMinutes($timeoutMinutes)->getTimestamp())->get() as $oldOnline) {
+            $user = $oldOnline->user_legacy;
+
+            if ($user) {
+                $user->lastvisit = $oldOnline->time;
+                $user->save();
+            }
+
+            $oldOnline->delete();
+        }
+
+        static::whereDoesntHave('user_legacy')->delete();
+    }
+
+    public static function currentEntries(): Collection
+    {
+        return static::with(['locateable', 'user_legacy'])
+            ->whereHas('user_legacy')
+            ->orderByDesc('time')
+            ->get();
     }
 }

@@ -48,4 +48,13 @@ class Permission extends Model
     {
         return $this->belongsTo(Permit::class, 'permit');
     }
+
+    public function recipientName(): string
+    {
+        if ((int) $this->table__recipient === 0 && (int) $this->recipient === 0) {
+            return 'Alle';
+        }
+
+        return $this->recipient_legacy?->name ?? ('#' . $this->recipient);
+    }
 }

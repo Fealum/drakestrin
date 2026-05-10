@@ -6,7 +6,7 @@
 
 	<title>{{ $title }} | {{ config('app.name') }}</title>
 
-	<script type="module">
+	<script>
 		document.documentElement.classList.remove('no-js');
 		document.documentElement.classList.add('js');
 	</script>
@@ -57,7 +57,7 @@
 		<nav id="nav">
 			<ul>
 				<li><a href="{{ route('encyclopedia') }}">Kompendium</a></li>
-				<li><a href="{{ url('/') }}/board">Forum</a></li>
+				<li><a href="{{ route('board') }}">Forum</a></li>
 				<li><a href="{{ url('/') }}/user">Mitglieder</a></li> 
 				<li><a href="{{ route('territory') }}">Atlas</a></li>
 				<li><a href="{{ route('calendar') }}">Kalendarium</a></li> 
@@ -115,7 +115,11 @@
 		<p id="online">
 			@foreach ($online as $value)
 			<span>
+				@if ($value->user_legacy)
 				<a href="{{ url('/') }}/user/view/{{ $value->user }}"><img src="{{ url('/') }}/img/character_avatar.id/thumb/{{ $value->user_legacy->character__avatar ?? 0 }}.jpg" />{{ $value->user_legacy->name }}</a>, {{ $value->time->format('H:i') }}<br />
+				@else
+				Unbekannter Nutzer, {{ $value->time->format('H:i') }}<br />
+				@endif
 	@if (isset($value->route) && !str_starts_with($value->route, 'generated'))
 		@if ($value->route === 'index')
 		<a href="{{ route('index') }}">Startseite</a>
@@ -175,6 +179,44 @@
 		@endif
 		@elseif (str_starts_with($value->route, 'territory.') && str_contains($value->route, 'geojson'))
 		Atlas
+		@elseif ($value->route === 'board' || $value->route === 'board.filter')
+		<a href="{{ route('board') }}">Forenübersicht</a>
+		@elseif ($value->route === 'board.view' || $value->route === 'board.view.legacy')
+		@if ($value->locateable)
+		Forum, »<a href="{{ route('board.view', ['board' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		@else
+		<a href="{{ route('board') }}">Forenübersicht</a>
+		@endif
+		@elseif ($value->route === 'board.permissions')
+		Forum, Rechte
+		@elseif (str_starts_with($value->route, 'permission.'))
+		Rechteverwaltung
+		@elseif ($value->route === 'board.change_show')
+		<a href="{{ route('board') }}">Forenübersicht</a>
+		@elseif ($value->route === 'thread.view')
+		@if ($value->locateable)
+		Thema »<a href="{{ route('thread.view', ['thread' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		@else
+		Thema
+		@endif
+		@elseif ($value->route === 'thread.create')
+		Neues Thema
+		@elseif ($value->route === 'thread.edit')
+		Thema bearbeiten
+		@elseif ($value->route === 'thread.delete')
+		Thema löschen
+		@elseif ($value->route === 'thread.destroy')
+		Thema
+		@elseif ($value->route === 'post.create')
+		Neuer Beitrag
+		@elseif ($value->route === 'post.edit')
+		Beitrag bearbeiten
+		@elseif ($value->route === 'post.delete')
+		Beitrag löschen
+		@elseif ($value->route === 'post.ip')
+		Beitrag, IP-Adresse
+		@elseif ($value->route === 'post.update' || $value->route === 'post.destroy')
+		Beitrag
 		@elseif (str_starts_with($value->route, 'log'))
 		Anmeldung
 		@elseif (str_starts_with($value->route, 'register'))
@@ -186,7 +228,11 @@
 		@elseif ($value->route === 'static.legal')
 		<a href="{{ route('static.legal') }}">Impressum</a>
 		@else
+		@if (\Illuminate\Support\Facades\Route::has($value->route))
 		Seite <a href="{{ route($value->route) }}">{{ $value->route }}</a>
+		@else
+		Seite {{ $value->route }}
+		@endif
 		@endif
 	@elseif ($value->controller == 'board')
 		@if ($value->action == 'std')

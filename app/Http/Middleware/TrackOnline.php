@@ -36,13 +36,9 @@ class TrackOnline
         );
         $online->locateable()->detach();
 
-        foreach (Online::where('time', '<', now()->subMinutes(config('auth.user_timeout'))->getTimestamp())->get() as $oldOnline) {
-            $oldOnline->user_legacy->lastvisit = $oldOnline->time;
-            $oldOnline->user_legacy->save();
-            $oldOnline->delete();
-        };
+        Online::pruneStale((int) config('auth.user_timeout'));
 
-        View::share('online', Online::all());
+        View::share('online', Online::currentEntries());
 
         return $next($request);
     }

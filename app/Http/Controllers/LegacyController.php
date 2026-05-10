@@ -36,7 +36,7 @@ class LegacyController extends Controller
                 ]);
         }
 
-        View::share('online', Online::all());
+        View::share('online', Online::currentEntries());
 
         ob_start();
         require app_path('Http') . '/legacy.php';

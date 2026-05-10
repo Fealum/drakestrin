@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Dictionary\Word;
-use App\Models\Post;
+use App\Models\Board\Post;
 use Illuminate\View\View;
 
 class IndexController extends Controller

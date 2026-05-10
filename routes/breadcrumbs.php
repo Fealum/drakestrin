@@ -4,7 +4,11 @@
 // this import. This is nice for IDE syntax and refactoring.
 
 use App\Models\Page;
+use App\Models\Permission;
 use App\Models\User;
+use App\Models\Board\Board;
+use App\Models\Board\Post;
+use App\Models\Board\Thread;
 use App\Models\Dictionary\Key;
 use App\Models\Dictionary\Word;
 use App\Models\Territory\Territory;
@@ -32,6 +36,104 @@ Breadcrumbs::for('conversation', function (BreadcrumbTrail $trail) {
 Breadcrumbs::for('conversation.view', function (BreadcrumbTrail $trail, User $user) {
     $trail->parent('conversation');
     $trail->push('Konversation mit ' . $user->name, route('conversation.view', $user));
+});
+
+Breadcrumbs::for('board', function (BreadcrumbTrail $trail) {
+    $trail->parent('index');
+    $trail->push('Forum', route('board'));
+});
+
+Breadcrumbs::for('board.filter', function (BreadcrumbTrail $trail) {
+    $trail->parent('board');
+});
+
+Breadcrumbs::for('board.view', function (BreadcrumbTrail $trail, Board $board) {
+    if ($board->parentBoard) {
+        $trail->parent('board.view', $board->parentBoard);
+    } else {
+        $trail->parent('board');
+    }
+
+    $trail->push($board->name, route('board.view', $board->id));
+});
+
+Breadcrumbs::for('board.view.legacy', function (BreadcrumbTrail $trail, Board $board) {
+    $trail->parent('board.view', $board);
+});
+
+Breadcrumbs::for('board.permissions', function (BreadcrumbTrail $trail, Board $board) {
+    $trail->parent('board.view', $board);
+    $trail->push('Rechte', route('board.permissions', $board->id));
+});
+
+Breadcrumbs::for('permission.create_board', function (BreadcrumbTrail $trail, Board $board) {
+    $trail->parent('board.permissions', $board);
+    $trail->push('Neues Recht', route('permission.create_board', $board->id));
+});
+
+Breadcrumbs::for('permission.edit', function (BreadcrumbTrail $trail, Permission $permission) {
+    if ((int) $permission->table__subject === 3 && $permission->subject_legacy) {
+        $trail->parent('board.permissions', $permission->subject_legacy);
+    } else {
+        $trail->parent('board');
+    }
+
+    $trail->push('Recht bearbeiten', route('permission.edit', $permission->id));
+});
+
+Breadcrumbs::for('permission.delete', function (BreadcrumbTrail $trail, Permission $permission) {
+    if ((int) $permission->table__subject === 3 && $permission->subject_legacy) {
+        $trail->parent('board.permissions', $permission->subject_legacy);
+    } else {
+        $trail->parent('board');
+    }
+
+    $trail->push('Recht löschen', route('permission.delete', $permission->id));
+});
+
+Breadcrumbs::for('thread.view', function (BreadcrumbTrail $trail, Thread $thread) {
+    if ($thread->boardModel) {
+        $trail->parent('board.view', $thread->boardModel);
+    } else {
+        $trail->parent('board');
+    }
+
+    $trail->push($thread->name, route('thread.view', $thread->id));
+});
+
+Breadcrumbs::for('thread.create', function (BreadcrumbTrail $trail, $board = null) {
+    if ($board instanceof Board) {
+        $trail->parent('board.view', $board);
+    } else {
+        $trail->parent('board');
+    }
+
+    $trail->push('Neues Thema erstellen', route('thread.create', $board instanceof Board ? ['board' => $board->id] : []));
+});
+
+Breadcrumbs::for('thread.edit', function (BreadcrumbTrail $trail, Thread $thread) {
+    $trail->parent('thread.view', $thread);
+    $trail->push('Thema bearbeiten', route('thread.edit', $thread->id));
+});
+
+Breadcrumbs::for('thread.delete', function (BreadcrumbTrail $trail, Thread $thread) {
+    $trail->parent('thread.view', $thread);
+    $trail->push('Thema löschen', route('thread.delete', $thread->id));
+});
+
+Breadcrumbs::for('post.edit', function (BreadcrumbTrail $trail, Post $post) {
+    $trail->parent('thread.view', $post->threadModel);
+    $trail->push('Beitrag bearbeiten', route('post.edit', $post->id));
+});
+
+Breadcrumbs::for('post.delete', function (BreadcrumbTrail $trail, Post $post) {
+    $trail->parent('thread.view', $post->threadModel);
+    $trail->push('Beitrag löschen', route('post.delete', $post->id));
+});
+
+Breadcrumbs::for('post.ip', function (BreadcrumbTrail $trail, Post $post) {
+    $trail->parent('thread.view', $post->threadModel);
+    $trail->push('IP-Adresse', route('post.ip', $post->id));
 });
 
 Breadcrumbs::for('encyclopedia', function (BreadcrumbTrail $trail) {

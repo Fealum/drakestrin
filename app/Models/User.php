@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Board\Post;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -94,5 +95,26 @@ class User extends Authenticatable
     public function receivedMessages(): HasMany
     {
         return $this->hasMany(Message::class, 'recipient_user_id');
+    }
+
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class, 'user');
+    }
+
+    public function characters(): HasMany
+    {
+        return $this->hasMany(Character::class, 'user');
+    }
+
+    public function avatarThumbPath(): string
+    {
+        if ($this->character__avatar) {
+            return (string) $this->character__avatar;
+        }
+
+        $firstCharacter = mb_substr($this->name, 0, 1);
+
+        return ctype_alpha($firstCharacter) ? 'i/' . mb_strtolower($firstCharacter) : 'i/_';
     }
 }
