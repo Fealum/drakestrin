@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -45,6 +46,12 @@ class User extends Authenticatable
         'password',
         'character__avatar',
         'usertext',
+        'birthday',
+        'interests',
+        'location',
+        'work',
+        'gender',
+        'post__total',
         'regdate',
         'lastvisit',
         'lastactivity',
@@ -67,6 +74,9 @@ class User extends Authenticatable
      */
     protected $casts = [
         'character__avatar' => 'integer',
+        'birthday' => 'integer',
+        'gender' => 'integer',
+        'post__total' => 'integer',
         'regdate' => 'datetime',
         'lastvisit' => 'datetime',
         'lastactivity' => 'datetime',
@@ -79,7 +89,9 @@ class User extends Authenticatable
 
     public function groups(): BelongsToMany
     {
-        return $this->belongsToMany(Group::class, 'dra_group2user', 'user', 'group');
+        return $this->belongsToMany(Group::class, 'dra_group2user', 'user', 'group')
+            ->orderBy('priority')
+            ->orderByRaw('LOWER(name)');
     }
 
     public function permissions(): MorphMany
@@ -104,7 +116,17 @@ class User extends Authenticatable
 
     public function characters(): HasMany
     {
-        return $this->hasMany(Character::class, 'user');
+        return $this->hasMany(Character::class, 'user')
+            ->orderByDesc('post__total')
+            ->orderByRaw('LOWER(name)');
+    }
+
+    public function contacts(): HasMany
+    {
+        return $this->hasMany(UserContact::class, 'user')
+            ->with('protocolModel')
+            ->orderBy('protocol')
+            ->orderBy('contact');
     }
 
     public function avatarThumbPath(): string
@@ -116,5 +138,27 @@ class User extends Authenticatable
         $firstCharacter = mb_substr($this->name, 0, 1);
 
         return ctype_alpha($firstCharacter) ? 'i/' . mb_strtolower($firstCharacter) : 'i/_';
+    }
+
+    public function avatarPath(): string
+    {
+        return $this->avatarThumbPath();
+    }
+
+    public function avatarThumbUrl(): string
+    {
+        return Storage::disk('public')->url('character-avatars/thumb/' . $this->avatarThumbPath() . '.jpg');
+    }
+
+    public function avatarUrl(): string
+    {
+        return Storage::disk('public')->url('character-avatars/' . $this->avatarPath() . '.jpg');
+    }
+
+    public function postsPerDay(): float
+    {
+        $days = max(1, now()->diffInSeconds($this->regdate ?: now()) / 86400);
+
+        return ($this->post__total ?? 0) / $days;
     }
 }

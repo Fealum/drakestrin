@@ -65,7 +65,7 @@
 
     <div class="post">
         @if ($post->characterModel)
-        <img src="{{ url('/img/character_avatar.id/thumb/'.$post->characterModel->avatarThumbPath().'.jpg') }}" alt="">
+        <x-avatar :subject="$post->characterModel" size="list" />
         @endif
 
         <div class="postuser">

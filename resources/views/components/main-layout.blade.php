@@ -68,7 +68,7 @@
 		<div id="userbar">
 			<div id="userbarcontent"@auth class="user-loggedin"@endauth>
 			@if (Auth::check())
-				<a id="notifypic" href="#sidebar"><img src="{{ url('/') }}/img/character_avatar.id/thumb/{{ auth()->user()->character__avatar ?? 0 }}.jpg" /></a>
+				<a id="notifypic" href="#sidebar"><x-avatar :subject="auth()->user()" size="list" /></a>
 				@if ($newMessage)
                 <a href="{{ route('conversation') }}" class="fa-envelope newconv"> </a>
                 @endif
@@ -116,7 +116,7 @@
 			@foreach ($online as $value)
 			<span>
 				@if ($value->user_legacy)
-				<a href="{{ url('/') }}/user/view/{{ $value->user }}"><img src="{{ url('/') }}/img/character_avatar.id/thumb/{{ $value->user_legacy->character__avatar ?? 0 }}.jpg" />{{ $value->user_legacy->name }}</a>, {{ $value->time->format('H:i') }}<br />
+				<a href="{{ route('user.view', $value->user) }}"><x-avatar :subject="$value->user_legacy" size="dropdown" />{{ $value->user_legacy->name }}</a>, {{ $value->time->format('H:i') }}<br />
 				@else
 				Unbekannter Nutzer, {{ $value->time->format('H:i') }}<br />
 				@endif
@@ -127,6 +127,36 @@
 		<a href="{{ route('calendar') }}">Kalendarium</a>
 		@elseif (str_starts_with($value->route, 'conversation'))
 		<a href="{{ route('conversation') }}">Konversationen</a>
+		@elseif ($value->route === 'user' || $value->route === 'user.viewall')
+		<a href="{{ route('user') }}">Mitgliederübersicht</a>
+		@elseif ($value->route === 'user.view')
+		@if ($value->locateable)
+		Mitglied »<a href="{{ route('user.view', ['user' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		@else
+		<a href="{{ route('user') }}">Mitgliederübersicht</a>
+		@endif
+		@elseif ($value->route === 'user.edit')
+		Mitglied bearbeiten
+		@elseif ($value->route === 'user.character')
+		@if ($value->locateable)
+		Charakter »<a href="{{ route('user.character', ['character' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		@else
+		Mitglieder
+		@endif
+		@elseif ($value->route === 'user.create_character')
+		Neuen Charakter erstellen
+		@elseif ($value->route === 'user.edit_character')
+		Charakter bearbeiten
+		@elseif (in_array($value->route, ['user.create_contact', 'user.edit_contact', 'user.delete_contact'], true))
+		Kontaktmöglichkeit
+		@elseif ($value->route === 'group')
+		<a href="{{ route('group') }}">Gruppen</a>
+		@elseif ($value->route === 'group.view')
+		@if ($value->locateable)
+		Gruppe »<a href="{{ route('group.view', ['group' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		@else
+		<a href="{{ route('group') }}">Gruppen</a>
+		@endif
 		@elseif ($value->route === 'encyclopedia')
 		<a href="{{ route($value->route) }}">Kompendium</a>
 		@elseif ($value->route === 'encyclopedia.view')
@@ -225,14 +255,15 @@
 		<a href="{{ route('static.help') }}">Hilfe</a>
 		@elseif ($value->route === 'static.terms')
 		<a href="{{ route('static.terms') }}">Nutzungsbedingungen</a>
-		@elseif ($value->route === 'static.legal')
-		<a href="{{ route('static.legal') }}">Impressum</a>
-		@else
-		@if (\Illuminate\Support\Facades\Route::has($value->route))
-		Seite <a href="{{ route($value->route) }}">{{ $value->route }}</a>
-		@else
-		Seite {{ $value->route }}
-		@endif
+			@elseif ($value->route === 'static.legal')
+			<a href="{{ route('static.legal') }}">Impressum</a>
+			@else
+			@php($onlineRoute = \Illuminate\Support\Facades\Route::has($value->route) ? \Illuminate\Support\Facades\Route::getRoutes()->getByName($value->route) : null)
+			@if ($onlineRoute && collect($onlineRoute->parameterNames())->isEmpty())
+			Seite <a href="{{ route($value->route) }}">{{ $value->route }}</a>
+			@else
+			Seite {{ $value->route }}
+			@endif
 		@endif
 	@elseif ($value->controller == 'board')
 		@if ($value->action == 'std')

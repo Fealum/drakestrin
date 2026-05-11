@@ -4,10 +4,12 @@ namespace App\Models;
 
 use App\Models\Board\Post;
 use App\Models\Inventory;
+use App\Models\Territory\Territory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Character extends Model
 {
@@ -25,6 +27,13 @@ class Character extends Model
         'regdate',
         'user',
         'usertext',
+        'birthday',
+        'avatar',
+        'interests',
+        'location',
+        'post__total',
+        'work',
+        'gender',
     ];
 
     /**
@@ -44,6 +53,7 @@ class Character extends Model
     protected $casts = [
         'post__total' => 'integer',
         'regdate' => 'datetime',
+        'birthday' => 'integer',
         'avatar' => 'integer',
         'gender' => 'integer',
         'user' => 'integer',
@@ -67,6 +77,19 @@ class Character extends Model
             ->orderBy('id');
     }
 
+    public function territories(): HasMany
+    {
+        return $this->hasMany(Territory::class, 'character')
+            ->orderBy('type')
+            ->orderByRaw('LOWER(name)');
+    }
+
+    public function companies(): HasMany
+    {
+        return $this->hasMany(Company::class, 'character')
+            ->orderByRaw('LOWER(name)');
+    }
+
     public function avatarThumbPath(): string
     {
         if ($this->avatar) {
@@ -76,5 +99,22 @@ class Character extends Model
         $firstCharacter = mb_substr($this->name, 0, 1);
 
         return ctype_alpha($firstCharacter) ? 'i/' . mb_strtolower($firstCharacter) : 'i/_';
+    }
+
+    public function avatarThumbUrl(): string
+    {
+        return Storage::disk('public')->url('character-avatars/thumb/' . $this->avatarThumbPath() . '.jpg');
+    }
+
+    public function avatarUrl(): string
+    {
+        return Storage::disk('public')->url('character-avatars/' . ($this->avatar ? $this->id : $this->avatarThumbPath()) . '.jpg');
+    }
+
+    public function postsPerDay(): float
+    {
+        $days = max(1, now()->diffInSeconds($this->regdate ?: now()) / 86400);
+
+        return ($this->post__total ?? 0) / $days;
     }
 }

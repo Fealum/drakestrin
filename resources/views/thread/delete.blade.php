@@ -8,7 +8,7 @@
     @if ($thread->firstPost)
     <div class="post">
         @if ($thread->firstPost->characterModel)
-        <img src="{{ url('/img/character_avatar.id/thumb/'.$thread->firstPost->characterModel->avatarThumbPath().'.jpg') }}" alt="">
+        <x-avatar :subject="$thread->firstPost->characterModel" size="list" />
         @endif
         <div class="postuser">
             <h4>

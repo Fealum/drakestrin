@@ -6,7 +6,7 @@
                 @if ($conversation['latest_message']->recipient_user_id == auth()->user()->id && $conversation['latest_message']->view === 0)
                 [ungelesen]
                 @endif
-                <a href="{{ url('/') }}/user/view/{{ $conversation['other_user']->id }}"><img src="{{ url('/') }}/img/character_avatar.id/thumb/{{ $conversation['other_user']->character__avatar ?? (ctype_alpha($conversation['other_user']->name[0]) ? 'i/'.strtolower($conversation['other_user']->name[0]) : 'i/_') }}.jpg" />{{ $conversation['other_user']->name }}</a>,
+                <a href="{{ route('user.view', $conversation['other_user']->id) }}"><x-avatar :subject="$conversation['other_user']" size="list" />{{ $conversation['other_user']->name }}</a>,
                 <x-datetime :time="$conversation['latest_message']->created_at" />
                 <a href="{{ url('/') }}/conversation/view/{{ $conversation['other_user']->id }}">{{ $conversation['message_count'] }} Nachricht{{ ($conversation['message_count'] === 1) ? '' : 'en' }}</a>
             </h4>

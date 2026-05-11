@@ -6,6 +6,7 @@ use App\Http\Controllers\BoardController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DictionaryController;
 use App\Http\Controllers\EncyclopediaController;
+use App\Http\Controllers\GroupController;
 use App\Http\Controllers\IndexController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\PostController;
@@ -15,8 +16,10 @@ use App\Http\Controllers\StaticPageController;
 use App\Http\Controllers\TerritoryController;
 use App\Http\Controllers\ThreadController;
 use App\Http\Controllers\TransferController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\LegacyController;
 use App\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Support\Facades\Storage;
 
 /*
 |--------------------------------------------------------------------------
@@ -75,6 +78,14 @@ Route::controller(PostController::class)->group(function () {
 
 Route::post('/transfer/transfer/{thread}', [TransferController::class, 'transfer'])->name('transfer.transfer');
 
+Route::get('/img/character_avatar.id/thumb/{path}.jpg', function (string $path) {
+    return redirect(Storage::disk('public')->url('character-avatars/thumb/' . $path . '.jpg'), 301);
+})->where('path', '.*')->name('character_avatar.legacy_thumb');
+
+Route::get('/img/character_avatar.id/{path}.jpg', function (string $path) {
+    return redirect(Storage::disk('public')->url('character-avatars/' . $path . '.jpg'), 301);
+})->where('path', '.*')->name('character_avatar.legacy_full');
+
 Route::get('/img/emoticon/{file}', function (string $file) {
     return redirect(asset('images/emoticon/' . $file), 301);
 })->where('file', '[0-9]+\.gif');
@@ -88,6 +99,25 @@ Route::controller(ConversationController::class)->group(function () {
     Route::get('/conversation/view/{user}', 'view')->name('conversation.view');
     Route::post('/conversation/create/{user}', 'create')->name('conversation.create');
 });
+
+Route::controller(UserController::class)->group(function () {
+    Route::get('/user', 'index')->name('user');
+    Route::get('/user/viewall/{order?}/{page?}', 'viewAll')->name('user.viewall');
+    Route::get('/user/view/{user}', 'view')->name('user.view');
+    Route::match(['get', 'post'], '/user/edit/{user}', 'edit')->name('user.edit');
+    Route::match(['get', 'post'], '/user/createcharacter/{user}', 'createCharacter')->name('user.create_character');
+    Route::get('/user/character/{character}', 'character')->name('user.character');
+    Route::match(['get', 'post'], '/user/editcharacter/{character}', 'editCharacter')->name('user.edit_character');
+    Route::match(['get', 'post'], '/user/createcontact/{user}', 'createContact')->name('user.create_contact');
+    Route::match(['get', 'post'], '/user/editcontact/{contact}', 'editContact')->name('user.edit_contact');
+    Route::match(['get', 'post'], '/user/deletecontact/{contact}', 'deleteContact')->name('user.delete_contact');
+});
+
+Route::controller(GroupController::class)->group(function () {
+    Route::get('/group', 'index')->name('group');
+    Route::get('/group/view/{group}/{page?}', 'view')->name('group.view');
+});
+Route::any('/group/{legacyPath}', fn () => abort(404))->where('legacyPath', '.*');
 
 Route::controller(EncyclopediaController::class)->group(function () {
     Route::get('/encyclopedia', 'index')->name('encyclopedia');

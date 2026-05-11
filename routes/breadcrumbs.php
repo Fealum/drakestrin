@@ -6,6 +6,8 @@
 use App\Models\Page;
 use App\Models\Permission;
 use App\Models\User;
+use App\Models\Character;
+use App\Models\Group;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\Thread;
@@ -36,6 +38,80 @@ Breadcrumbs::for('conversation', function (BreadcrumbTrail $trail) {
 Breadcrumbs::for('conversation.view', function (BreadcrumbTrail $trail, User $user) {
     $trail->parent('conversation');
     $trail->push('Konversation mit ' . $user->name, route('conversation.view', $user));
+});
+
+Breadcrumbs::for('user', function (BreadcrumbTrail $trail) {
+    $trail->parent('index');
+    $trail->push('Mitglieder', route('user'));
+});
+
+Breadcrumbs::for('user.viewall', function (BreadcrumbTrail $trail) {
+    $trail->parent('user');
+});
+
+Breadcrumbs::for('user.view', function (BreadcrumbTrail $trail, User $user) {
+    $trail->parent('user');
+    $trail->push($user->name, route('user.view', $user->id));
+});
+
+Breadcrumbs::for('user.edit', function (BreadcrumbTrail $trail, User $user) {
+    $trail->parent('user.view', $user);
+    $trail->push('Nutzer bearbeiten', route('user.edit', $user->id));
+});
+
+Breadcrumbs::for('user.character', function (BreadcrumbTrail $trail, Character $character) {
+    if ($character->userModel) {
+        $trail->parent('user.view', $character->userModel);
+    } else {
+        $trail->parent('user');
+    }
+
+    $trail->push($character->name, route('user.character', $character->id));
+});
+
+Breadcrumbs::for('user.create_character', function (BreadcrumbTrail $trail, User $user) {
+    $trail->parent('user.view', $user);
+    $trail->push('Neuen Charakter erstellen', route('user.create_character', $user->id));
+});
+
+Breadcrumbs::for('user.edit_character', function (BreadcrumbTrail $trail, Character $character) {
+    $trail->parent('user.character', $character);
+    $trail->push('Charakter bearbeiten', route('user.edit_character', $character->id));
+});
+
+Breadcrumbs::for('user.create_contact', function (BreadcrumbTrail $trail, User $user) {
+    $trail->parent('user.view', $user);
+    $trail->push('Neue Kontaktmöglichkeit erstellen', route('user.create_contact', $user->id));
+});
+
+Breadcrumbs::for('user.edit_contact', function (BreadcrumbTrail $trail, \App\Models\UserContact $contact) {
+    if ($contact->userModel) {
+        $trail->parent('user.view', $contact->userModel);
+    } else {
+        $trail->parent('user');
+    }
+
+    $trail->push('Kontaktmöglichkeit bearbeiten', route('user.edit_contact', $contact->id));
+});
+
+Breadcrumbs::for('user.delete_contact', function (BreadcrumbTrail $trail, \App\Models\UserContact $contact) {
+    if ($contact->userModel) {
+        $trail->parent('user.view', $contact->userModel);
+    } else {
+        $trail->parent('user');
+    }
+
+    $trail->push('Kontaktmöglichkeit löschen', route('user.delete_contact', $contact->id));
+});
+
+Breadcrumbs::for('group', function (BreadcrumbTrail $trail) {
+    $trail->parent('index');
+    $trail->push('Gruppen', route('group'));
+});
+
+Breadcrumbs::for('group.view', function (BreadcrumbTrail $trail, Group $group) {
+    $trail->parent('group');
+    $trail->push($group->name, route('group.view', $group->id));
 });
 
 Breadcrumbs::for('board', function (BreadcrumbTrail $trail) {

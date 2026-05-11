@@ -14,13 +14,13 @@
         "erusev/parsedown": "^1.7",
         "genert/bbcode": "^1.1",
         "guzzlehttp/guzzle": "^7.2",
+        "intervention/image": "^3.0",
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8",
         "phayes/geophp": "^1.2",
         "s9e/text-formatter": "^2.19",
-        "smarty/smarty": "^4.3",
-        "verot/class.upload.php": "^2.1"
+        "smarty/smarty": "^4.3"
     },
     "require-dev": {
         "deployer/deployer": "^7.3",

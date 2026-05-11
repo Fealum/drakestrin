@@ -201,7 +201,7 @@ class BoardController extends Controller
                 ->map(fn (User $user) => [
                     'id' => $user->id,
                     'name' => $user->name,
-                    'avatar' => asset('img/character_avatar.id/thumb/' . $user->avatarThumbPath() . '.jpg'),
+                    'avatar' => $user->avatarThumbUrl(),
                 ])
         );
     }
@@ -226,7 +226,7 @@ class BoardController extends Controller
                 ->map(fn (Character $character) => [
                     'id' => $character->id,
                     'name' => $character->name,
-                    'avatar' => asset('img/character_avatar.id/thumb/' . $character->avatarThumbPath() . '.jpg'),
+                    'avatar' => $character->avatarThumbUrl(),
                 ])
         );
     }
@@ -368,7 +368,7 @@ class BoardController extends Controller
                 ->map(fn (User $user) => [
                     'id' => $user->id,
                     'name' => $user->name,
-                    'avatar' => asset('img/character_avatar.id/thumb/' . $user->avatarThumbPath() . '.jpg'),
+                    'avatar' => $user->avatarThumbUrl(),
                 ]),
             'characters' => Character::query()
                 ->whereIn('id', array_unique(array_merge($filters['char_first'], $filters['char_contains'], $filters['char_last'])))
@@ -377,7 +377,7 @@ class BoardController extends Controller
                 ->map(fn (Character $character) => [
                     'id' => $character->id,
                     'name' => $character->name,
-                    'avatar' => asset('img/character_avatar.id/thumb/' . $character->avatarThumbPath() . '.jpg'),
+                    'avatar' => $character->avatarThumbUrl(),
                 ]),
         ];
     }

@@ -8,7 +8,7 @@
                     <li>
                         <input name="character" value="{{ $character->id }}" id="char-{{ $character->id }}" type="radio" @checked($post->character === $character->id)>
                         <label for="char-{{ $character->id }}">
-                            <img src="{{ url('/img/character_avatar.id/thumb/'.$character->avatarThumbPath().'.jpg') }}" title="{{ $character->name }}" alt="{{ $character->name }}">
+                            <x-avatar :subject="$character" size="list" :title="$character->name" />
                         </label>
                     </li>
                     @endforeach

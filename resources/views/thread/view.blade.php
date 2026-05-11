@@ -137,7 +137,7 @@
     @php($character = $post->characterModel)
     <div id="post{{ $post->id }}" class="post">
         @if ($character)
-        <img src="{{ url('/img/character_avatar.id/thumb/'.$character->avatarThumbPath().'.jpg') }}" alt="">
+        <x-avatar :subject="$character" size="post" />
         @endif
 
         <div class="postuser">
@@ -182,7 +182,7 @@
                     @php($sender = $transfer->senderCharacter)
                     @php($recipient = $transfer->recipientCharacter)
                     @if ($sender)
-                    <a href="{{ url('/user/character/'.$sender->id) }}"><img src="{{ url('/img/character_avatar.id/thumb/'.$sender->avatarThumbPath().'.jpg') }}" title="{{ $sender->name }}" alt="{{ $sender->name }}"></a>
+                    <a href="{{ url('/user/character/'.$sender->id) }}"><x-avatar :subject="$sender" size="list" :title="$sender->name" /></a>
                     @endif
                     &rarr;
                     @foreach ($transfer->items as $transferItem)
@@ -193,7 +193,7 @@
                     @endforeach
                     &rarr;
                     @if ($recipient)
-                    <a href="{{ url('/user/character/'.$recipient->id) }}"><img src="{{ url('/img/character_avatar.id/thumb/'.$recipient->avatarThumbPath().'.jpg') }}" title="{{ $recipient->name }}" alt="{{ $recipient->name }}"></a>
+                    <a href="{{ url('/user/character/'.$recipient->id) }}"><x-avatar :subject="$recipient" size="list" :title="$recipient->name" /></a>
                     @endif
                 @endforeach
             @else
@@ -226,7 +226,7 @@
                     <li>
                         <input name="character" value="{{ $character->id }}" id="char-{{ $character->id }}" type="radio" @checked(old('character', $characters->first()->id) == $character->id)>
                         <label for="char-{{ $character->id }}">
-                            <img src="{{ url('/img/character_avatar.id/thumb/'.$character->avatarThumbPath().'.jpg') }}" title="{{ $character->name }}" alt="{{ $character->name }}">
+                            <x-avatar :subject="$character" size="list" :title="$character->name" />
                         </label>
                     </li>
                     @endforeach
@@ -264,7 +264,7 @@
                     <li>
                         <input name="character" value="{{ $character->id }}" id="action-char-{{ $character->id }}" type="radio" @checked($loop->first)>
                         <label for="action-char-{{ $character->id }}">
-                            <img src="{{ url('/img/character_avatar.id/thumb/'.$character->avatarThumbPath().'.jpg') }}" title="{{ $character->name }}" alt="{{ $character->name }}">
+                            <x-avatar :subject="$character" size="list" :title="$character->name" />
                         </label>
                     </li>
                     @endforeach

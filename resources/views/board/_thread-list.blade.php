@@ -17,7 +17,7 @@
         <p class="small">
             @if ($thread->firstPost->characterModel)
             <a href="{{ url('/user/character/'.$thread->firstPost->characterModel->id) }}">
-                <img src="{{ url('/img/character_avatar.id/thumb/'.$thread->firstPost->characterModel->avatarThumbPath().'.jpg') }}" alt="">
+                <x-avatar :subject="$thread->firstPost->characterModel" size="list" />
                 {{ $thread->firstPost->characterModel->name }}
             </a>;
             @endif
@@ -31,7 +31,7 @@
         <p class="small">
             @if ($thread->lastPost->characterModel)
             <a href="{{ url('/user/character/'.$thread->lastPost->characterModel->id) }}">
-                <img src="{{ url('/img/character_avatar.id/thumb/'.$thread->lastPost->characterModel->avatarThumbPath().'.jpg') }}" alt="">
+                <x-avatar :subject="$thread->lastPost->characterModel" size="list" />
                 {{ $thread->lastPost->characterModel->name }}
             </a>;
             @endif
