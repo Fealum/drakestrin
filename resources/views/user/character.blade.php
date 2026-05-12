@@ -77,7 +77,7 @@
     <h3>Betriebe</h3>
     <ol>
         @foreach ($character->companies as $company)
-        <li><a href="{{ url('/company/view/'.$company->id) }}">{{ $company->name }}</a>: {{ $company->description }}</li>
+        <li><a href="{{ route('company.view', $company->id) }}">{{ $company->name }}</a>: {{ $company->description }}</li>
         @endforeach
     </ol>
     @endif

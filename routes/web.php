@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\BoardController;
+use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DictionaryController;
 use App\Http\Controllers\EncyclopediaController;
@@ -94,6 +95,14 @@ Route::get('/img/territory.id/{file}', function (string $file) {
     return redirect(asset('images/territory/' . $file), 301);
 })->where('file', '[0-9]+\.png')->name('territory.legacy_coat_of_arms');
 
+Route::get('/img/company_worker.type/{file}', function (string $file) {
+    return redirect(asset('images/company-worker/' . $file), 301);
+})->where('file', '[0-9]+\.png')->name('company.legacy_worker_type');
+
+Route::get('/img/item.img/{file}', function (string $file) {
+    return redirect(asset('images/item/' . $file), 301);
+})->where('file', '[0-9]+\.png')->name('item.legacy_image');
+
 Route::controller(ConversationController::class)->group(function () {
     Route::get('/conversation', 'index')->name('conversation');
     Route::get('/conversation/view/{user}', 'view')->name('conversation.view');
@@ -118,6 +127,17 @@ Route::controller(GroupController::class)->group(function () {
     Route::get('/group/view/{group}/{page?}', 'view')->name('group.view');
 });
 Route::any('/group/{legacyPath}', fn () => abort(404))->where('legacyPath', '.*');
+
+Route::controller(CompanyController::class)->group(function () {
+    Route::get('/company', 'index')->name('company');
+    Route::get('/company/viewall', 'viewAll')->name('company.viewall');
+    Route::get('/company/view/{company}', 'view')->name('company.view');
+    Route::get('/company/worker/{worker}', 'worker')->name('company.worker');
+    Route::post('/company/worker/{worker}', 'assignLabour')->name('company.assign_labour');
+    Route::get('/company/hire/{company}/{type?}', 'hire')->name('company.hire');
+    Route::get('/company/fire/{worker}', 'fire')->name('company.fire');
+    Route::get('/company/pay/{company}', 'pay')->name('company.pay');
+});
 
 Route::controller(EncyclopediaController::class)->group(function () {
     Route::get('/encyclopedia', 'index')->name('encyclopedia');

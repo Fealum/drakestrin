@@ -7,6 +7,8 @@ use App\Models\Page;
 use App\Models\Permission;
 use App\Models\User;
 use App\Models\Character;
+use App\Models\Company;
+use App\Models\CompanyWorker;
 use App\Models\Group;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
@@ -112,6 +114,30 @@ Breadcrumbs::for('group', function (BreadcrumbTrail $trail) {
 Breadcrumbs::for('group.view', function (BreadcrumbTrail $trail, Group $group) {
     $trail->parent('group');
     $trail->push($group->name, route('group.view', $group->id));
+});
+
+Breadcrumbs::for('company', function (BreadcrumbTrail $trail) {
+    $trail->parent('index');
+    $trail->push('Kontor', route('company'));
+});
+
+Breadcrumbs::for('company.viewall', function (BreadcrumbTrail $trail) {
+    $trail->parent('company');
+});
+
+Breadcrumbs::for('company.view', function (BreadcrumbTrail $trail, Company $company) {
+    $trail->parent('company');
+    $trail->push($company->name, route('company.view', $company->id));
+});
+
+Breadcrumbs::for('company.worker', function (BreadcrumbTrail $trail, CompanyWorker $worker) {
+    if ($worker->companyModel) {
+        $trail->parent('company.view', $worker->companyModel);
+    } else {
+        $trail->parent('company');
+    }
+
+    $trail->push($worker->name, route('company.worker', $worker->id));
 });
 
 Breadcrumbs::for('board', function (BreadcrumbTrail $trail) {

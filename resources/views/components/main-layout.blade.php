@@ -157,6 +157,28 @@
 		@else
 		<a href="{{ route('group') }}">Gruppen</a>
 		@endif
+		@elseif ($value->route === 'company' || $value->route === 'company.viewall')
+		<a href="{{ route('company') }}">Kontor</a>
+		@elseif ($value->route === 'company.view')
+		@if ($value->locateable)
+		Kontor, »<a href="{{ route('company.view', ['company' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		@else
+		<a href="{{ route('company') }}">Kontor</a>
+		@endif
+		@elseif ($value->route === 'company.worker')
+		@if ($value->locateable)
+		Angestellter »<a href="{{ route('company.worker', ['worker' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		@else
+		Kontor
+		@endif
+		@elseif ($value->route === 'company.hire')
+		Kontor, Angestellten einstellen
+		@elseif ($value->route === 'company.fire')
+		Kontor, Angestellten entlassen
+		@elseif ($value->route === 'company.pay')
+		Kontor, Löhne auszahlen
+		@elseif ($value->route === 'company.assign_labour')
+		Kontor, Arbeit zuweisen
 		@elseif ($value->route === 'encyclopedia')
 		<a href="{{ route($value->route) }}">Kompendium</a>
 		@elseif ($value->route === 'encyclopedia.view')
