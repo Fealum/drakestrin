@@ -18,7 +18,6 @@ use App\Http\Controllers\TerritoryController;
 use App\Http\Controllers\ThreadController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\LegacyController;
 use App\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Storage;
 
@@ -189,6 +188,3 @@ Route::controller(StaticPageController::class)->group(function () {
     Route::get('/static/terms', 'terms')->name('static.terms');
     Route::get('/static/legal', 'legal')->name('static.legal');
 });
-
-// LEGACY
-Route::any('{path}', LegacyController::class)->where('path', '.*')->withoutMiddleware(['VerifyCsrfToken']);
