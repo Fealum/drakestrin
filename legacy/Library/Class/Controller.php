@@ -39,7 +39,6 @@ abstract class Controller
 		$this->set('configuration', Configuration::getInstance());
 
 		// Initialize BBCode
-		//$bbcodes = new _list('bbcode');
 		$bbcodes = BBCode::getInstance();
 		$this->set('bbcodes', $bbcodes);
 

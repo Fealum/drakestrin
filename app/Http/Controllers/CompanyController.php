@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Company;
 use App\Models\CompanyWorker;
-use App\Models\Inventory;
 use App\Models\Labour;
 use App\Models\LabourActive;
-use App\Models\LabourComponent;
+use App\Services\InventoryService;
+use App\Services\PermissionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +16,11 @@ use Illuminate\View\View;
 
 class CompanyController extends Controller
 {
+    public function __construct(PermissionService $permissionService, private InventoryService $inventory)
+    {
+        parent::__construct($permissionService);
+    }
+
     public function index(): View
     {
         return $this->viewAll();
@@ -136,9 +141,9 @@ class CompanyController extends Controller
 
             foreach ($labour->components->where('type', '!=', 2) as $component) {
                 if ((int) $component->type === 1) {
-                    $this->moveComponentInventory($component, $company, -2, -3);
+                    $this->inventory->take((int) $component->item, (int) $component->quantity, 2, $company->id, -2, -3);
                 } else {
-                    $this->consumeComponentInventory($component, $company);
+                    $this->inventory->take((int) $component->item, (int) $component->quantity, 2, $company->id, -2);
                 }
             }
 
@@ -196,15 +201,9 @@ class CompanyController extends Controller
         Gate::authorize('pay', $company);
 
         $paid = DB::transaction(function () use ($company) {
-            $balance = Inventory::query()
-                ->where('item', 1)
-                ->where('table__owner', 2)
-                ->where('owner', $company->id)
-                ->where('wear', -1)
-                ->lockForUpdate()
-                ->first();
+            $balance = $this->inventory->available(1, 2, $company->id, -1);
 
-            if (! $balance || (int) $balance->stack <= 0) {
+            if ($balance <= 0) {
                 return null;
             }
 
@@ -226,7 +225,7 @@ class CompanyController extends Controller
                     continue;
                 }
 
-                if ((int) $balance->stack - $paid['sumpaid'] >= $owed) {
+                if ($balance - $paid['sumpaid'] >= $owed) {
                     $paid['sumpaid'] += $owed;
                     $paid['paid']++;
                     $worker->update(['paid' => ($worker->paid?->timestamp ?? now()->timestamp) + ($months * 2592000)]);
@@ -236,7 +235,7 @@ class CompanyController extends Controller
             }
 
             if ($paid['sumpaid'] > 0) {
-                $balance->update(['stack' => (int) $balance->stack - $paid['sumpaid']]);
+                $this->inventory->debitStack(1, $paid['sumpaid'], 2, $company->id, -1);
             }
 
             return $paid;
@@ -294,97 +293,12 @@ class CompanyController extends Controller
         }
 
         foreach ($labour->components->where('type', '!=', 2) as $component) {
-            if ($this->availableComponentQuantity($component, $company, -2) < (int) $component->quantity) {
+            if ($this->inventory->available((int) $component->item, 2, $company->id, -2) < (int) $component->quantity) {
                 return false;
             }
         }
 
         return true;
-    }
-
-    private function availableComponentQuantity(LabourComponent $component, Company $company, int $wear): int
-    {
-        return Inventory::query()
-            ->with('itemModel')
-            ->where('item', $component->item)
-            ->where('table__owner', 2)
-            ->where('owner', $company->id)
-            ->where('wear', $wear)
-            ->get()
-            ->sum(fn (Inventory $inventory) => $inventory->itemModel?->stackable ? (int) $inventory->stack : 1);
-    }
-
-    private function consumeComponentInventory(LabourComponent $component, Company $company): void
-    {
-        $this->takeComponentInventory($component, $company, -2, null);
-    }
-
-    private function moveComponentInventory(LabourComponent $component, Company $company, int $fromWear, int $toWear): void
-    {
-        $this->takeComponentInventory($component, $company, $fromWear, $toWear);
-    }
-
-    private function takeComponentInventory(LabourComponent $component, Company $company, int $fromWear, ?int $toWear): void
-    {
-        $remaining = (int) $component->quantity;
-        $inventories = Inventory::query()
-            ->with('itemModel')
-            ->where('item', $component->item)
-            ->where('table__owner', 2)
-            ->where('owner', $company->id)
-            ->where('wear', $fromWear)
-            ->orderBy('id')
-            ->lockForUpdate()
-            ->get();
-
-        foreach ($inventories as $inventory) {
-            if ($remaining <= 0) {
-                break;
-            }
-
-            if ($inventory->itemModel?->stackable) {
-                $amount = min($remaining, (int) $inventory->stack);
-                $remaining -= $amount;
-
-                if ($toWear !== null) {
-                    $target = Inventory::query()
-                        ->where('item', $inventory->item)
-                        ->where('table__owner', 2)
-                        ->where('owner', $company->id)
-                        ->where('wear', $toWear)
-                        ->lockForUpdate()
-                        ->first();
-
-                    if ($target) {
-                        $target->increment('stack', $amount);
-                    } else {
-                        Inventory::create([
-                            'item' => $inventory->item,
-                            'stack' => $amount,
-                            'wear' => $toWear,
-                            'table__owner' => 2,
-                            'owner' => $company->id,
-                            'timelastvalue' => $inventory->timelastvalue ?? 0,
-                            'data' => $inventory->data ?? '',
-                        ]);
-                    }
-                }
-
-                if ((int) $inventory->stack === $amount) {
-                    $inventory->delete();
-                } else {
-                    $inventory->decrement('stack', $amount);
-                }
-            } else {
-                $remaining--;
-
-                if ($toWear !== null) {
-                    $inventory->update(['wear' => $toWear]);
-                } else {
-                    $inventory->delete();
-                }
-            }
-        }
     }
 
     private function randomWorkerName(): string
@@ -404,18 +318,7 @@ class CompanyController extends Controller
         $paid = 0;
 
         if ($owed > 0) {
-            $balance = Inventory::query()
-                ->where('item', 1)
-                ->where('table__owner', 2)
-                ->where('owner', $company->id)
-                ->where('wear', -1)
-                ->lockForUpdate()
-                ->first();
-
-            if ($balance) {
-                $paid = min((int) $balance->stack, $owed);
-                $balance->update(['stack' => max(0, (int) $balance->stack - $paid)]);
-            }
+            $paid = $this->inventory->debitStack(1, $owed, 2, $company->id, -1);
         }
 
         return [

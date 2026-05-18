@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\Economy\LabourProcessor;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -562,6 +563,80 @@ class CompanyReadTest extends TestCase
         $detail = $this->followingRedirects()->get('/company/worker/' . $this->workerId);
         $detail->assertOk();
         $detail->assertSee('benötigten Rohstoffe');
+    }
+
+    public function test_labour_processor_finishes_job_creates_outputs_and_returns_tools(): void
+    {
+        $this->prepareAssignableLabour();
+        $now = now()->timestamp;
+
+        DB::table('dra_company_worker')
+            ->where('id', $this->workerId)
+            ->update(['paid' => $now]);
+
+        DB::table('dra_labour_active')
+            ->where('company_worker', $this->workerId)
+            ->update([
+                'until' => $now - 120,
+                'prodas' => -2,
+                'quantity' => 1,
+                'instances' => 1,
+            ]);
+
+        DB::table('dra_inventory')
+            ->where('item', $this->toolItemId)
+            ->where('owner', $this->companyId)
+            ->where('table__owner', 2)
+            ->update(['wear' => -3]);
+
+        $stats = app(LabourProcessor::class)->processDue($now);
+
+        $this->assertSame(1, $stats['finished']);
+        $this->assertDatabaseMissing('dra_labour_active', ['company_worker' => $this->workerId]);
+        $this->assertDatabaseHas('dra_inventory', [
+            'item' => $this->itemId,
+            'stack' => 1,
+            'wear' => -2,
+            'table__owner' => 2,
+            'owner' => $this->companyId,
+        ]);
+        $this->assertDatabaseHas('dra_inventory', [
+            'item' => $this->toolItemId,
+            'wear' => -2,
+            'table__owner' => 2,
+            'owner' => $this->companyId,
+        ]);
+        $this->assertDatabaseHas('dra_inventory', [
+            'item' => $this->outputItemId,
+            'stack' => 1,
+            'wear' => -2,
+            'table__owner' => 2,
+            'owner' => $this->companyId,
+        ]);
+    }
+
+    public function test_labour_processor_skips_workers_without_recent_pay(): void
+    {
+        $this->prepareAssignableLabour();
+        $now = now()->timestamp;
+
+        DB::table('dra_company_worker')
+            ->where('id', $this->workerId)
+            ->update(['paid' => $now - 7776001]);
+
+        DB::table('dra_labour_active')
+            ->where('company_worker', $this->workerId)
+            ->update(['until' => $now - 120]);
+
+        $stats = app(LabourProcessor::class)->processDue($now);
+
+        $this->assertGreaterThanOrEqual(1, $stats['skipped_unpaid']);
+        $this->assertDatabaseHas('dra_labour_active', ['company_worker' => $this->workerId]);
+        $this->assertDatabaseMissing('dra_inventory', [
+            'item' => $this->outputItemId,
+            'owner' => $this->companyId,
+            'table__owner' => 2,
+        ]);
     }
 
     private function prepareAssignableLabour(): void
