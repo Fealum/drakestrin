@@ -7,6 +7,7 @@ use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
 class ForumModelTest extends TestCase
@@ -209,6 +210,90 @@ class ForumModelTest extends TestCase
         $this->assertTrue($post->smilies);
         $this->assertFalse($post->signature);
         $this->assertSame($this->postTime, $post->time->timestamp);
+    }
+
+    public function test_forum_counter_repair_command_restores_denormalized_counts(): void
+    {
+        DB::table('dra_thread')
+            ->where('id', $this->threadId)
+            ->update([
+                'post__total' => 99,
+                'post__first' => 0,
+                'post__first_time' => 0,
+                'post__last' => 0,
+                'post__last_time' => 0,
+            ]);
+
+        DB::table('dra_board')
+            ->where('id', $this->childBoardId)
+            ->update([
+                'thread__total' => 99,
+                'post__total' => 99,
+                'post__last' => 0,
+                'post__last_time' => 0,
+            ]);
+
+        DB::table('dra_user')->where('id', $this->userId)->update(['post__total' => 99]);
+        DB::table('dra_character')->where('id', $this->characterId)->update(['post__total' => 99]);
+
+        $this->artisan(sprintf(
+            'forum:repair-counters --threads --boards --users --characters --thread=%d --board=%d --user=%d --character=%d',
+            $this->threadId,
+            $this->childBoardId,
+            $this->userId,
+            $this->characterId,
+        ))
+            ->expectsOutputToContain('Rows repaired:')
+            ->assertExitCode(0);
+
+        $thread = DB::table('dra_thread')->where('id', $this->threadId)->first();
+        $board = DB::table('dra_board')->where('id', $this->childBoardId)->first();
+        $user = DB::table('dra_user')->where('id', $this->userId)->first();
+        $character = DB::table('dra_character')->where('id', $this->characterId)->first();
+
+        $this->assertSame(1, (int) $thread->post__total);
+        $this->assertSame($this->postId, (int) $thread->post__first);
+        $this->assertSame($this->postTime, (int) $thread->post__first_time);
+        $this->assertSame($this->postId, (int) $thread->post__last);
+        $this->assertSame($this->postTime, (int) $thread->post__last_time);
+
+        $this->assertSame(1, (int) $board->thread__total);
+        $this->assertSame(1, (int) $board->post__total);
+        $this->assertSame($this->postId, (int) $board->post__last);
+        $this->assertSame($this->postTime, (int) $board->post__last_time);
+
+        $this->assertSame(1, (int) $user->post__total);
+        $this->assertSame(1, (int) $character->post__total);
+    }
+
+    public function test_forum_counter_repair_command_can_dry_run_without_updating(): void
+    {
+        DB::table('dra_thread')
+            ->where('id', $this->threadId)
+            ->update(['post__total' => 99]);
+
+        $this->artisan('forum:repair-counters --dry-run --threads --thread=' . $this->threadId)
+            ->expectsOutputToContain('Mismatches found: 1')
+            ->assertExitCode(0);
+
+        $this->assertSame(99, (int) DB::table('dra_thread')->where('id', $this->threadId)->value('post__total'));
+    }
+
+    public function test_board_export_command_outputs_markdown_archive(): void
+    {
+        $path = sys_get_temp_dir() . '/' . $this->prefix . '_board_export.md';
+
+        $this->artisan('forum:export-board ' . $this->childBoardId . ' --path=' . $path)
+            ->expectsOutputToContain('Export written to ' . $path)
+            ->assertExitCode(0);
+
+        $markdown = File::get($path);
+        File::delete($path);
+
+        $this->assertStringContainsString('# Forum ' . $this->childBoardId . ': ' . $this->prefix . '_child', $markdown);
+        $this->assertStringContainsString('## Thema ' . $this->threadId . ': ' . $this->prefix . '_thread', $markdown);
+        $this->assertStringContainsString('### Beitrag von ' . $this->prefix . '_character', $markdown);
+        $this->assertStringContainsString($this->prefix . '_message', $markdown);
     }
 
     public function test_forum_read_routes_render_board_filter_board_detail_and_thread(): void
