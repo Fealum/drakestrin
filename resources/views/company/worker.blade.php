@@ -1,7 +1,7 @@
 <x-main-layout :title="$worker->name" css="company_view">
     <ol>
-        @if ($worker->companyModel)
-        <li>Betrieb: <a href="{{ route('company.view', $worker->companyModel->id) }}">{{ $worker->companyModel->name }}</a></li>
+        @if ($worker->company)
+        <li>Betrieb: <a href="{{ route('company.view', $worker->company->id) }}">{{ $worker->company->name }}</a></li>
         @endif
         @if ($canFire)
         <li><a href="{{ route('company.fire', $worker->id) }}">entlassen</a></li>
@@ -15,11 +15,11 @@
                 @endif
             </p>
         </li>
-        @if ((int) $worker->type === 5 && $worker->companyModel)
-        <li><a href="{{ route('company.pay', $worker->companyModel->id) }}">Löhne auszahlen</a></li>
+        @if ((int) $worker->type === 5 && $worker->company)
+        <li><a href="{{ route('company.pay', $worker->company->id) }}">Löhne auszahlen</a></li>
         @elseif ($worker->activeLabours->isNotEmpty())
             @foreach ($worker->activeLabours as $activeLabour)
-            @php($labour = $activeLabour->labourModel)
+            @php($labour = $activeLabour->labour)
             @if ($labour)
             <li>
                 <b>@if ($activeLabour->instances > 1){{ $activeLabour->instances }} mal @endif{{ $labour->name }}@if ($activeLabour->nextinsta != 0) (danach {{ $activeLabour->nextinsta }} Instanzen)@endif</b><br>

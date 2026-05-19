@@ -18,7 +18,7 @@
     @forelse ($specificPermissions as $permission)
     <p>
         {{ $permission->recipientName() }}:
-        {{ $permission->permit_legacy?->name ?? '#'.$permission->permit }}
+        {{ $permission->permit?->name ?? '#'.$permission->permit_id }}
         ({{ $permission->value }})
         @if ($canCreatePermission)
         <a class="option edit" title="bearbeiten" href="{{ route('permission.edit', ['permission' => $permission->id]) }}">bearbeiten</a>

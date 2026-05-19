@@ -7,13 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LabourActive extends Model
 {
-    protected $table = 'dra_labour_active';
-
     protected $dateFormat = 'U';
 
     protected $fillable = [
-        'company_worker',
-        'labour',
+        'company_worker_id',
+        'labour_id',
         'since',
         'until',
         'prodas',
@@ -25,8 +23,8 @@ class LabourActive extends Model
     public $timestamps = false;
 
     protected $casts = [
-        'company_worker' => 'integer',
-        'labour' => 'integer',
+        'company_worker_id' => 'integer',
+        'labour_id' => 'integer',
         'since' => 'datetime',
         'until' => 'datetime',
         'prodas' => 'integer',
@@ -35,13 +33,13 @@ class LabourActive extends Model
         'nextinsta' => 'integer',
     ];
 
-    public function worker(): BelongsTo
+    public function companyWorker(): BelongsTo
     {
-        return $this->belongsTo(CompanyWorker::class, 'company_worker');
+        return $this->belongsTo(CompanyWorker::class);
     }
 
-    public function labourModel(): BelongsTo
+    public function labour(): BelongsTo
     {
-        return $this->belongsTo(Labour::class, 'labour');
+        return $this->belongsTo(Labour::class);
     }
 }

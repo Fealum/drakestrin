@@ -22,14 +22,13 @@ class TrackOnline
         $controller = Str::replaceLast('Controller', '', class_basename($controllerAction[0]));
         $action = $controllerAction[1] ?? null;
         $online = Online::updateOrCreate(
-            ['user' => $request->user()->id],
+            ['user_id' => $request->user()->id],
             [
                 'time' => now(),
                 'ip' => $request->ip(),
                 'browser' => $request->userAgent(),
                 'controller' => $controller,
                 'action' => $action,
-                'table__location' => NULL,
                 'location' => NULL,
                 'route' => Route::current()->getName(),
             ]

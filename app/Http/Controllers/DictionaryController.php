@@ -36,7 +36,7 @@ class DictionaryController extends Controller
         [$orderColumn, $orderDirection] = $this->parseOrder($order);
 
         $words = Word::with(['wordType', 'translationKeysFrom.toWord.wordType'])
-            ->where('language', $languageFrom->id)
+            ->where('language_id', $languageFrom->id)
             ->orderByRaw($orderColumn . ' ' . $orderDirection)
             ->get();
 
@@ -71,8 +71,8 @@ class DictionaryController extends Controller
         if ($request->isMethod('post')) {
             if ($request->filled('advanced-language-from') && $request->filled('advanced')) {
                 $validated = $request->validate([
-                    'advanced-language-from' => 'required|exists:dra_language,id',
-                    'advanced-language-to' => 'required|exists:dra_language,id',
+                    'advanced-language-from' => 'required|exists:languages,id',
+                    'advanced-language-to' => 'required|exists:languages,id',
                     'advanced' => 'required|string',
                 ]);
 
@@ -82,12 +82,12 @@ class DictionaryController extends Controller
             }
 
             $validated = $request->validate([
-                'language' => 'required|exists:dra_language,id',
-                'wordtype' => 'required|exists:dra_wordtype,id',
+                'language_id' => 'required|exists:languages,id',
+                'word_type_id' => 'required|exists:word_types,id',
                 'word' => 'required|string',
             ]);
 
-            $word = $this->writer->createWord($validated['language'], $validated['wordtype'], $validated['word']);
+            $word = $this->writer->createWord($validated['language_id'], $validated['word_type_id'], $validated['word']);
 
             return to_route('dictionary.view', ['word' => $word->id]);
         }
@@ -105,14 +105,14 @@ class DictionaryController extends Controller
 
         if ($request->isMethod('post')) {
             $validated = $request->validate([
-                'language' => 'required|exists:dra_language,id',
-                'wordtype' => 'required|exists:dra_wordtype,id',
+                'language_id' => 'required|exists:languages,id',
+                'word_type_id' => 'required|exists:word_types,id',
                 'word' => 'required|string',
             ]);
 
             $word->update([
-                'language' => $validated['language'],
-                'wordtype' => $validated['wordtype'],
+                'language_id' => $validated['language_id'],
+                'word_type_id' => $validated['word_type_id'],
                 'word' => trim($validated['word']),
             ]);
 
@@ -192,7 +192,7 @@ class DictionaryController extends Controller
         $key->load(['fromWord', 'toWord']);
 
         if ($request->isMethod('post')) {
-            $wordId = $key->dictionary__from;
+            $wordId = $key->from_word_id;
             $key->delete();
 
             return to_route('dictionary.view', ['word' => $wordId]);

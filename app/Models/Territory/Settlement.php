@@ -10,8 +10,6 @@ class Settlement extends Model
 {
     use HasSpatialGeometry;
 
-    protected $table = 'dra_settlement';
-
     protected $fillable = [
         'name',
         'population',
@@ -27,6 +25,6 @@ class Settlement extends Model
 
     public function territories(): HasMany
     {
-        return $this->hasMany(Territory::class, 'settlement');
+        return $this->hasMany(Territory::class, 'capital_id');
     }
 }

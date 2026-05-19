@@ -2,18 +2,18 @@
     <form name="createdictionary" action="{{ route('dictionary.create') }}" method="post">
         @csrf
         <p>
-            <label for="language">Sprache: </label>
-            <select name="language" id="language">
+            <label for="language_id">Sprache: </label>
+            <select name="language_id" id="language_id">
                 @foreach ($languages as $language)
-                <option value="{{ $language->id }}" @selected(old('language') == $language->id)>{{ $language->name }} ({{ $language->code }})</option>
+                <option value="{{ $language->id }}" @selected(old('language_id') == $language->id)>{{ $language->name }} ({{ $language->code }})</option>
                 @endforeach
             </select>
         </p>
         <p>
-            <label for="wordtype">Wortart: </label>
-            <select name="wordtype" id="wordtype">
+            <label for="word_type_id">Wortart: </label>
+            <select name="word_type_id" id="word_type_id">
                 @foreach ($wordTypes as $wordType)
-                <option value="{{ $wordType->id }}" @selected(old('wordtype') == $wordType->id)>{{ $wordType->name }} ({{ $wordType->code }})</option>
+                <option value="{{ $wordType->id }}" @selected(old('word_type_id') == $wordType->id)>{{ $wordType->name }} ({{ $wordType->code }})</option>
                 @endforeach
             </select>
         </p>

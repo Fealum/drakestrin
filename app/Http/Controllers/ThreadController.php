@@ -26,7 +26,7 @@ class ThreadController extends Controller
 
         if ($request->isMethod('post')) {
             $data = $request->validate([
-                'board' => ['required', 'integer', 'exists:dra_board,id'],
+                'board' => ['required', 'integer', 'exists:boards,id'],
                 'character' => ['required', 'integer'],
                 'name' => ['required', 'string', 'max:225'],
                 'message' => ['required', 'string'],
@@ -40,26 +40,26 @@ class ThreadController extends Controller
 
             $character = $this->userCharacter((int) $data['character']);
             $counters = app(ForumCounters::class);
-            $canMarkAsImportant = $request->user()->can('markAsImportant', new ForumThread(['board' => $board->id]));
+            $canMarkAsImportant = $request->user()->can('markAsImportant', new ForumThread(['board_id' => $board->id]));
 
             $thread = DB::transaction(function () use ($request, $board, $character, $data, $counters, $canMarkAsImportant) {
                 $time = now()->timestamp;
 
                 $thread = ForumThread::create([
-                    'board' => $board->id,
+                    'board_id' => $board->id,
                     'name' => trim($data['name']),
-                    'post__first_time' => $time,
-                    'post__total' => 1,
-                    'post__last_time' => $time,
+                    'first_post_at' => $time,
+                    'post_count' => 1,
+                    'last_post_at' => $time,
                     'views' => 0,
                     'important' => $canMarkAsImportant ? (int) $request->boolean('important') : 0,
                 ]);
 
                 $post = Post::create([
-                    'board' => $board->id,
-                    'thread' => $thread->id,
-                    'user' => $request->user()->id,
-                    'character' => $character->id,
+                    'board_id' => $board->id,
+                    'thread_id' => $thread->id,
+                    'user_id' => $request->user()->id,
+                    'character_id' => $character->id,
                     'time' => $time,
                     'message' => trim($data['message']),
                     'smilies' => (int) $request->boolean('smilies'),
@@ -68,8 +68,8 @@ class ThreadController extends Controller
                 ]);
 
                 $thread->update([
-                    'post__first' => $post->id,
-                    'post__last' => $post->id,
+                    'first_post_id' => $post->id,
+                    'last_post_id' => $post->id,
                 ]);
 
                 $counters->refreshThread($thread);
@@ -86,7 +86,7 @@ class ThreadController extends Controller
         return view('thread.create', [
             'boards' => $this->threadBoardOptions(),
             'characters' => auth()->user()->characters()->orderBy('name')->get(),
-            'canMarkAsImportant' => auth()->user()->can('markAsImportant', new ForumThread(['board' => $board?->id ?? 0])),
+            'canMarkAsImportant' => auth()->user()->can('markAsImportant', new ForumThread(['board_id' => $board?->id ?? 0])),
             'selectedBoard' => $board,
         ]);
     }
@@ -97,27 +97,27 @@ class ThreadController extends Controller
         $viewedThreads = session('viewed.1', []);
 
         $thread->load([
-            'boardModel.parentBoard',
+            'board.parent',
             'posts.author',
-            'posts.characterModel',
-            'posts.transfers.items.itemModel',
-            'posts.transfers.recipientCharacter',
-            'posts.transfers.senderCharacter',
+            'posts.character',
+            'posts.transfers.items.item',
+            'posts.transfers.recipient',
+            'posts.transfers.sender',
         ]);
         $thread->increment('views');
         $thread->refresh()->load([
-            'boardModel.parentBoard',
+            'board.parent',
             'posts.author',
-            'posts.characterModel',
-            'posts.transfers.items.itemModel',
-            'posts.transfers.recipientCharacter',
-            'posts.transfers.senderCharacter',
+            'posts.character',
+            'posts.transfers.items.item',
+            'posts.transfers.recipient',
+            'posts.transfers.sender',
         ]);
 
         $this->setLocation($thread);
 
         if ($page === 'last') {
-            $page = (int) ceil(max($thread->post__total, 1) / self::PAGE_ENTRIES);
+            $page = (int) ceil(max($thread->post_count, 1) / self::PAGE_ENTRIES);
         }
 
         $posts = new LengthAwarePaginator(
@@ -137,7 +137,7 @@ class ThreadController extends Controller
             'canDeleteThread' => auth()->check() && auth()->user()->can('delete', $thread),
             'canEditThread' => auth()->check() && auth()->user()->can('update', $thread),
             'canTransfer' => auth()->check() && $this->permissionService->allows('transfer', $thread, auth()->user()),
-            'characters' => auth()->check() ? auth()->user()->characters()->with('inventory.itemModel')->orderBy('name')->get() : collect(),
+            'characters' => auth()->check() ? auth()->user()->characters()->with('inventory.item')->orderBy('name')->get() : collect(),
             'posts' => $posts,
             'quotedMessage' => $quotedPost ? $this->quoteText($quotedPost) : '',
             'thread' => $thread,
@@ -145,7 +145,7 @@ class ThreadController extends Controller
         ]);
 
         if (auth()->check()) {
-            session()->put('viewed.1.' . $thread->id, $thread->getRawOriginal('post__last_time'));
+            session()->put('viewed.1.' . $thread->id, $thread->getRawOriginal('last_post_at'));
         }
 
         return $response;
@@ -157,12 +157,12 @@ class ThreadController extends Controller
 
         if ($request->isMethod('post')) {
             $data = $request->validate([
-                'board' => ['required', 'integer', 'exists:dra_board,id'],
+                'board' => ['required', 'integer', 'exists:boards,id'],
                 'name' => ['required', 'string', 'max:225'],
                 'important' => ['nullable', 'boolean'],
             ]);
 
-            $oldBoard = $thread->boardModel;
+            $oldBoard = $thread->board;
             $newBoard = Board::findOrFail((int) $data['board']);
             $this->authorize('createThread', $newBoard);
 
@@ -171,13 +171,13 @@ class ThreadController extends Controller
 
             DB::transaction(function () use ($request, $thread, $oldBoard, $newBoard, $data, $counters, $canMarkAsImportant) {
                 $thread->update([
-                    'board' => $newBoard->id,
+                    'board_id' => $newBoard->id,
                     'name' => trim($data['name']),
                     'important' => $canMarkAsImportant ? (int) $request->boolean('important') : $thread->important,
                 ]);
 
                 if (! $oldBoard || $oldBoard->id !== $newBoard->id) {
-                    Post::where('thread', $thread->id)->update(['board' => $newBoard->id]);
+                    Post::where('thread_id', $thread->id)->update(['board_id' => $newBoard->id]);
                     $counters->refreshBoard($oldBoard);
                 }
 
@@ -191,7 +191,7 @@ class ThreadController extends Controller
         return view('thread.edit', [
             'boards' => $this->threadBoardOptions(),
             'canMarkAsImportant' => auth()->user()->can('markAsImportant', $thread),
-            'thread' => $thread->load('boardModel'),
+            'thread' => $thread->load('board'),
         ]);
     }
 
@@ -201,7 +201,7 @@ class ThreadController extends Controller
 
         return view('thread.delete', [
             'postCount' => $thread->posts()->count(),
-            'thread' => $thread->load(['boardModel', 'firstPost.characterModel']),
+            'thread' => $thread->load(['board', 'firstPost.character']),
         ]);
     }
 
@@ -210,13 +210,13 @@ class ThreadController extends Controller
         $this->authorize('delete', $thread);
         $request->validate(['delete' => ['required', 'accepted']]);
 
-        $board = $thread->boardModel;
-        $userIds = $thread->posts()->pluck('user');
-        $characterIds = $thread->posts()->pluck('character');
+        $board = $thread->board;
+        $userIds = $thread->posts()->pluck('user_id');
+        $characterIds = $thread->posts()->pluck('character_id');
         $counters = app(ForumCounters::class);
 
         DB::transaction(function () use ($thread, $board, $userIds, $characterIds, $counters) {
-            Post::where('thread', $thread->id)->delete();
+            Post::where('thread_id', $thread->id)->delete();
             $thread->delete();
 
             $counters->refreshBoard($board);
@@ -242,7 +242,7 @@ class ThreadController extends Controller
 
     private function quoteText(Post $post): string
     {
-        $author = $post->characterModel?->name
+        $author = $post->character?->name
             ?? $post->author?->name
             ?? 'Unbekannter Charakter';
         $author = str_replace(']', ')', $author);
@@ -256,7 +256,7 @@ class ThreadController extends Controller
             ->orderBy('sort')
             ->orderByRaw('LOWER(name)')
             ->get()
-            ->groupBy('board');
+            ->groupBy('parent_id');
 
         $walk = function (int $parentId = 0, int $level = 0) use (&$walk, $boardsByParent): Collection {
             return $boardsByParent->get($parentId, collect())

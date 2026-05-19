@@ -7,19 +7,19 @@ use App\Models\Item;
 
 class InventoryService
 {
-    public function available(int $itemId, int $ownerTable, int $ownerId, int $wear): int
+    public function available(int $itemId, int $ownerType, int $ownerId, int $wear): int
     {
-        return $this->inventories($itemId, $ownerTable, $ownerId, $wear)
+        return $this->inventories($itemId, $ownerType, $ownerId, $wear)
             ->get()
-            ->sum(fn (Inventory $inventory) => $inventory->itemModel?->stackable ? (int) $inventory->stack : 1);
+            ->sum(fn (Inventory $inventory) => $inventory->item?->stackable ? (int) $inventory->stack : 1);
     }
 
-    public function debitStack(int $itemId, int $amount, int $ownerTable, int $ownerId, int $wear): int
+    public function debitStack(int $itemId, int $amount, int $ownerType, int $ownerId, int $wear): int
     {
         $remaining = max(0, $amount);
         $paid = 0;
 
-        foreach ($this->inventories($itemId, $ownerTable, $ownerId, $wear, lock: true)->get() as $inventory) {
+        foreach ($this->inventories($itemId, $ownerType, $ownerId, $wear, lock: true)->get() as $inventory) {
             if ($remaining <= 0) {
                 break;
             }
@@ -44,7 +44,7 @@ class InventoryService
         return $paid;
     }
 
-    public function add(int $itemId, int $quantity, int $ownerTable, int $ownerId, int $wear): int
+    public function add(int $itemId, int $quantity, int $ownerType, int $ownerId, int $wear): int
     {
         $quantity = max(0, $quantity);
         $item = Item::find($itemId);
@@ -54,17 +54,17 @@ class InventoryService
         }
 
         if ($item->stackable) {
-            $target = $this->inventory($itemId, $ownerTable, $ownerId, $wear, lock: true);
+            $target = $this->inventory($itemId, $ownerType, $ownerId, $wear, lock: true);
 
             if ($target) {
                 $target->increment('stack', $quantity);
             } else {
                 Inventory::create([
-                    'item' => $itemId,
+                    'item_id' => $itemId,
                     'stack' => $quantity,
                     'wear' => $wear,
-                    'table__owner' => $ownerTable,
-                    'owner' => $ownerId,
+                    'owner_type' => $ownerType,
+                    'owner_id' => $ownerId,
                     'timelastvalue' => 0,
                     'data' => '',
                 ]);
@@ -75,11 +75,11 @@ class InventoryService
 
         for ($i = 0; $i < $quantity; $i++) {
             Inventory::create([
-                'item' => $itemId,
+                'item_id' => $itemId,
                 'stack' => 0,
                 'wear' => $wear,
-                'table__owner' => $ownerTable,
-                'owner' => $ownerId,
+                'owner_type' => $ownerType,
+                'owner_id' => $ownerId,
                 'timelastvalue' => 0,
                 'data' => '',
             ]);
@@ -88,23 +88,23 @@ class InventoryService
         return $quantity;
     }
 
-    public function take(int $itemId, int $quantity, int $ownerTable, int $ownerId, int $fromWear, ?int $toWear = null): int
+    public function take(int $itemId, int $quantity, int $ownerType, int $ownerId, int $fromWear, ?int $toWear = null): int
     {
         $remaining = max(0, $quantity);
         $taken = 0;
 
-        foreach ($this->inventories($itemId, $ownerTable, $ownerId, $fromWear, lock: true)->get() as $inventory) {
+        foreach ($this->inventories($itemId, $ownerType, $ownerId, $fromWear, lock: true)->get() as $inventory) {
             if ($remaining <= 0) {
                 break;
             }
 
-            if ($inventory->itemModel?->stackable) {
+            if ($inventory->item?->stackable) {
                 $amount = min($remaining, (int) $inventory->stack);
                 $remaining -= $amount;
                 $taken += $amount;
 
                 if ($toWear !== null) {
-                    $this->createOrIncrement($itemId, $amount, $ownerTable, $ownerId, $toWear, $inventory);
+                    $this->createOrIncrement($itemId, $amount, $ownerType, $ownerId, $toWear, $inventory);
                 }
 
                 if ((int) $inventory->stack === $amount) {
@@ -132,19 +132,19 @@ class InventoryService
     /**
      * @return array{0:int,1:int}
      */
-    public function moveInventory(Inventory $inventory, int $toOwnerTable, int $toOwnerId, int $toWear, int|string|null $requestedStack = null): array
+    public function moveInventory(Inventory $inventory, int $toOwnerType, int $toOwnerId, int $toWear, int|string|null $requestedStack = null): array
     {
-        $inventory->loadMissing('itemModel');
-        $item = $inventory->itemModel;
+        $inventory->loadMissing('item');
+        $item = $inventory->item;
 
         if (! $item) {
-            return [(int) $inventory->item, 0];
+            return [(int) $inventory->item_id, 0];
         }
 
         if (! $item->stackable) {
             $inventory->update([
-                'table__owner' => $toOwnerTable,
-                'owner' => $toOwnerId,
+                'owner_type' => $toOwnerType,
+                'owner_id' => $toOwnerId,
                 'wear' => $toWear,
             ]);
 
@@ -159,12 +159,12 @@ class InventoryService
             $stack = $inventory->stack;
         }
 
-        $target = $this->inventory($item->id, $toOwnerTable, $toOwnerId, $toWear);
+        $target = $this->inventory($item->id, $toOwnerType, $toOwnerId, $toWear);
 
         if ($stack === (int) $inventory->stack && ! $target) {
             $inventory->update([
-                'table__owner' => $toOwnerTable,
-                'owner' => $toOwnerId,
+                'owner_type' => $toOwnerType,
+                'owner_id' => $toOwnerId,
                 'wear' => $toWear,
             ]);
         } elseif ($stack === (int) $inventory->stack && $target) {
@@ -175,11 +175,11 @@ class InventoryService
                 $target->increment('stack', $stack);
             } else {
                 Inventory::create([
-                    'item' => $item->id,
+                    'item_id' => $item->id,
                     'stack' => $stack,
                     'wear' => $toWear,
-                    'table__owner' => $toOwnerTable,
-                    'owner' => $toOwnerId,
+                    'owner_type' => $toOwnerType,
+                    'owner_id' => $toOwnerId,
                     'timelastvalue' => 0,
                     'data' => '',
                 ]);
@@ -191,9 +191,9 @@ class InventoryService
         return [$item->id, $stack];
     }
 
-    private function createOrIncrement(int $itemId, int $amount, int $ownerTable, int $ownerId, int $wear, Inventory $source): void
+    private function createOrIncrement(int $itemId, int $amount, int $ownerType, int $ownerId, int $wear, Inventory $source): void
     {
-        $target = $this->inventory($itemId, $ownerTable, $ownerId, $wear, lock: true);
+        $target = $this->inventory($itemId, $ownerType, $ownerId, $wear, lock: true);
 
         if ($target) {
             $target->increment('stack', $amount);
@@ -202,28 +202,28 @@ class InventoryService
         }
 
         Inventory::create([
-            'item' => $itemId,
+            'item_id' => $itemId,
             'stack' => $amount,
             'wear' => $wear,
-            'table__owner' => $ownerTable,
-            'owner' => $ownerId,
+            'owner_type' => $ownerType,
+            'owner_id' => $ownerId,
             'timelastvalue' => $source->timelastvalue ?? 0,
             'data' => $source->data ?? '',
         ]);
     }
 
-    private function inventory(int $itemId, int $ownerTable, int $ownerId, int $wear, bool $lock = false): ?Inventory
+    private function inventory(int $itemId, int $ownerType, int $ownerId, int $wear, bool $lock = false): ?Inventory
     {
-        return $this->inventories($itemId, $ownerTable, $ownerId, $wear, $lock)->first();
+        return $this->inventories($itemId, $ownerType, $ownerId, $wear, $lock)->first();
     }
 
-    private function inventories(int $itemId, int $ownerTable, int $ownerId, int $wear, bool $lock = false)
+    private function inventories(int $itemId, int $ownerType, int $ownerId, int $wear, bool $lock = false)
     {
         $query = Inventory::query()
-            ->with('itemModel')
-            ->where('item', $itemId)
-            ->where('table__owner', $ownerTable)
-            ->where('owner', $ownerId)
+            ->with('item')
+            ->where('item_id', $itemId)
+            ->where('owner_type', $ownerType)
+            ->where('owner_id', $ownerId)
             ->where('wear', $wear)
             ->orderBy('id');
 

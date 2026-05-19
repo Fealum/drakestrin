@@ -1,8 +1,8 @@
-<x-main-layout :title="'Recht »'.($permission->permit_legacy?->name ?? '#'.$permission->permit).'« löschen'" alt-title="Recht löschen" css="thread">
+<x-main-layout :title="'Recht »'.($permission->permit?->name ?? '#'.$permission->permit_id).'« löschen'" alt-title="Recht löschen" css="thread">
     <p>
         Soll das Recht
         {{ $permission->recipientName() }}:
-        {{ $permission->permit_legacy?->name ?? '#'.$permission->permit }}
+        {{ $permission->permit?->name ?? '#'.$permission->permit_id }}
         ({{ $permission->value }})
         wirklich gelöscht werden?
     </p>

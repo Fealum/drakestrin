@@ -47,14 +47,14 @@
     </form>
 
     <h3>Nutzerkonto</h3>
-    <em>Beiträge:</em> {{ number_format($character->post__total ?? 0, 0, ',', '.') }}<br>
+    <em>Beiträge:</em> {{ number_format($character->post_count ?? 0, 0, ',', '.') }}<br>
     <em>Mitglied seit:</em> <x-datetime :time="$character->regdate" /><br>
 
     @if ($character->inventory->isNotEmpty())
     <h3>Besitz</h3>
     <ol class="inventory">
         @foreach ($character->inventory as $inventory)
-        @php($item = $inventory->itemModel)
+        @php($item = $inventory->item)
         @if ($item)
         <li><img src="{{ url('/img/item.img/'.$item->img.'.png') }}" alt=""> {{ $item->name }}: {{ $inventory->stack }}, {{ $inventory->wear }}</li>
         @endif

@@ -30,7 +30,7 @@ class ForumModelTest extends TestCase
         $this->prefix = 'ct_forum_' . substr(str_replace('.', '_', uniqid('', true)), 0, 12);
         $this->postTime = now()->subHour()->timestamp;
 
-        $this->userId = DB::table('dra_user')->insertGetId([
+        $this->userId = DB::table('users')->insertGetId([
             'name' => $this->prefix . '_user',
             'password' => 'secret',
             'email' => $this->prefix . '@example.test',
@@ -45,33 +45,33 @@ class ForumModelTest extends TestCase
             'wohnort' => '',
         ]);
 
-        $this->characterId = DB::table('dra_character')->insertGetId([
+        $this->characterId = DB::table('characters')->insertGetId([
             'name' => $this->prefix . '_character',
             'regdate' => $this->postTime,
             'interests' => '',
             'location' => '',
             'work' => '',
             'usertext' => '',
-            'user' => $this->userId,
+            'user_id' => $this->userId,
         ]);
 
-        $this->secondCharacterId = DB::table('dra_character')->insertGetId([
+        $this->secondCharacterId = DB::table('characters')->insertGetId([
             'name' => $this->prefix . '_second_character',
             'regdate' => $this->postTime + 100,
             'interests' => '',
             'location' => '',
             'work' => '',
             'usertext' => '',
-            'user' => $this->userId,
+            'user_id' => $this->userId,
         ]);
 
-        DB::table('dra_group2user')->insert([
-            'user' => $this->userId,
-            'group' => 2,
+        DB::table('group_user')->insert([
+            'user_id' => $this->userId,
+            'group_id' => 2,
         ]);
 
-        $this->parentBoardId = DB::table('dra_board')->insertGetId([
-            'board' => 0,
+        $this->parentBoardId = DB::table('boards')->insertGetId([
+            'parent_id' => 0,
             'name' => $this->prefix . '_parent',
             'password' => '',
             'description' => '',
@@ -79,8 +79,8 @@ class ForumModelTest extends TestCase
             'cat' => 1,
         ]);
 
-        $this->childBoardId = DB::table('dra_board')->insertGetId([
-            'board' => $this->parentBoardId,
+        $this->childBoardId = DB::table('boards')->insertGetId([
+            'parent_id' => $this->parentBoardId,
             'name' => $this->prefix . '_child',
             'password' => '',
             'description' => '',
@@ -88,8 +88,8 @@ class ForumModelTest extends TestCase
             'cat' => 0,
         ]);
 
-        $this->otherBoardId = DB::table('dra_board')->insertGetId([
-            'board' => $this->parentBoardId,
+        $this->otherBoardId = DB::table('boards')->insertGetId([
+            'parent_id' => $this->parentBoardId,
             'name' => $this->prefix . '_other_child',
             'password' => '',
             'description' => '',
@@ -97,18 +97,18 @@ class ForumModelTest extends TestCase
             'cat' => 0,
         ]);
 
-        $this->threadId = DB::table('dra_thread')->insertGetId([
-            'board' => $this->childBoardId,
+        $this->threadId = DB::table('threads')->insertGetId([
+            'board_id' => $this->childBoardId,
             'name' => $this->prefix . '_thread',
-            'post__first_time' => $this->postTime,
-            'post__last_time' => $this->postTime,
+            'first_post_at' => $this->postTime,
+            'last_post_at' => $this->postTime,
         ]);
 
-        $this->postId = DB::table('dra_post')->insertGetId([
-            'board' => $this->childBoardId,
-            'thread' => $this->threadId,
-            'user' => $this->userId,
-            'character' => $this->characterId,
+        $this->postId = DB::table('posts')->insertGetId([
+            'board_id' => $this->childBoardId,
+            'thread_id' => $this->threadId,
+            'user_id' => $this->userId,
+            'character_id' => $this->characterId,
             'time' => $this->postTime,
             'message' => $this->prefix . '_message',
             'smilies' => 1,
@@ -116,69 +116,69 @@ class ForumModelTest extends TestCase
             'ip' => '127.0.0.1',
         ]);
 
-        DB::table('dra_thread')
+        DB::table('threads')
             ->where('id', $this->threadId)
             ->update([
-                'post__total' => 1,
-                'post__first' => $this->postId,
-                'post__last' => $this->postId,
+                'post_count' => 1,
+                'first_post_id' => $this->postId,
+                'last_post_id' => $this->postId,
             ]);
 
-        DB::table('dra_board')
+        DB::table('boards')
             ->where('id', $this->childBoardId)
             ->update([
-                'thread__total' => 1,
-                'post__total' => 1,
-                'post__last' => $this->postId,
-                'post__last_time' => $this->postTime,
+                'thread_count' => 1,
+                'post_count' => 1,
+                'last_post_id' => $this->postId,
+                'last_post_at' => $this->postTime,
             ]);
     }
 
     protected function tearDown(): void
     {
-        DB::table('dra_post')
+        DB::table('posts')
             ->where('message', 'like', $this->prefix . '%')
             ->delete();
 
-        DB::table('dra_inventory')
-            ->whereIn('owner', [$this->characterId, $this->secondCharacterId])
-            ->where('table__owner', 6)
+        DB::table('inventories')
+            ->whereIn('owner_id', [$this->characterId, $this->secondCharacterId])
+            ->where('owner_type', 6)
             ->delete();
 
-        DB::table('dra_item')
+        DB::table('items')
             ->where('name', 'like', $this->prefix . '%')
             ->delete();
 
-        DB::table('dra_thread')
+        DB::table('threads')
             ->where('name', 'like', $this->prefix . '%')
             ->delete();
 
-        DB::table('dra_board')
+        DB::table('boards')
             ->where('name', 'like', $this->prefix . '%')
             ->delete();
 
-        DB::table('dra_configuration')
-            ->where('table__recipient', 0)
-            ->where('recipient', $this->userId)
-            ->where('table__subject', 3)
+        DB::table('configurations')
+            ->where('recipient_type', 0)
+            ->where('recipient_id', $this->userId)
+            ->where('subject_type', 3)
             ->delete();
 
-        DB::table('dra_permission')
+        DB::table('permissions')
             ->where(function ($query) {
-                $query->where('recipient', $this->userId)
-                    ->orWhereIn('subject', [$this->parentBoardId, $this->childBoardId, $this->otherBoardId]);
+                $query->where('recipient_id', $this->userId)
+                    ->orWhereIn('subject_id', [$this->parentBoardId, $this->childBoardId, $this->otherBoardId]);
             })
             ->delete();
 
-        DB::table('dra_group2user')
-            ->where('user', $this->userId)
+        DB::table('group_user')
+            ->where('user_id', $this->userId)
             ->delete();
 
-        DB::table('dra_character')
+        DB::table('characters')
             ->where('name', 'like', $this->prefix . '%')
             ->delete();
 
-        DB::table('dra_user')
+        DB::table('users')
             ->where('name', 'like', $this->prefix . '%')
             ->delete();
 
@@ -187,26 +187,26 @@ class ForumModelTest extends TestCase
 
     public function test_board_thread_and_post_relationships_match_legacy_foreign_keys(): void
     {
-        $parentBoard = Board::with('childBoards')->findOrFail($this->parentBoardId);
-        $childBoard = Board::with(['parentBoard', 'threads.lastPost', 'lastPost'])->findOrFail($this->childBoardId);
-        $thread = ForumThread::with(['boardModel', 'posts', 'firstPost', 'lastPost'])->findOrFail($this->threadId);
-        $post = Post::with(['boardModel', 'threadModel'])->findOrFail($this->postId);
+        $parent = Board::with('children')->findOrFail($this->parentBoardId);
+        $childBoard = Board::with(['parent', 'threads.lastPost', 'lastPost'])->findOrFail($this->childBoardId);
+        $thread = ForumThread::with(['board', 'posts', 'firstPost', 'lastPost'])->findOrFail($this->threadId);
+        $post = Post::with(['board', 'thread'])->findOrFail($this->postId);
 
-        $this->assertTrue($parentBoard->cat);
-        $this->assertSame($this->childBoardId, $parentBoard->childBoards->first()->id);
+        $this->assertTrue($parent->cat);
+        $this->assertSame($this->childBoardId, $parent->children->first()->id);
 
-        $this->assertSame($this->parentBoardId, $childBoard->parentBoard->id);
+        $this->assertSame($this->parentBoardId, $childBoard->parent->id);
         $this->assertSame($this->threadId, $childBoard->threads->first()->id);
         $this->assertSame($this->postId, $childBoard->lastPost->id);
-        $this->assertSame($this->postTime, $childBoard->post__last_time->timestamp);
+        $this->assertSame($this->postTime, $childBoard->last_post_at->timestamp);
 
-        $this->assertSame($this->childBoardId, $thread->boardModel->id);
+        $this->assertSame($this->childBoardId, $thread->board->id);
         $this->assertSame($this->postId, $thread->posts->first()->id);
         $this->assertSame($this->postId, $thread->firstPost->id);
         $this->assertSame($this->postId, $thread->lastPost->id);
 
-        $this->assertSame($this->childBoardId, $post->boardModel->id);
-        $this->assertSame($this->threadId, $post->threadModel->id);
+        $this->assertSame($this->childBoardId, $post->board->id);
+        $this->assertSame($this->threadId, $post->thread->id);
         $this->assertTrue($post->smilies);
         $this->assertFalse($post->signature);
         $this->assertSame($this->postTime, $post->time->timestamp);
@@ -214,27 +214,27 @@ class ForumModelTest extends TestCase
 
     public function test_forum_counter_repair_command_restores_denormalized_counts(): void
     {
-        DB::table('dra_thread')
+        DB::table('threads')
             ->where('id', $this->threadId)
             ->update([
-                'post__total' => 99,
-                'post__first' => 0,
-                'post__first_time' => 0,
-                'post__last' => 0,
-                'post__last_time' => 0,
+                'post_count' => 99,
+                'first_post_id' => 0,
+                'first_post_at' => 0,
+                'last_post_id' => 0,
+                'last_post_at' => 0,
             ]);
 
-        DB::table('dra_board')
+        DB::table('boards')
             ->where('id', $this->childBoardId)
             ->update([
-                'thread__total' => 99,
-                'post__total' => 99,
-                'post__last' => 0,
-                'post__last_time' => 0,
+                'thread_count' => 99,
+                'post_count' => 99,
+                'last_post_id' => 0,
+                'last_post_at' => 0,
             ]);
 
-        DB::table('dra_user')->where('id', $this->userId)->update(['post__total' => 99]);
-        DB::table('dra_character')->where('id', $this->characterId)->update(['post__total' => 99]);
+        DB::table('users')->where('id', $this->userId)->update(['post_count' => 99]);
+        DB::table('characters')->where('id', $this->characterId)->update(['post_count' => 99]);
 
         $this->artisan(sprintf(
             'forum:repair-counters --threads --boards --users --characters --thread=%d --board=%d --user=%d --character=%d',
@@ -246,37 +246,37 @@ class ForumModelTest extends TestCase
             ->expectsOutputToContain('Rows repaired:')
             ->assertExitCode(0);
 
-        $thread = DB::table('dra_thread')->where('id', $this->threadId)->first();
-        $board = DB::table('dra_board')->where('id', $this->childBoardId)->first();
-        $user = DB::table('dra_user')->where('id', $this->userId)->first();
-        $character = DB::table('dra_character')->where('id', $this->characterId)->first();
+        $thread = DB::table('threads')->where('id', $this->threadId)->first();
+        $board = DB::table('boards')->where('id', $this->childBoardId)->first();
+        $user = DB::table('users')->where('id', $this->userId)->first();
+        $character = DB::table('characters')->where('id', $this->characterId)->first();
 
-        $this->assertSame(1, (int) $thread->post__total);
-        $this->assertSame($this->postId, (int) $thread->post__first);
-        $this->assertSame($this->postTime, (int) $thread->post__first_time);
-        $this->assertSame($this->postId, (int) $thread->post__last);
-        $this->assertSame($this->postTime, (int) $thread->post__last_time);
+        $this->assertSame(1, (int) $thread->post_count);
+        $this->assertSame($this->postId, (int) $thread->first_post_id);
+        $this->assertSame($this->postTime, (int) $thread->first_post_at);
+        $this->assertSame($this->postId, (int) $thread->last_post_id);
+        $this->assertSame($this->postTime, (int) $thread->last_post_at);
 
-        $this->assertSame(1, (int) $board->thread__total);
-        $this->assertSame(1, (int) $board->post__total);
-        $this->assertSame($this->postId, (int) $board->post__last);
-        $this->assertSame($this->postTime, (int) $board->post__last_time);
+        $this->assertSame(1, (int) $board->thread_count);
+        $this->assertSame(1, (int) $board->post_count);
+        $this->assertSame($this->postId, (int) $board->last_post_id);
+        $this->assertSame($this->postTime, (int) $board->last_post_at);
 
-        $this->assertSame(1, (int) $user->post__total);
-        $this->assertSame(1, (int) $character->post__total);
+        $this->assertSame(1, (int) $user->post_count);
+        $this->assertSame(1, (int) $character->post_count);
     }
 
     public function test_forum_counter_repair_command_can_dry_run_without_updating(): void
     {
-        DB::table('dra_thread')
+        DB::table('threads')
             ->where('id', $this->threadId)
-            ->update(['post__total' => 99]);
+            ->update(['post_count' => 99]);
 
         $this->artisan('forum:repair-counters --dry-run --threads --thread=' . $this->threadId)
             ->expectsOutputToContain('Mismatches found: 1')
             ->assertExitCode(0);
 
-        $this->assertSame(99, (int) DB::table('dra_thread')->where('id', $this->threadId)->value('post__total'));
+        $this->assertSame(99, (int) DB::table('threads')->where('id', $this->threadId)->value('post_count'));
     }
 
     public function test_board_export_command_outputs_markdown_archive(): void
@@ -355,7 +355,7 @@ class ForumModelTest extends TestCase
         $threadResponse->assertSee('[h]', false);
         $threadResponse->assertSee('Neuen Beitrag erstellen');
 
-        $this->assertDatabaseHas('dra_thread', [
+        $this->assertDatabaseHas('threads', [
             'id' => $this->threadId,
             'views' => 1,
         ]);
@@ -364,7 +364,7 @@ class ForumModelTest extends TestCase
 
         $secondThreadResponse->assertOk();
         $secondThreadResponse->assertDontSee('(Neu)');
-        $this->assertDatabaseHas('dra_thread', [
+        $this->assertDatabaseHas('threads', [
             'id' => $this->threadId,
             'views' => 2,
         ]);
@@ -379,7 +379,7 @@ class ForumModelTest extends TestCase
     {
         $this->actingAs(User::findOrFail($this->userId));
 
-        DB::table('dra_post')
+        DB::table('posts')
             ->where('id', $this->postId)
             ->update([
                 'message' => '[b]' . $this->prefix . '_bold[/b]' . PHP_EOL
@@ -405,7 +405,7 @@ class ForumModelTest extends TestCase
 
         $this->get('/img/emoticon/30.gif')->assertRedirect('/images/emoticon/30.gif');
 
-        DB::table('dra_post')
+        DB::table('posts')
             ->where('id', $this->postId)
             ->update([
                 'message' => ':)',
@@ -425,11 +425,11 @@ class ForumModelTest extends TestCase
         $response = $this->get('/board/changeshow/' . $this->parentBoardId . '/0');
 
         $response->assertRedirect();
-        $this->assertDatabaseHas('dra_configuration', [
-            'table__recipient' => 0,
-            'recipient' => $this->userId,
-            'table__subject' => 3,
-            'subject' => $this->parentBoardId,
+        $this->assertDatabaseHas('configurations', [
+            'recipient_type' => 0,
+            'recipient_id' => $this->userId,
+            'subject_type' => 3,
+            'subject_id' => $this->parentBoardId,
             'setting' => 4,
             'value' => 0,
         ]);
@@ -445,11 +445,11 @@ class ForumModelTest extends TestCase
 
         $ajaxResponse->assertOk();
         $ajaxResponse->assertSeeText('1');
-        $this->assertDatabaseHas('dra_configuration', [
-            'table__recipient' => 0,
-            'recipient' => $this->userId,
-            'table__subject' => 3,
-            'subject' => $this->parentBoardId,
+        $this->assertDatabaseHas('configurations', [
+            'recipient_type' => 0,
+            'recipient_id' => $this->userId,
+            'subject_type' => 3,
+            'subject_id' => $this->parentBoardId,
             'setting' => 4,
             'value' => 1,
         ]);
@@ -457,14 +457,13 @@ class ForumModelTest extends TestCase
 
     public function test_online_sidebar_prunes_entries_without_existing_users(): void
     {
-        DB::table('dra_online')->insert([
+        DB::table('onlines')->insert([
             'time' => now()->timestamp,
             'ip' => '127.0.0.1',
-            'user' => 999999999,
+            'user_id' => 999999999,
             'browser' => 'test',
             'controller' => 'Board',
             'action' => 'filter',
-            'table__location' => null,
             'location' => null,
             'route' => 'board',
         ]);
@@ -475,32 +474,32 @@ class ForumModelTest extends TestCase
 
         $response->assertOk();
         $response->assertDontSee('Unbekannter Nutzer');
-        $this->assertDatabaseMissing('dra_online', [
-            'user' => 999999999,
+        $this->assertDatabaseMissing('onlines', [
+            'user_id' => 999999999,
         ]);
     }
 
-    public function test_board_permission_readout_and_create_form_use_legacy_permission_rows(): void
+    public function test_board_permission_readout_and_create_form_use_permission_rules(): void
     {
-        $showPermitId = (int) DB::table('dra_permit')->where('name', 'show')->value('id');
-        $createPostPermitId = (int) DB::table('dra_permit')->where('name', 'createpost')->value('id');
-        $createPermissionPermitId = (int) DB::table('dra_permit')->where('name', 'createpermission')->value('id');
+        $showPermitId = (int) DB::table('permits')->where('name', 'show')->value('id');
+        $createPostPermitId = (int) DB::table('permits')->where('name', 'createpost')->value('id');
+        $createPermissionPermitId = (int) DB::table('permits')->where('name', 'createpermission')->value('id');
 
-        $createPostPermissionId = DB::table('dra_permission')->insertGetId([
-            'table__recipient' => 0,
-            'recipient' => $this->userId,
-            'table__subject' => 3,
-            'subject' => $this->childBoardId,
-            'permit' => $createPermissionPermitId,
+        $createPostPermissionId = DB::table('permissions')->insertGetId([
+            'recipient_type' => 0,
+            'recipient_id' => $this->userId,
+            'subject_type' => 3,
+            'subject_id' => $this->childBoardId,
+            'permit_id' => $createPermissionPermitId,
             'value' => 1,
         ]);
 
-        DB::table('dra_permission')->insert([
-            'table__recipient' => 0,
-            'recipient' => $this->userId,
-            'table__subject' => 3,
-            'subject' => $this->childBoardId,
-            'permit' => $createPostPermitId,
+        DB::table('permissions')->insert([
+            'recipient_type' => 0,
+            'recipient_id' => $this->userId,
+            'subject_type' => 3,
+            'subject_id' => $this->childBoardId,
+            'permit_id' => $createPostPermitId,
             'value' => 0,
         ]);
 
@@ -525,19 +524,19 @@ class ForumModelTest extends TestCase
         $form->assertSee('createpost');
 
         $create = $this->post('/permission/create/board/' . $this->childBoardId, [
-            'table__recipient' => '0',
-            'recipient' => (string) $this->userId,
-            'permit' => (string) $showPermitId,
+            'recipient_type' => '0',
+            'recipient_id' => (string) $this->userId,
+            'permit_id' => (string) $showPermitId,
             'value' => '2',
         ]);
 
         $create->assertRedirect('/board/permissions/' . $this->childBoardId);
-        $this->assertDatabaseHas('dra_permission', [
-            'table__recipient' => 0,
-            'recipient' => $this->userId,
-            'table__subject' => 3,
-            'subject' => $this->childBoardId,
-            'permit' => $showPermitId,
+        $this->assertDatabaseHas('permissions', [
+            'recipient_type' => 0,
+            'recipient_id' => $this->userId,
+            'subject_type' => 3,
+            'subject_id' => $this->childBoardId,
+            'permit_id' => $showPermitId,
             'value' => 2,
         ]);
 
@@ -549,16 +548,16 @@ class ForumModelTest extends TestCase
         $editForm->assertSee('createpost');
 
         $edit = $this->post('/permission/edit/' . $createPostPermissionId, [
-            'table__recipient' => '0',
-            'recipient' => (string) $this->userId,
-            'permit' => (string) $createPostPermitId,
+            'recipient_type' => '0',
+            'recipient_id' => (string) $this->userId,
+            'permit_id' => (string) $createPostPermitId,
             'value' => '1',
         ]);
 
         $edit->assertRedirect('/board/permissions/' . $this->childBoardId);
-        $this->assertDatabaseHas('dra_permission', [
+        $this->assertDatabaseHas('permissions', [
             'id' => $createPostPermissionId,
-            'permit' => $createPostPermitId,
+            'permit_id' => $createPostPermitId,
             'value' => 1,
         ]);
 
@@ -573,15 +572,15 @@ class ForumModelTest extends TestCase
         ]);
 
         $delete->assertRedirect('/board/permissions/' . $this->childBoardId);
-        $this->assertDatabaseMissing('dra_permission', [
+        $this->assertDatabaseMissing('permissions', [
             'id' => $createPostPermissionId,
         ]);
     }
 
     public function test_post_ip_page_shows_author_ips_and_other_users_with_same_ip(): void
     {
-        $viewIpPermitId = (int) DB::table('dra_permit')->where('name', 'viewip')->value('id');
-        $otherUserId = DB::table('dra_user')->insertGetId([
+        $viewIpPermitId = (int) DB::table('permits')->where('name', 'viewip')->value('id');
+        $otherUserId = DB::table('users')->insertGetId([
             'name' => $this->prefix . '_same_ip_user',
             'password' => 'secret',
             'email' => $this->prefix . '_same_ip@example.test',
@@ -596,11 +595,11 @@ class ForumModelTest extends TestCase
             'wohnort' => '',
         ]);
 
-        DB::table('dra_post')->insert([
-            'board' => $this->childBoardId,
-            'thread' => $this->threadId,
-            'user' => $this->userId,
-            'character' => $this->characterId,
+        DB::table('posts')->insert([
+            'board_id' => $this->childBoardId,
+            'thread_id' => $this->threadId,
+            'user_id' => $this->userId,
+            'character_id' => $this->characterId,
             'time' => $this->postTime + 1,
             'message' => $this->prefix . '_other_ip_message',
             'smilies' => 1,
@@ -608,11 +607,11 @@ class ForumModelTest extends TestCase
             'ip' => '192.0.2.44',
         ]);
 
-        DB::table('dra_post')->insert([
-            'board' => $this->childBoardId,
-            'thread' => $this->threadId,
-            'user' => $otherUserId,
-            'character' => $this->characterId,
+        DB::table('posts')->insert([
+            'board_id' => $this->childBoardId,
+            'thread_id' => $this->threadId,
+            'user_id' => $otherUserId,
+            'character_id' => $this->characterId,
             'time' => $this->postTime + 2,
             'message' => $this->prefix . '_same_ip_message',
             'smilies' => 1,
@@ -620,12 +619,12 @@ class ForumModelTest extends TestCase
             'ip' => '127.0.0.1',
         ]);
 
-        DB::table('dra_permission')->insert([
-            'table__recipient' => 0,
-            'recipient' => $this->userId,
-            'table__subject' => 3,
-            'subject' => $this->childBoardId,
-            'permit' => $viewIpPermitId,
+        DB::table('permissions')->insert([
+            'recipient_type' => 0,
+            'recipient_id' => $this->userId,
+            'subject_type' => 3,
+            'subject_id' => $this->childBoardId,
+            'permit_id' => $viewIpPermitId,
             'value' => 1,
         ]);
 
@@ -719,23 +718,23 @@ class ForumModelTest extends TestCase
         $createdPost = Post::where('message', $this->prefix . '_created_post')->firstOrFail();
 
         $createResponse->assertRedirect('/thread/view/' . $this->threadId . '/last#post' . $createdPost->id);
-        $this->assertDatabaseHas('dra_thread', [
+        $this->assertDatabaseHas('threads', [
             'id' => $this->threadId,
-            'post__total' => 2,
-            'post__last' => $createdPost->id,
+            'post_count' => 2,
+            'last_post_id' => $createdPost->id,
         ]);
-        $this->assertDatabaseHas('dra_board', [
+        $this->assertDatabaseHas('boards', [
             'id' => $this->childBoardId,
-            'post__total' => 2,
-            'post__last' => $createdPost->id,
+            'post_count' => 2,
+            'last_post_id' => $createdPost->id,
         ]);
-        $this->assertDatabaseHas('dra_user', [
+        $this->assertDatabaseHas('users', [
             'id' => $this->userId,
-            'post__total' => 2,
+            'post_count' => 2,
         ]);
-        $this->assertDatabaseHas('dra_character', [
+        $this->assertDatabaseHas('characters', [
             'id' => $this->characterId,
-            'post__total' => 2,
+            'post_count' => 2,
         ]);
 
         $viewResponse = $this->get('/post/view/' . $createdPost->id);
@@ -754,18 +753,18 @@ class ForumModelTest extends TestCase
         ]);
 
         $editResponse->assertRedirect('/thread/view/' . $this->threadId . '#post' . $createdPost->id);
-        $this->assertDatabaseHas('dra_post', [
+        $this->assertDatabaseHas('posts', [
             'id' => $createdPost->id,
-            'character' => $this->secondCharacterId,
+            'character_id' => $this->secondCharacterId,
             'message' => $this->prefix . '_edited_post',
         ]);
-        $this->assertDatabaseHas('dra_character', [
+        $this->assertDatabaseHas('characters', [
             'id' => $this->characterId,
-            'post__total' => 1,
+            'post_count' => 1,
         ]);
-        $this->assertDatabaseHas('dra_character', [
+        $this->assertDatabaseHas('characters', [
             'id' => $this->secondCharacterId,
-            'post__total' => 1,
+            'post_count' => 1,
         ]);
 
         $deletePage = $this->get('/post/delete/' . $createdPost->id);
@@ -779,26 +778,26 @@ class ForumModelTest extends TestCase
         ]);
 
         $deleteResponse->assertRedirect('/thread/view/' . $this->threadId);
-        $this->assertDatabaseMissing('dra_post', [
+        $this->assertDatabaseMissing('posts', [
             'id' => $createdPost->id,
         ]);
-        $this->assertDatabaseHas('dra_thread', [
+        $this->assertDatabaseHas('threads', [
             'id' => $this->threadId,
-            'post__total' => 1,
-            'post__last' => $this->postId,
+            'post_count' => 1,
+            'last_post_id' => $this->postId,
         ]);
-        $this->assertDatabaseHas('dra_board', [
+        $this->assertDatabaseHas('boards', [
             'id' => $this->childBoardId,
-            'post__total' => 1,
-            'post__last' => $this->postId,
+            'post_count' => 1,
+            'last_post_id' => $this->postId,
         ]);
-        $this->assertDatabaseHas('dra_user', [
+        $this->assertDatabaseHas('users', [
             'id' => $this->userId,
-            'post__total' => 1,
+            'post_count' => 1,
         ]);
-        $this->assertDatabaseHas('dra_character', [
+        $this->assertDatabaseHas('characters', [
             'id' => $this->secondCharacterId,
-            'post__total' => 0,
+            'post_count' => 0,
         ]);
     }
 
@@ -820,32 +819,32 @@ class ForumModelTest extends TestCase
             'signature' => '1',
         ]);
 
-        $newCharacterId = DB::table('dra_character')
+        $newCharacterId = DB::table('characters')
             ->where('name', $this->prefix . '_inline_character')
             ->value('id');
         $createdPost = Post::where('message', $this->prefix . '_inline_character_post')->firstOrFail();
 
         $createResponse->assertRedirect('/thread/view/' . $this->threadId . '/last#post' . $createdPost->id);
-        $this->assertDatabaseHas('dra_character', [
+        $this->assertDatabaseHas('characters', [
             'id' => $newCharacterId,
-            'user' => $this->userId,
+            'user_id' => $this->userId,
             'usertext' => '',
-            'post__total' => 1,
+            'post_count' => 1,
         ]);
-        $this->assertDatabaseHas('dra_post', [
+        $this->assertDatabaseHas('posts', [
             'id' => $createdPost->id,
-            'character' => $newCharacterId,
-            'user' => $this->userId,
+            'character_id' => $newCharacterId,
+            'user_id' => $this->userId,
             'message' => $this->prefix . '_inline_character_post',
         ]);
-        $this->assertDatabaseHas('dra_thread', [
+        $this->assertDatabaseHas('threads', [
             'id' => $this->threadId,
-            'post__total' => 2,
-            'post__last' => $createdPost->id,
+            'post_count' => 2,
+            'last_post_id' => $createdPost->id,
         ]);
-        $this->assertDatabaseHas('dra_user', [
+        $this->assertDatabaseHas('users', [
             'id' => $this->userId,
-            'post__total' => 2,
+            'post_count' => 2,
         ]);
     }
 
@@ -853,7 +852,7 @@ class ForumModelTest extends TestCase
     {
         $this->actingAs(User::findOrFail($this->userId));
 
-        $itemId = DB::table('dra_item')->insertGetId([
+        $itemId = DB::table('items')->insertGetId([
             'item' => '',
             'name' => $this->prefix . '_apple',
             'wearable' => 0,
@@ -869,12 +868,12 @@ class ForumModelTest extends TestCase
             'data' => '',
             'user__from' => '0',
         ]);
-        $inventoryId = DB::table('dra_inventory')->insertGetId([
-            'item' => $itemId,
+        $inventoryId = DB::table('inventories')->insertGetId([
+            'item_id' => $itemId,
             'stack' => 3,
             'wear' => 0,
-            'owner' => $this->characterId,
-            'table__owner' => 6,
+            'owner_id' => $this->characterId,
+            'owner_type' => 6,
             'timelastvalue' => 0,
             'data' => '',
         ]);
@@ -899,7 +898,7 @@ class ForumModelTest extends TestCase
     {
         $this->actingAs(User::findOrFail($this->userId));
 
-        $itemId = DB::table('dra_item')->insertGetId([
+        $itemId = DB::table('items')->insertGetId([
             'item' => '',
             'name' => $this->prefix . '_pear',
             'wearable' => 0,
@@ -915,12 +914,12 @@ class ForumModelTest extends TestCase
             'data' => '',
             'user__from' => '0',
         ]);
-        $inventoryId = DB::table('dra_inventory')->insertGetId([
-            'item' => $itemId,
+        $inventoryId = DB::table('inventories')->insertGetId([
+            'item_id' => $itemId,
             'stack' => 3,
             'wear' => 0,
-            'owner' => $this->characterId,
-            'table__owner' => 6,
+            'owner_id' => $this->characterId,
+            'owner_type' => 6,
             'timelastvalue' => 0,
             'data' => '',
         ]);
@@ -936,46 +935,46 @@ class ForumModelTest extends TestCase
             'recipient' => $this->secondCharacterId,
         ]);
 
-        $postId = (int) DB::table('dra_post')
-            ->where('thread', $this->threadId)
-            ->where('character', 3)
+        $postId = (int) DB::table('posts')
+            ->where('thread_id', $this->threadId)
+            ->where('character_id', 3)
             ->value('id');
-        $transferId = (int) DB::table('dra_transfer')
-            ->where('post', $postId)
+        $transferId = (int) DB::table('transfers')
+            ->where('post_id', $postId)
             ->value('id');
 
         $response->assertRedirect('/thread/view/' . $this->threadId . '/last#post' . $postId);
-        $this->assertDatabaseHas('dra_inventory', [
+        $this->assertDatabaseHas('inventories', [
             'id' => $inventoryId,
-            'owner' => $this->characterId,
-            'table__owner' => 6,
+            'owner_id' => $this->characterId,
+            'owner_type' => 6,
             'stack' => 1,
         ]);
-        $this->assertDatabaseHas('dra_inventory', [
-            'item' => $itemId,
-            'owner' => $this->secondCharacterId,
-            'table__owner' => 6,
+        $this->assertDatabaseHas('inventories', [
+            'item_id' => $itemId,
+            'owner_id' => $this->secondCharacterId,
+            'owner_type' => 6,
             'stack' => 2,
         ]);
-        $this->assertDatabaseHas('dra_post', [
+        $this->assertDatabaseHas('posts', [
             'id' => $postId,
-            'thread' => $this->threadId,
-            'board' => $this->childBoardId,
-            'user' => 2,
-            'character' => 3,
+            'thread_id' => $this->threadId,
+            'board_id' => $this->childBoardId,
+            'user_id' => 2,
+            'character_id' => 3,
             'message' => '',
         ]);
-        $this->assertDatabaseHas('dra_transfer', [
+        $this->assertDatabaseHas('transfers', [
             'id' => $transferId,
-            'post' => $postId,
-            'sender' => $this->characterId,
-            'table__sender' => 6,
-            'recipient' => $this->secondCharacterId,
-            'table__recipient' => 6,
+            'post_id' => $postId,
+            'sender_id' => $this->characterId,
+            'sender_type' => 6,
+            'recipient_id' => $this->secondCharacterId,
+            'recipient_type' => 6,
         ]);
-        $this->assertDatabaseHas('dra_transferitem', [
-            'transfer' => $transferId,
-            'item' => $itemId,
+        $this->assertDatabaseHas('transfer_items', [
+            'transfer_id' => $transferId,
+            'item_id' => $itemId,
             'stack' => 2,
         ]);
 
@@ -1001,25 +1000,25 @@ class ForumModelTest extends TestCase
         ]);
 
         $deleteResponse->assertRedirect('/board');
-        $this->assertDatabaseMissing('dra_post', [
+        $this->assertDatabaseMissing('posts', [
             'id' => $this->postId,
         ]);
-        $this->assertDatabaseMissing('dra_thread', [
+        $this->assertDatabaseMissing('threads', [
             'id' => $this->threadId,
         ]);
-        $this->assertDatabaseHas('dra_board', [
+        $this->assertDatabaseHas('boards', [
             'id' => $this->childBoardId,
-            'thread__total' => 0,
-            'post__total' => 0,
-            'post__last' => 0,
+            'thread_count' => 0,
+            'post_count' => 0,
+            'last_post_id' => 0,
         ]);
-        $this->assertDatabaseHas('dra_user', [
+        $this->assertDatabaseHas('users', [
             'id' => $this->userId,
-            'post__total' => 0,
+            'post_count' => 0,
         ]);
-        $this->assertDatabaseHas('dra_character', [
+        $this->assertDatabaseHas('characters', [
             'id' => $this->characterId,
-            'post__total' => 0,
+            'post_count' => 0,
         ]);
     }
 
@@ -1051,38 +1050,38 @@ class ForumModelTest extends TestCase
         ]);
 
         $createdThread = ForumThread::where('name', $this->prefix . '_created_thread')->firstOrFail();
-        $createdPost = Post::where('thread', $createdThread->id)->firstOrFail();
+        $createdPost = Post::where('thread_id', $createdThread->id)->firstOrFail();
 
         $createResponse->assertRedirect('/thread/view/' . $createdThread->id);
-        $this->assertDatabaseHas('dra_thread', [
+        $this->assertDatabaseHas('threads', [
             'id' => $createdThread->id,
-            'board' => $this->childBoardId,
-            'post__total' => 1,
-            'post__first' => $createdPost->id,
-            'post__last' => $createdPost->id,
+            'board_id' => $this->childBoardId,
+            'post_count' => 1,
+            'first_post_id' => $createdPost->id,
+            'last_post_id' => $createdPost->id,
             'important' => 1,
         ]);
-        $this->assertDatabaseHas('dra_post', [
+        $this->assertDatabaseHas('posts', [
             'id' => $createdPost->id,
-            'board' => $this->childBoardId,
-            'thread' => $createdThread->id,
-            'user' => $this->userId,
-            'character' => $this->characterId,
+            'board_id' => $this->childBoardId,
+            'thread_id' => $createdThread->id,
+            'user_id' => $this->userId,
+            'character_id' => $this->characterId,
             'message' => $this->prefix . '_created_thread_message',
         ]);
-        $this->assertDatabaseHas('dra_board', [
+        $this->assertDatabaseHas('boards', [
             'id' => $this->childBoardId,
-            'thread__total' => 2,
-            'post__total' => 2,
-            'post__last' => $createdPost->id,
+            'thread_count' => 2,
+            'post_count' => 2,
+            'last_post_id' => $createdPost->id,
         ]);
-        $this->assertDatabaseHas('dra_user', [
+        $this->assertDatabaseHas('users', [
             'id' => $this->userId,
-            'post__total' => 2,
+            'post_count' => 2,
         ]);
-        $this->assertDatabaseHas('dra_character', [
+        $this->assertDatabaseHas('characters', [
             'id' => $this->characterId,
-            'post__total' => 2,
+            'post_count' => 2,
         ]);
 
         $editPage = $this->get('/thread/edit/' . $createdThread->id);
@@ -1102,28 +1101,28 @@ class ForumModelTest extends TestCase
         ]);
 
         $editResponse->assertRedirect('/thread/view/' . $createdThread->id);
-        $this->assertDatabaseHas('dra_thread', [
+        $this->assertDatabaseHas('threads', [
             'id' => $createdThread->id,
-            'board' => $this->otherBoardId,
+            'board_id' => $this->otherBoardId,
             'name' => $this->prefix . '_moved_thread',
             'important' => 0,
         ]);
-        $this->assertDatabaseHas('dra_post', [
+        $this->assertDatabaseHas('posts', [
             'id' => $createdPost->id,
-            'board' => $this->otherBoardId,
-            'thread' => $createdThread->id,
+            'board_id' => $this->otherBoardId,
+            'thread_id' => $createdThread->id,
         ]);
-        $this->assertDatabaseHas('dra_board', [
+        $this->assertDatabaseHas('boards', [
             'id' => $this->childBoardId,
-            'thread__total' => 1,
-            'post__total' => 1,
-            'post__last' => $this->postId,
+            'thread_count' => 1,
+            'post_count' => 1,
+            'last_post_id' => $this->postId,
         ]);
-        $this->assertDatabaseHas('dra_board', [
+        $this->assertDatabaseHas('boards', [
             'id' => $this->otherBoardId,
-            'thread__total' => 1,
-            'post__total' => 1,
-            'post__last' => $createdPost->id,
+            'thread_count' => 1,
+            'post_count' => 1,
+            'last_post_id' => $createdPost->id,
         ]);
 
         $deletePage = $this->get('/thread/delete/' . $createdThread->id);
@@ -1138,44 +1137,44 @@ class ForumModelTest extends TestCase
         ]);
 
         $deleteResponse->assertRedirect('/board');
-        $this->assertDatabaseMissing('dra_thread', [
+        $this->assertDatabaseMissing('threads', [
             'id' => $createdThread->id,
         ]);
-        $this->assertDatabaseMissing('dra_post', [
+        $this->assertDatabaseMissing('posts', [
             'id' => $createdPost->id,
         ]);
-        $this->assertDatabaseHas('dra_board', [
+        $this->assertDatabaseHas('boards', [
             'id' => $this->otherBoardId,
-            'thread__total' => 0,
-            'post__total' => 0,
-            'post__last' => 0,
+            'thread_count' => 0,
+            'post_count' => 0,
+            'last_post_id' => 0,
         ]);
-        $this->assertDatabaseHas('dra_user', [
+        $this->assertDatabaseHas('users', [
             'id' => $this->userId,
-            'post__total' => 1,
+            'post_count' => 1,
         ]);
-        $this->assertDatabaseHas('dra_character', [
+        $this->assertDatabaseHas('characters', [
             'id' => $this->characterId,
-            'post__total' => 1,
+            'post_count' => 1,
         ]);
     }
 
     private function createExtraThreads(int $count): void
     {
         for ($i = 1; $i <= $count; $i++) {
-            DB::table('dra_thread')->insert([
-                'board' => $this->childBoardId,
+            DB::table('threads')->insert([
+                'board_id' => $this->childBoardId,
                 'name' => $this->prefix . '_extra_thread_' . $i,
-                'post__first_time' => $this->postTime - $i,
-                'post__last_time' => $this->postTime - $i,
-                'post__total' => 0,
+                'first_post_at' => $this->postTime - $i,
+                'last_post_at' => $this->postTime - $i,
+                'post_count' => 0,
             ]);
         }
 
-        DB::table('dra_board')
+        DB::table('boards')
             ->where('id', $this->childBoardId)
             ->update([
-                'thread__total' => $count + 1,
+                'thread_count' => $count + 1,
             ]);
     }
 
@@ -1184,11 +1183,11 @@ class ForumModelTest extends TestCase
         $lastPostId = $this->postId;
 
         for ($i = 1; $i <= $count; $i++) {
-            $lastPostId = DB::table('dra_post')->insertGetId([
-                'board' => $this->childBoardId,
-                'thread' => $this->threadId,
-                'user' => $this->userId,
-                'character' => $this->characterId,
+            $lastPostId = DB::table('posts')->insertGetId([
+                'board_id' => $this->childBoardId,
+                'thread_id' => $this->threadId,
+                'user_id' => $this->userId,
+                'character_id' => $this->characterId,
                 'time' => $this->postTime + $i,
                 'message' => $this->prefix . '_extra_message_' . $i,
                 'smilies' => 1,
@@ -1197,12 +1196,12 @@ class ForumModelTest extends TestCase
             ]);
         }
 
-        DB::table('dra_thread')
+        DB::table('threads')
             ->where('id', $this->threadId)
             ->update([
-                'post__total' => $count + 1,
-                'post__last' => $lastPostId,
-                'post__last_time' => $this->postTime + $count,
+                'post_count' => $count + 1,
+                'last_post_id' => $lastPostId,
+                'last_post_at' => $this->postTime + $count,
             ]);
     }
 }

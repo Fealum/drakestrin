@@ -1,4 +1,4 @@
-@php($item = $inventory->itemModel)
+@php($item = $inventory->item)
 @if ($item)
 <li>
     <img src="{{ asset('images/item/'.$item->img.'.png') }}" title="{{ $item->name }}" alt="">

@@ -8,16 +8,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Thread extends Model
 {
-    protected $table = 'dra_thread';
-
     protected $fillable = [
-        'board',
-        'post__first_time',
+        'board_id',
+        'first_post_at',
         'name',
-        'post__total',
-        'post__first',
-        'post__last',
-        'post__last_time',
+        'post_count',
+        'first_post_id',
+        'last_post_id',
+        'last_post_at',
         'views',
         'flags',
         'topicicon',
@@ -35,12 +33,12 @@ class Thread extends Model
     public $timestamps = false;
 
     protected $casts = [
-        'board' => 'integer',
-        'post__first_time' => 'datetime',
-        'post__total' => 'integer',
-        'post__first' => 'integer',
-        'post__last' => 'integer',
-        'post__last_time' => 'datetime',
+        'board_id' => 'integer',
+        'first_post_at' => 'datetime',
+        'post_count' => 'integer',
+        'first_post_id' => 'integer',
+        'last_post_id' => 'integer',
+        'last_post_at' => 'datetime',
         'views' => 'integer',
         'flags' => 'boolean',
         'rate_points' => 'integer',
@@ -54,25 +52,25 @@ class Thread extends Model
 
     protected $dateFormat = 'U';
 
-    public function boardModel(): BelongsTo
+    public function board(): BelongsTo
     {
-        return $this->belongsTo(Board::class, 'board');
+        return $this->belongsTo(Board::class);
     }
 
     public function posts(): HasMany
     {
-        return $this->hasMany(Post::class, 'thread')
+        return $this->hasMany(Post::class)
             ->orderBy('time')
             ->orderBy('id');
     }
 
     public function firstPost(): BelongsTo
     {
-        return $this->belongsTo(Post::class, 'post__first');
+        return $this->belongsTo(Post::class);
     }
 
     public function lastPost(): BelongsTo
     {
-        return $this->belongsTo(Post::class, 'post__last');
+        return $this->belongsTo(Post::class);
     }
 }

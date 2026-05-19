@@ -12,51 +12,49 @@ class Territory extends Model
 {
     use HasSpatialGeometry;
 
-    protected $table = 'dra_territory';
-
     protected $fillable = [
         'name',
         'type',
-        'territory',
-        'character',
+        'parent_id',
+        'character_id',
         'area',
         'population',
         'geldstand',
         'beliebtheit',
-        'settlement',
+        'capital_id',
     ];
 
     public $timestamps = false;
 
     protected $casts = [
-        'territory' => 'integer',
-        'character' => 'integer',
+        'parent_id' => 'integer',
+        'character_id' => 'integer',
         'area' => 'integer',
         'population' => 'integer',
         'geldstand' => 'integer',
         'beliebtheit' => 'integer',
-        'settlement' => 'integer',
+        'capital_id' => 'integer',
     ];
 
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(self::class, 'territory');
+        return $this->belongsTo(self::class);
     }
 
     public function children(): HasMany
     {
-        return $this->hasMany(self::class, 'territory')
+        return $this->hasMany(self::class, 'parent_id')
             ->orderByRaw('LOWER(name)');
     }
 
     public function ruler(): BelongsTo
     {
-        return $this->belongsTo(Character::class, 'character');
+        return $this->belongsTo(Character::class, 'character_id');
     }
 
     public function capital(): BelongsTo
     {
-        return $this->belongsTo(Settlement::class, 'settlement');
+        return $this->belongsTo(Settlement::class);
     }
 
     public function typeLabel(): ?string

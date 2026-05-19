@@ -10,7 +10,7 @@ use App\Models\Group;
 use App\Models\Page;
 use App\Models\Permit;
 use App\Models\User;
-use App\Support\LegacyTable;
+use App\Support\PermissionEntityType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
@@ -71,7 +71,7 @@ class PermissionService
 
     private function resolveObjectPermission(string $action, Model $object): int
     {
-        $type = $this->legacyTableFor($object);
+        $type = $this->entityTypeFor($object);
 
         if ($type !== null && isset($this->permissions[$type][$object->id][$action])) {
             return (int) $this->permissions[$type][$object->id][$action];
@@ -86,15 +86,15 @@ class PermissionService
         return (int) ($this->permits[$action] ?? 0);
     }
 
-    private function legacyTableFor(Model $object): ?int
+    private function entityTypeFor(Model $object): ?int
     {
         return match (true) {
-            $object instanceof User => LegacyTable::USER,
-            $object instanceof Thread => LegacyTable::THREAD,
-            $object instanceof Board => LegacyTable::BOARD,
-            $object instanceof Group => LegacyTable::GROUP,
-            $object instanceof Page => LegacyTable::ENCYCLOPEDIA,
-            $object instanceof Character => LegacyTable::CHARACTER,
+            $object instanceof User => PermissionEntityType::USER,
+            $object instanceof Thread => PermissionEntityType::THREAD,
+            $object instanceof Board => PermissionEntityType::BOARD,
+            $object instanceof Group => PermissionEntityType::GROUP,
+            $object instanceof Page => PermissionEntityType::ENCYCLOPEDIA,
+            $object instanceof Character => PermissionEntityType::CHARACTER,
             default => null,
         };
     }
@@ -102,9 +102,9 @@ class PermissionService
     private function permissionParent(Model $object): ?Model
     {
         return match (true) {
-            $object instanceof Post => $object->threadModel,
-            $object instanceof Thread => $object->boardModel,
-            $object instanceof Board => $object->board ? $object->parentBoard : null,
+            $object instanceof Post => $object->thread,
+            $object instanceof Thread => $object->board,
+            $object instanceof Board => $object->parent_id ? $object->parent : null,
             default => null,
         };
     }

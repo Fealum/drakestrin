@@ -1,27 +1,27 @@
-<x-main-layout :title="'Recht »'.($permission->permit_legacy?->name ?? '#'.$permission->permit).'« bearbeiten'" alt-title="Recht bearbeiten" css="thread">
+<x-main-layout :title="'Recht »'.($permission->permit?->name ?? '#'.$permission->permit_id).'« bearbeiten'" alt-title="Recht bearbeiten" css="thread">
     <div class="post">
         <form name="editpermission" action="{{ route('permission.edit', ['permission' => $permission->id]) }}" method="post">
             @csrf
 
             <p>
-                <label for="table__recipient">Art des Rechteempfängers</label>
-                <select name="table__recipient" id="table__recipient" required>
+                <label for="recipient_type">Art des Rechteempfängers</label>
+                <select name="recipient_type" id="recipient_type" required>
                     @foreach ($recipientTypes as $value => $label)
-                    <option value="{{ $value }}" @selected((int) old('table__recipient', $permission->table__recipient) === $value)>{{ $label }} ({{ $value }})</option>
+                    <option value="{{ $value }}" @selected((int) old('recipient_type', $permission->recipient_type) === $value)>{{ $label }} ({{ $value }})</option>
                     @endforeach
                 </select>
             </p>
 
             <p>
-                <label for="recipient">ID des Rechteempfängers</label>
-                <input type="number" name="recipient" id="recipient" value="{{ old('recipient', $permission->recipient) }}" min="0" required>
+                <label for="recipient_id">ID des Rechteempfängers</label>
+                <input type="number" name="recipient_id" id="recipient_id" value="{{ old('recipient_id', $permission->recipient_id) }}" min="0" required>
             </p>
 
             <p>
-                <label for="permit">Recht</label>
-                <select name="permit" id="permit" required>
+                <label for="permit_id">Recht</label>
+                <select name="permit_id" id="permit_id" required>
                     @foreach ($permits as $permit)
-                    <option value="{{ $permit->id }}" @selected((int) old('permit', $permission->permit) === $permit->id)>{{ $permit->name }} ({{ $permit->id }})</option>
+                    <option value="{{ $permit->id }}" @selected((int) old('permit_id', $permission->permit_id) === $permit->id)>{{ $permit->name }} ({{ $permit->id }})</option>
                     @endforeach
                 </select>
             </p>

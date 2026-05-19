@@ -10,17 +10,15 @@ use App\Models\Permission;
 
 class Board extends Model
 {
-    protected $table = 'dra_board';
-
     protected $fillable = [
-        'board',
+        'parent_id',
         'name',
         'password',
         'description',
-        'thread__total',
-        'post__total',
-        'post__last_time',
-        'post__last',
+        'thread_count',
+        'post_count',
+        'last_post_at',
+        'last_post_id',
         'sort',
         'cat',
         'invisible',
@@ -33,11 +31,11 @@ class Board extends Model
     public $timestamps = false;
 
     protected $casts = [
-        'board' => 'integer',
-        'thread__total' => 'integer',
-        'post__total' => 'integer',
-        'post__last_time' => 'datetime',
-        'post__last' => 'integer',
+        'parent_id' => 'integer',
+        'thread_count' => 'integer',
+        'post_count' => 'integer',
+        'last_post_at' => 'datetime',
+        'last_post_id' => 'integer',
         'sort' => 'integer',
         'cat' => 'boolean',
         'invisible' => 'boolean',
@@ -46,37 +44,37 @@ class Board extends Model
 
     protected $dateFormat = 'U';
 
-    public function parentBoard(): BelongsTo
+    public function parent(): BelongsTo
     {
-        return $this->belongsTo(self::class, 'board');
+        return $this->belongsTo(self::class);
     }
 
-    public function childBoards(): HasMany
+    public function children(): HasMany
     {
-        return $this->hasMany(self::class, 'board')
+        return $this->hasMany(self::class, 'parent_id')
             ->orderBy('sort')
             ->orderByRaw('LOWER(name)');
     }
 
     public function threads(): HasMany
     {
-        return $this->hasMany(Thread::class, 'board')
+        return $this->hasMany(Thread::class)
             ->orderByDesc('important')
-            ->orderByDesc('post__last_time');
+            ->orderByDesc('last_post_at');
     }
 
     public function posts(): HasMany
     {
-        return $this->hasMany(Post::class, 'board');
+        return $this->hasMany(Post::class);
     }
 
     public function lastPost(): BelongsTo
     {
-        return $this->belongsTo(Post::class, 'post__last');
+        return $this->belongsTo(Post::class);
     }
 
-    public function permissionsAsSubject(): MorphMany
+    public function permissionRules(): MorphMany
     {
-        return $this->morphMany(Permission::class, 'subject_legacy', 'table__subject', 'subject');
+        return $this->morphMany(Permission::class, 'subject');
     }
 }

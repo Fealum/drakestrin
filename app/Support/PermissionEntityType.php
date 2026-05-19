@@ -2,7 +2,7 @@
 
 namespace App\Support;
 
-class LegacyTable
+class PermissionEntityType
 {
     public const USER = 0;
     public const THREAD = 1;

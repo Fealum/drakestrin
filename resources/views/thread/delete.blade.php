@@ -7,13 +7,13 @@
 
     @if ($thread->firstPost)
     <div class="post">
-        @if ($thread->firstPost->characterModel)
-        <x-avatar :subject="$thread->firstPost->characterModel" size="list" />
+        @if ($thread->firstPost->character)
+        <x-avatar :subject="$thread->firstPost->character" size="list" />
         @endif
         <div class="postuser">
             <h4>
-                @if ($thread->firstPost->characterModel)
-                <a href="{{ url('/user/character/'.$thread->firstPost->characterModel->id) }}">{{ $thread->firstPost->characterModel->name }}</a>
+                @if ($thread->firstPost->character)
+                <a href="{{ url('/user/character/'.$thread->firstPost->character->id) }}">{{ $thread->firstPost->character->name }}</a>
                 @else
                 Unbekannter Charakter
                 @endif

@@ -7,8 +7,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Language extends Model
 {
-    protected $table = 'dra_language';
-
     protected $fillable = [
         'name',
         'code',
@@ -18,6 +16,6 @@ class Language extends Model
 
     public function words(): HasMany
     {
-        return $this->hasMany(Word::class, 'language');
+        return $this->hasMany(Word::class);
     }
 }

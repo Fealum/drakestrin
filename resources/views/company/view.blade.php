@@ -1,18 +1,18 @@
 <x-main-layout :title="$company->name" css="company_view">
     <ol>
-        @if ($company->characterModel)
+        @if ($company->character)
         <li class="owner_info">Eigentümer:
-            <a href="{{ route('user.character', $company->characterModel->id) }}">
-                <x-avatar :subject="$company->characterModel" size="dropdown" />
-                {{ $company->characterModel->name }}
+            <a href="{{ route('user.character', $company->character->id) }}">
+                <x-avatar :subject="$company->character" size="dropdown" />
+                {{ $company->character->name }}
             </a>
         </li>
         @endif
-        @if ($company->territoryModel)
+        @if ($company->territory)
         <li class="territory_info">Ort:
-            <a href="{{ route('territory.view', $company->territoryModel->id) }}">
-                <img src="{{ asset('images/territory/'.$company->territoryModel->id.'.png') }}" alt="Wappen von {{ $company->territoryModel->name }}">
-                {{ $company->territoryModel->name }}
+            <a href="{{ route('territory.view', $company->territory->id) }}">
+                <img src="{{ asset('images/territory/'.$company->territory->id.'.png') }}" alt="Wappen von {{ $company->territory->name }}">
+                {{ $company->territory->name }}
             </a>
         </li>
         @endif

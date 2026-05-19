@@ -4,43 +4,47 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Inventory extends Model
 {
-    protected $table = 'dra_inventory';
-
     public $timestamps = false;
 
     protected $casts = [
-        'item' => 'integer',
+        'item_id' => 'integer',
         'stack' => 'integer',
         'wear' => 'integer',
-        'owner' => 'integer',
-        'table__owner' => 'integer',
+        'owner_id' => 'integer',
+        'owner_type' => 'integer',
     ];
 
     protected $fillable = [
-        'item',
+        'item_id',
         'stack',
         'wear',
-        'owner',
-        'table__owner',
+        'owner_id',
+        'owner_type',
         'timelastvalue',
         'data',
     ];
 
-    public function itemModel(): BelongsTo
+    public function item(): BelongsTo
     {
-        return $this->belongsTo(Item::class, 'item');
+        return $this->belongsTo(Item::class);
+    }
+
+    public function owner(): MorphTo
+    {
+        return $this->morphTo();
     }
 
     public function makeunitary(): int|string
     {
-        return $this->itemModel?->makeunitary($this->stack) ?? $this->stack;
+        return $this->item?->makeunitary($this->stack) ?? $this->stack;
     }
 
     public function undounitary(int|string|null $stack): int
     {
-        return $this->itemModel?->undounitary($stack) ?? (int) $stack;
+        return $this->item?->undounitary($stack) ?? (int) $stack;
     }
 }

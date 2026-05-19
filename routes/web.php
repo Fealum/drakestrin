@@ -78,13 +78,13 @@ Route::controller(PostController::class)->group(function () {
 
 Route::post('/transfer/transfer/{thread}', [TransferController::class, 'transfer'])->name('transfer.transfer');
 
-Route::get('/img/character_avatar.id/thumb/{path}.jpg', function (string $path) {
+Route::get('/img/avatarCharacter.id/thumb/{path}.jpg', function (string $path) {
     return redirect(Storage::disk('public')->url('character-avatars/thumb/' . $path . '.jpg'), 301);
-})->where('path', '.*')->name('character_avatar.legacy_thumb');
+})->where('path', '.*')->name('avatarCharacter.legacy_thumb');
 
-Route::get('/img/character_avatar.id/{path}.jpg', function (string $path) {
+Route::get('/img/avatarCharacter.id/{path}.jpg', function (string $path) {
     return redirect(Storage::disk('public')->url('character-avatars/' . $path . '.jpg'), 301);
-})->where('path', '.*')->name('character_avatar.legacy_full');
+})->where('path', '.*')->name('avatarCharacter.legacy_full');
 
 Route::get('/img/emoticon/{file}', function (string $file) {
     return redirect(asset('images/emoticon/' . $file), 301);

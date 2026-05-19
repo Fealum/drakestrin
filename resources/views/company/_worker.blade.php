@@ -17,7 +17,7 @@
     @endif
     @elseif ($worker->activeLabours->isNotEmpty())
         @foreach ($worker->activeLabours as $activeLabour)
-        @php($labour = $activeLabour->labourModel)
+        @php($labour = $activeLabour->labour)
         @if ($labour)
         <p>Arbeit: {{ $labour->name }} (<x-datetime :time="$activeLabour->since" /> &mdash; <x-datetime :time="$activeLabour->until" />)</p>
         @endif

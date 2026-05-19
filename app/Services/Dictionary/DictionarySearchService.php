@@ -9,7 +9,7 @@ class DictionarySearchService
 {
     public function search(string $query, ?int $excludeWordId = null): Collection
     {
-        return Word::with(['languageModel', 'wordType'])
+        return Word::with(['language', 'wordType'])
             ->where(function ($builder) use ($query) {
                 $builder->where('word', 'like', '%' . $query . '%');
 
@@ -30,9 +30,9 @@ class DictionarySearchService
             'word' => $word->word,
             'wordtype' => $word->wordType?->code,
             'wordtype_name' => $word->wordType?->name,
-            'language' => $word->getAttribute('language'),
-            'language_code' => $word->languageModel?->code,
-            'language_name' => $word->languageModel?->name,
+            'language' => $word->language_id,
+            'language_code' => $word->language?->code,
+            'language_name' => $word->language?->name,
         ]);
     }
 }

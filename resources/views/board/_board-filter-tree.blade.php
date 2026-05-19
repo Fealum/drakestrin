@@ -1,7 +1,7 @@
 <ol>
 @foreach ($boards as $board)
     @php($isOpen = ($showSettings ?? collect())->get($board->id, 1) !== 0)
-    <li @if ($board->childBoards->isNotEmpty() && auth()->check()) x-data="{ open: @js($isOpen), loading: false }" @endif>
+    <li @if ($board->children->isNotEmpty() && auth()->check()) x-data="{ open: @js($isOpen), loading: false }" @endif>
         <input
             type="checkbox"
             name="board[]"
@@ -9,7 +9,7 @@
             id="board-{{ $board->id }}"
             @checked(in_array($board->id, $selectedBoards ?? [], true))
         >
-        @if ($board->childBoards->isNotEmpty() && auth()->check())
+        @if ($board->children->isNotEmpty() && auth()->check())
         <a
             href="{{ route('board.change_show', ['board' => $board->id]) }}"
             class="contrexp fa fa-toggle-{{ $isOpen ? 'down' : 'right' }}"
@@ -37,14 +37,14 @@
         <span class="option new">(Neu)</span>
         @endif
 
-        @if ($board->childBoards->isNotEmpty())
+        @if ($board->children->isNotEmpty())
             <div
                 @if (auth()->check())
                 x-show="open"
                 @unless($isOpen) style="display: none;" @endunless
                 @endif
             >
-                @include('board._board-filter-tree', ['boards' => $board->childBoards, 'selectedBoards' => $selectedBoards ?? [], 'showSettings' => $showSettings ?? collect(), 'viewedBoards' => $viewedBoards ?? collect()])
+                @include('board._board-filter-tree', ['boards' => $board->children, 'selectedBoards' => $selectedBoards ?? [], 'showSettings' => $showSettings ?? collect(), 'viewedBoards' => $viewedBoards ?? collect()])
             </div>
         @endif
     </li>

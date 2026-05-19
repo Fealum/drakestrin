@@ -9,29 +9,23 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Storage;
 
 class Character extends Model
 {
     use HasFactory;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'dra_character';
-
     protected $fillable = [
         'name',
         'regdate',
-        'user',
+        'user_id',
         'usertext',
         'birthday',
         'avatar',
         'interests',
         'location',
-        'post__total',
+        'post_count',
         'work',
         'gender',
     ];
@@ -51,42 +45,41 @@ class Character extends Model
     protected $dateFormat = 'U';
 
     protected $casts = [
-        'post__total' => 'integer',
+        'post_count' => 'integer',
         'regdate' => 'datetime',
         'birthday' => 'integer',
         'avatar' => 'integer',
         'gender' => 'integer',
-        'user' => 'integer',
+        'user_id' => 'integer',
     ];
 
-    public function userModel(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user');
+        return $this->belongsTo(User::class);
     }
 
     public function posts(): HasMany
     {
-        return $this->hasMany(Post::class, 'character');
+        return $this->hasMany(Post::class);
     }
 
-    public function inventory(): HasMany
+    public function inventory(): MorphMany
     {
-        return $this->hasMany(Inventory::class, 'owner')
-            ->where('table__owner', 6)
-            ->with('itemModel')
+        return $this->morphMany(Inventory::class, 'owner')
+            ->with('item')
             ->orderBy('id');
     }
 
     public function territories(): HasMany
     {
-        return $this->hasMany(Territory::class, 'character')
+        return $this->hasMany(Territory::class)
             ->orderBy('type')
             ->orderByRaw('LOWER(name)');
     }
 
     public function companies(): HasMany
     {
-        return $this->hasMany(Company::class, 'character')
+        return $this->hasMany(Company::class)
             ->orderByRaw('LOWER(name)');
     }
 
@@ -115,6 +108,6 @@ class Character extends Model
     {
         $days = max(1, now()->diffInSeconds($this->regdate ?: now()) / 86400);
 
-        return ($this->post__total ?? 0) / $days;
+        return ($this->post_count ?? 0) / $days;
     }
 }

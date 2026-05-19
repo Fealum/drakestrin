@@ -29,33 +29,33 @@ class DictionaryTest extends TestCase
             'deletedictionary',
         ]);
 
-        $this->languageFromId = DB::table('dra_language')->insertGetId([
+        $this->languageFromId = DB::table('languages')->insertGetId([
             'name' => $this->prefix . '_from',
             'code' => 'xf',
         ]);
-        $this->languageToId = DB::table('dra_language')->insertGetId([
+        $this->languageToId = DB::table('languages')->insertGetId([
             'name' => $this->prefix . '_to',
             'code' => 'xt',
         ]);
-        $this->wordTypeId = DB::table('dra_wordtype')->insertGetId([
+        $this->wordTypeId = DB::table('word_types')->insertGetId([
             'name' => $this->prefix . '_type',
             'code' => 'xwt',
         ]);
-        $this->wordFromId = DB::table('dra_dictionary')->insertGetId([
-            'language' => $this->languageFromId,
-            'wordtype' => $this->wordTypeId,
+        $this->wordFromId = DB::table('words')->insertGetId([
+            'language_id' => $this->languageFromId,
+            'word_type_id' => $this->wordTypeId,
             'word' => $this->prefix . '_from_word',
             'val' => 0,
         ]);
-        $this->wordToId = DB::table('dra_dictionary')->insertGetId([
-            'language' => $this->languageToId,
-            'wordtype' => $this->wordTypeId,
+        $this->wordToId = DB::table('words')->insertGetId([
+            'language_id' => $this->languageToId,
+            'word_type_id' => $this->wordTypeId,
             'word' => $this->prefix . '_to_word',
             'val' => 0,
         ]);
-        $this->keyId = DB::table('dra_dictionarykey')->insertGetId([
-            'dictionary__from' => $this->wordFromId,
-            'dictionary__to' => $this->wordToId,
+        $this->keyId = DB::table('keys')->insertGetId([
+            'from_word_id' => $this->wordFromId,
+            'to_word_id' => $this->wordToId,
         ]);
 
         Cache::flush();
@@ -63,25 +63,25 @@ class DictionaryTest extends TestCase
 
     protected function tearDown(): void
     {
-        DB::table('dra_dictionarykey')
-            ->whereIn('dictionary__from', $this->fixtureWordIds())
-            ->orWhereIn('dictionary__to', $this->fixtureWordIds())
+        DB::table('keys')
+            ->whereIn('from_word_id', $this->fixtureWordIds())
+            ->orWhereIn('to_word_id', $this->fixtureWordIds())
             ->delete();
 
-        DB::table('dra_dictionary')
+        DB::table('words')
             ->where('word', 'like', $this->prefix . '%')
             ->delete();
 
-        DB::table('dra_language')
+        DB::table('languages')
             ->where('name', 'like', $this->prefix . '%')
             ->delete();
 
-        DB::table('dra_wordtype')
+        DB::table('word_types')
             ->where('name', 'like', $this->prefix . '%')
             ->delete();
 
         foreach ($this->originalPermitStandards as $name => $standard) {
-            DB::table('dra_permit')
+            DB::table('permits')
                 ->where('name', $name)
                 ->update(['standard' => $standard]);
         }
@@ -142,18 +142,18 @@ class DictionaryTest extends TestCase
         $word = $this->prefix . '_created_word';
 
         $response = $this->post('/dictionary/create', [
-            'language' => $this->languageFromId,
-            'wordtype' => $this->wordTypeId,
+            'language_id' => $this->languageFromId,
+            'word_type_id' => $this->wordTypeId,
             'word' => $word,
         ]);
 
-        $createdId = DB::table('dra_dictionary')->where('word', $word)->value('id');
+        $createdId = DB::table('words')->where('word', $word)->value('id');
 
         $response->assertRedirect('/dictionary/view/' . $createdId);
-        $this->assertDatabaseHas('dra_dictionary', [
+        $this->assertDatabaseHas('words', [
             'id' => $createdId,
-            'language' => $this->languageFromId,
-            'wordtype' => $this->wordTypeId,
+            'language_id' => $this->languageFromId,
+            'word_type_id' => $this->wordTypeId,
             'word' => $word,
         ]);
     }
@@ -163,13 +163,13 @@ class DictionaryTest extends TestCase
         $this->setPermitStandard('editdictionary', 2);
 
         $response = $this->post('/dictionary/edit/' . $this->wordFromId, [
-            'language' => $this->languageFromId,
-            'wordtype' => $this->wordTypeId,
+            'language_id' => $this->languageFromId,
+            'word_type_id' => $this->wordTypeId,
             'word' => $this->prefix . '_edited_word',
         ]);
 
         $response->assertRedirect('/dictionary/view/' . $this->wordFromId);
-        $this->assertDatabaseHas('dra_dictionary', [
+        $this->assertDatabaseHas('words', [
             'id' => $this->wordFromId,
             'word' => $this->prefix . '_edited_word',
         ]);
@@ -180,23 +180,23 @@ class DictionaryTest extends TestCase
         $this->setPermitStandard('createdictionary', 2);
         $this->setPermitStandard('deletedictionary', 2);
 
-        DB::table('dra_dictionarykey')->where('id', $this->keyId)->delete();
+        DB::table('keys')->where('id', $this->keyId)->delete();
 
         $createResponse = $this->post('/dictionary/createkey/' . $this->wordFromId, [
             'word' => (string)$this->wordToId,
             'bijective' => '1',
         ]);
 
-        $createdKey = DB::table('dra_dictionarykey')
-            ->where('dictionary__from', $this->wordFromId)
-            ->where('dictionary__to', $this->wordToId)
+        $createdKey = DB::table('keys')
+            ->where('from_word_id', $this->wordFromId)
+            ->where('to_word_id', $this->wordToId)
             ->first();
 
         $createResponse->assertRedirect('/dictionary/view/' . $this->wordFromId);
         $this->assertNotNull($createdKey);
-        $this->assertDatabaseHas('dra_dictionarykey', [
-            'dictionary__from' => $this->wordToId,
-            'dictionary__to' => $this->wordFromId,
+        $this->assertDatabaseHas('keys', [
+            'from_word_id' => $this->wordToId,
+            'to_word_id' => $this->wordFromId,
         ]);
 
         $deleteResponse = $this->post('/dictionary/deletekey/' . $createdKey->id, [
@@ -204,7 +204,7 @@ class DictionaryTest extends TestCase
         ]);
 
         $deleteResponse->assertRedirect('/dictionary/view/' . $this->wordFromId);
-        $this->assertDatabaseMissing('dra_dictionarykey', [
+        $this->assertDatabaseMissing('keys', [
             'id' => $createdKey->id,
         ]);
     }
@@ -264,17 +264,17 @@ class DictionaryTest extends TestCase
         ]);
 
         $response->assertRedirect('/dictionary');
-        $this->assertDatabaseMissing('dra_dictionary', [
+        $this->assertDatabaseMissing('words', [
             'id' => $this->wordFromId,
         ]);
-        $this->assertDatabaseMissing('dra_dictionarykey', [
+        $this->assertDatabaseMissing('keys', [
             'id' => $this->keyId,
         ]);
     }
 
     private function rememberPermitStandards(array $permitNames): void
     {
-        $this->originalPermitStandards = DB::table('dra_permit')
+        $this->originalPermitStandards = DB::table('permits')
             ->whereIn('name', $permitNames)
             ->pluck('standard', 'name')
             ->all();
@@ -282,7 +282,7 @@ class DictionaryTest extends TestCase
 
     private function setPermitStandard(string $name, int $standard): void
     {
-        DB::table('dra_permit')
+        DB::table('permits')
             ->where('name', $name)
             ->update(['standard' => $standard]);
 

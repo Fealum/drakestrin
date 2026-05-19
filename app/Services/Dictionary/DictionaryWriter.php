@@ -13,8 +13,8 @@ class DictionaryWriter
     public function createWord(int $languageId, int $wordTypeId, string $word): Word
     {
         return Word::create([
-            'language' => $languageId,
-            'wordtype' => $wordTypeId,
+            'language_id' => $languageId,
+            'word_type_id' => $wordTypeId,
             'word' => trim($word),
             'val' => 0,
         ]);
@@ -35,14 +35,14 @@ class DictionaryWriter
 
         foreach ($existingTargetIds as $targetId) {
             Key::firstOrCreate([
-                'dictionary__from' => $sourceWord->id,
-                'dictionary__to' => $targetId,
+                'from_word_id' => $sourceWord->id,
+                'to_word_id' => $targetId,
             ]);
 
             if ($bijective) {
                 Key::firstOrCreate([
-                    'dictionary__from' => $targetId,
-                    'dictionary__to' => $sourceWord->id,
+                    'from_word_id' => $targetId,
+                    'to_word_id' => $sourceWord->id,
                 ]);
             }
         }
@@ -51,8 +51,8 @@ class DictionaryWriter
     public function deleteWordWithKeys(Word $word): void
     {
         DB::transaction(function () use ($word) {
-            Key::where('dictionary__from', $word->id)
-                ->orWhere('dictionary__to', $word->id)
+            Key::where('from_word_id', $word->id)
+                ->orWhere('to_word_id', $word->id)
                 ->delete();
 
             $word->delete();
@@ -85,12 +85,12 @@ class DictionaryWriter
                 $sourceWordId = $newWord->id;
             } elseif ($sourceWordId) {
                 Key::create([
-                    'dictionary__from' => $sourceWordId,
-                    'dictionary__to' => $newWord->id,
+                    'from_word_id' => $sourceWordId,
+                    'to_word_id' => $newWord->id,
                 ]);
                 Key::create([
-                    'dictionary__from' => $newWord->id,
-                    'dictionary__to' => $sourceWordId,
+                    'from_word_id' => $newWord->id,
+                    'to_word_id' => $sourceWordId,
                 ]);
             }
         }

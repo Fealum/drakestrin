@@ -5,7 +5,7 @@
     <li>
         {{ $result->word }},
         <em>{{ $result->wordType?->name }}</em>,
-        {{ $result->languageModel?->name ?? $result->languageModel?->code ?? $result->getAttribute('language') }}.
+        {{ $result->language?->name ?? $result->language?->code ?? $result->language_id }}.
         <form class="dictionary-key-result-form" action="{{ route('dictionary.create_key', ['word' => $word->id]) }}" method="post">
             @csrf
             <input type="hidden" name="word" value="{{ $result->id }}" />

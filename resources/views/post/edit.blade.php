@@ -1,4 +1,4 @@
-<x-main-layout :title="'Beitrag im Thema »'.$post->threadModel->name.'« bearbeiten'" alt-title="Beitrag bearbeiten" css="thread">
+<x-main-layout :title="'Beitrag im Thema »'.$post->thread->name.'« bearbeiten'" alt-title="Beitrag bearbeiten" css="thread">
     <div class="post">
         <form name="editpost" action="{{ route('post.update', ['post' => $post->id]) }}" method="post">
             @csrf
@@ -6,7 +6,7 @@
                 <ul>
                     @foreach ($characters as $character)
                     <li>
-                        <input name="character" value="{{ $character->id }}" id="char-{{ $character->id }}" type="radio" @checked($post->character === $character->id)>
+                        <input name="character" value="{{ $character->id }}" id="char-{{ $character->id }}" type="radio" @checked($post->character_id === $character->id)>
                         <label for="char-{{ $character->id }}">
                             <x-avatar :subject="$character" size="list" :title="$character->name" />
                         </label>

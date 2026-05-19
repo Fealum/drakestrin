@@ -7,8 +7,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WordType extends Model
 {
-    protected $table = 'dra_wordtype';
-
     protected $fillable = [
         'name',
         'code',
@@ -18,6 +16,6 @@ class WordType extends Model
 
     public function words(): HasMany
     {
-        return $this->hasMany(Word::class, 'wordtype');
+        return $this->hasMany(Word::class);
     }
 }

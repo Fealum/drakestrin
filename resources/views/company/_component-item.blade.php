@@ -1,4 +1,4 @@
-@php($item = $component->itemModel)
+@php($item = $component->item)
 @if ($item)
 <span class="component-item">
     <img src="{{ asset('images/item/'.$item->img.'.png') }}" title="{{ $item->name }}" alt="">

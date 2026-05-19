@@ -7,29 +7,27 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TransferItem extends Model
 {
-    protected $table = 'dra_transferitem';
-
     public $timestamps = false;
 
     protected $fillable = [
-        'transfer',
-        'item',
+        'transfer_id',
+        'item_id',
         'stack',
     ];
 
     protected $casts = [
-        'transfer' => 'integer',
-        'item' => 'integer',
+        'transfer_id' => 'integer',
+        'item_id' => 'integer',
         'stack' => 'integer',
     ];
 
-    public function transferModel(): BelongsTo
+    public function transfer(): BelongsTo
     {
-        return $this->belongsTo(Transfer::class, 'transfer');
+        return $this->belongsTo(Transfer::class);
     }
 
-    public function itemModel(): BelongsTo
+    public function item(): BelongsTo
     {
-        return $this->belongsTo(Item::class, 'item');
+        return $this->belongsTo(Item::class);
     }
 }

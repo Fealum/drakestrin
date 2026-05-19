@@ -19,13 +19,6 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'dra_user';
-
-    /**
      * The storage format of the model's date columns.
      *
      * @var string
@@ -44,14 +37,14 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'character__avatar',
+        'avatar_character_id',
         'usertext',
         'birthday',
         'interests',
         'location',
         'work',
         'gender',
-        'post__total',
+        'post_count',
         'regdate',
         'lastvisit',
         'lastactivity',
@@ -73,30 +66,30 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $casts = [
-        'character__avatar' => 'integer',
+        'avatar_character_id' => 'integer',
         'birthday' => 'integer',
         'gender' => 'integer',
-        'post__total' => 'integer',
+        'post_count' => 'integer',
         'regdate' => 'datetime',
         'lastvisit' => 'datetime',
         'lastactivity' => 'datetime',
     ];
 
-    public function character_avatar(): BelongsTo
+    public function avatarCharacter(): BelongsTo
     {
-        return $this->belongsTo(Character::class, 'character__avatar');
+        return $this->belongsTo(Character::class);
     }
 
     public function groups(): BelongsToMany
     {
-        return $this->belongsToMany(Group::class, 'dra_group2user', 'user', 'group')
+        return $this->belongsToMany(Group::class)
             ->orderBy('priority')
             ->orderByRaw('LOWER(name)');
     }
 
     public function permissions(): MorphMany
     {
-        return $this->morphMany(Permission::class, 'recipient_legacy', 'table__recipient', 'recipient');
+        return $this->morphMany(Permission::class, 'recipient');
     }
 
     public function sentMessages(): HasMany
@@ -111,28 +104,28 @@ class User extends Authenticatable
 
     public function posts(): HasMany
     {
-        return $this->hasMany(Post::class, 'user');
+        return $this->hasMany(Post::class);
     }
 
     public function characters(): HasMany
     {
-        return $this->hasMany(Character::class, 'user')
-            ->orderByDesc('post__total')
+        return $this->hasMany(Character::class)
+            ->orderByDesc('post_count')
             ->orderByRaw('LOWER(name)');
     }
 
     public function contacts(): HasMany
     {
-        return $this->hasMany(UserContact::class, 'user')
-            ->with('protocolModel')
-            ->orderBy('protocol')
+        return $this->hasMany(UserContact::class)
+            ->with('protocol')
+            ->orderBy('protocol_id')
             ->orderBy('contact');
     }
 
     public function avatarThumbPath(): string
     {
-        if ($this->character__avatar) {
-            return (string) $this->character__avatar;
+        if ($this->avatar_character_id) {
+            return (string) $this->avatar_character_id;
         }
 
         $firstCharacter = mb_substr($this->name, 0, 1);
@@ -159,6 +152,6 @@ class User extends Authenticatable
     {
         $days = max(1, now()->diffInSeconds($this->regdate ?: now()) / 86400);
 
-        return ($this->post__total ?? 0) / $days;
+        return ($this->post_count ?? 0) / $days;
     }
 }

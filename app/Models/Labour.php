@@ -7,8 +7,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Labour extends Model
 {
-    protected $table = 'dra_labour';
-
     public $timestamps = false;
 
     protected $casts = [
@@ -19,8 +17,8 @@ class Labour extends Model
 
     public function components(): HasMany
     {
-        return $this->hasMany(LabourComponent::class, 'labour')
-            ->with('itemModel')
+        return $this->hasMany(LabourComponent::class)
+            ->with('item')
             ->orderBy('type')
             ->orderBy('id');
     }

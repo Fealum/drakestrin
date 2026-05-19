@@ -11,13 +11,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Post extends Model
 {
-    protected $table = 'dra_post';
-
     protected $fillable = [
-        'board',
-        'thread',
-        'user',
-        'character',
+        'board_id',
+        'thread_id',
+        'user_id',
+        'character_id',
         'time',
         'message',
         'smilies',
@@ -30,44 +28,44 @@ class Post extends Model
     protected $dateFormat = 'U';
 
     protected $casts = [
-        'board' => 'integer',
-        'thread' => 'integer',
-        'user' => 'integer',
-        'character' => 'integer',
+        'board_id' => 'integer',
+        'thread_id' => 'integer',
+        'user_id' => 'integer',
+        'character_id' => 'integer',
         'time' => 'datetime',
         'smilies' => 'boolean',
         'signature' => 'boolean',
     ];
 
-    public function boardModel(): BelongsTo
+    public function board(): BelongsTo
     {
-        return $this->belongsTo(Board::class, 'board');
+        return $this->belongsTo(Board::class);
     }
 
-    public function threadModel(): BelongsTo
+    public function thread(): BelongsTo
     {
-        return $this->belongsTo(Thread::class, 'thread');
+        return $this->belongsTo(Thread::class);
     }
 
     public function author(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function characterModel(): BelongsTo
+    public function character(): BelongsTo
     {
-        return $this->belongsTo(Character::class, 'character');
+        return $this->belongsTo(Character::class);
     }
 
     public function transfers(): HasMany
     {
-        return $this->hasMany(Transfer::class, 'post');
+        return $this->hasMany(Transfer::class);
     }
 
     public function pageInThread(int $perPage): int
     {
         $postsBefore = self::query()
-            ->where('thread', $this->thread)
+            ->where('thread_id', $this->thread_id)
             ->where(function ($query) {
                 $query->where('time', '<', $this->getRawOriginal('time'))
                     ->orWhere(function ($query) {

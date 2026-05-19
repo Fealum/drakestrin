@@ -30,7 +30,7 @@ class CompanyController extends Controller
     {
         return view('company.viewall', [
             'companies' => Company::query()
-                ->with('characterModel')
+                ->with('character')
                 ->orderByRaw('LOWER(name)')
                 ->get(),
         ]);
@@ -41,10 +41,10 @@ class CompanyController extends Controller
         Gate::authorize('view', $company);
 
         $company->load([
-            'characterModel.userModel',
-            'inventory.itemModel',
-            'territoryModel',
-            'workers.activeLabours.labourModel.components.itemModel',
+            'character.user',
+            'inventory.item',
+            'territory',
+            'workers.activeLabours.labour.components.item',
         ]);
 
         $this->setLocation($company);
@@ -62,8 +62,8 @@ class CompanyController extends Controller
         Gate::authorize('view', $worker);
 
         $worker->load([
-            'activeLabours.labourModel.components.itemModel',
-            'companyModel.characterModel.userModel',
+            'activeLabours.labour.components.item',
+            'company.character.user',
         ]);
 
         $this->setLocation($worker);
@@ -95,7 +95,7 @@ class CompanyController extends Controller
         CompanyWorker::create([
             'name' => $workerName,
             'type' => $type,
-            'company' => $company->id,
+            'company_id' => $company->id,
             'hired' => now()->timestamp,
             'paid' => now()->timestamp,
         ]);
@@ -108,12 +108,12 @@ class CompanyController extends Controller
     public function assignLabour(Request $request, CompanyWorker $worker): RedirectResponse
     {
         Gate::authorize('assignLabour', $worker);
-        $worker->loadMissing('activeLabours.labourModel', 'companyModel');
-        $company = $worker->companyModel;
+        $worker->loadMissing('activeLabours.labour', 'company');
+        $company = $worker->company;
         abort_unless($company, 404);
 
         $data = $request->validate([
-            'labour' => ['required', 'integer', 'exists:dra_labour,id'],
+            'labour' => ['required', 'integer', 'exists:labours,id'],
             'quantity' => ['required', 'integer', 'in:-1,0'],
             'quantity_count' => ['nullable', 'integer', 'min:1', 'max:9999'],
             'instances' => ['required', 'integer', 'min:1', 'max:9999'],
@@ -122,7 +122,7 @@ class CompanyController extends Controller
         ]);
 
         $labour = Labour::query()
-            ->with('components.itemModel')
+            ->with('components.item')
             ->whereKey((int) $data['labour'])
             ->firstOrFail();
 
@@ -133,7 +133,7 @@ class CompanyController extends Controller
         }
 
         $created = DB::transaction(function () use ($data, $worker, $company, $labour) {
-            $worker->refresh()->load('activeLabours.labourModel');
+            $worker->refresh()->load('activeLabours.labour');
 
             if (! $this->labourFitsCapacity($worker, $labour) || ! $this->componentsAvailable($labour, $company)) {
                 return false;
@@ -141,17 +141,17 @@ class CompanyController extends Controller
 
             foreach ($labour->components->where('type', '!=', 2) as $component) {
                 if ((int) $component->type === 1) {
-                    $this->inventory->take((int) $component->item, (int) $component->quantity, 2, $company->id, -2, -3);
+                    $this->inventory->take((int) $component->item_id, (int) $component->quantity, 2, $company->id, -2, -3);
                 } else {
-                    $this->inventory->take((int) $component->item, (int) $component->quantity, 2, $company->id, -2);
+                    $this->inventory->take((int) $component->item_id, (int) $component->quantity, 2, $company->id, -2);
                 }
             }
 
             $instances = min((int) $data['instances'], $this->maxInstances($worker, $labour));
 
             LabourActive::create([
-                'company_worker' => $worker->id,
-                'labour' => $labour->id,
+                'company_worker_id' => $worker->id,
+                'labour_id' => $labour->id,
                 'since' => now()->timestamp,
                 'until' => now()->timestamp + (int) $labour->duration,
                 'prodas' => (int) $data['prodas'] === 0 ? (int) ($data['prodas_value'] ?? 0) : (int) $data['prodas'],
@@ -177,9 +177,9 @@ class CompanyController extends Controller
     public function fire(CompanyWorker $worker): RedirectResponse
     {
         Gate::authorize('fire', $worker);
-        $worker->loadMissing('companyModel');
+        $worker->loadMissing('company');
 
-        $company = $worker->companyModel;
+        $company = $worker->company;
         abort_unless($company, 404);
 
         $settlement = DB::transaction(function () use ($worker, $company) {
@@ -253,7 +253,7 @@ class CompanyController extends Controller
     private function workload(CompanyWorker $worker): float
     {
         return $worker->activeLabours->sum(function ($labour) {
-            $workload = (int) ($labour->labourModel?->workload ?? 0);
+            $workload = (int) ($labour->labour?->workload ?? 0);
 
             return $workload > 0 ? (1 / $workload) * (int) $labour->instances : 0;
         });
@@ -261,14 +261,14 @@ class CompanyController extends Controller
 
     private function possibleLabours(CompanyWorker $worker)
     {
-        $worker->loadMissing('companyModel', 'activeLabours.labourModel');
+        $worker->loadMissing('company', 'activeLabours.labour');
 
         return Labour::query()
-            ->with('components.itemModel')
+            ->with('components.item')
             ->where('type', '<=', (int) $worker->type)
             ->orderByRaw('LOWER(name)')
             ->get()
-            ->filter(fn (Labour $labour) => $this->labourFitsCapacity($worker, $labour) && $this->componentsAvailable($labour, $worker->companyModel))
+            ->filter(fn (Labour $labour) => $this->labourFitsCapacity($worker, $labour) && $this->componentsAvailable($labour, $worker->company))
             ->values();
     }
 
@@ -293,7 +293,7 @@ class CompanyController extends Controller
         }
 
         foreach ($labour->components->where('type', '!=', 2) as $component) {
-            if ($this->inventory->available((int) $component->item, 2, $company->id, -2) < (int) $component->quantity) {
+            if ($this->inventory->available((int) $component->item_id, 2, $company->id, -2) < (int) $component->quantity) {
                 return false;
             }
         }

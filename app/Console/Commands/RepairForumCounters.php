@@ -115,15 +115,15 @@ class RepairForumCounters extends Command
     {
         $count = 0;
 
-        DB::table('dra_user')
-            ->select(['id', 'post__total'])
+        DB::table('users')
+            ->select(['id', 'post_count'])
             ->when($this->ids('user'), fn ($query, array $ids) => $query->whereIn('id', $ids))
             ->orderBy('id')
             ->chunkById(200, function ($users) use ($counters, $dryRun, &$count) {
                 foreach ($users as $user) {
-                    $expected = Post::where('user', $user->id)->count();
+                    $expected = Post::where('user_id', $user->id)->count();
 
-                    if ((int) $user->post__total === $expected) {
+                    if ((int) $user->post_count === $expected) {
                         continue;
                     }
 
@@ -143,15 +143,15 @@ class RepairForumCounters extends Command
     {
         $count = 0;
 
-        DB::table('dra_character')
-            ->select(['id', 'post__total'])
+        DB::table('characters')
+            ->select(['id', 'post_count'])
             ->when($this->ids('character'), fn ($query, array $ids) => $query->whereIn('id', $ids))
             ->orderBy('id')
             ->chunkById(200, function ($characters) use ($counters, $dryRun, &$count) {
                 foreach ($characters as $character) {
-                    $expected = Post::where('character', $character->id)->count();
+                    $expected = Post::where('character_id', $character->id)->count();
 
-                    if ((int) $character->post__total === $expected) {
+                    if ((int) $character->post_count === $expected) {
                         continue;
                     }
 
@@ -170,39 +170,39 @@ class RepairForumCounters extends Command
     private function expectedThreadCounters(Thread $thread): array
     {
         $firstPost = Post::query()
-            ->where('thread', $thread->id)
+            ->where('thread_id', $thread->id)
             ->orderBy('time')
             ->orderBy('id')
             ->first();
 
         $lastPost = Post::query()
-            ->where('thread', $thread->id)
+            ->where('thread_id', $thread->id)
             ->orderByDesc('time')
             ->orderByDesc('id')
             ->first();
 
         return [
-            'post__total' => Post::where('thread', $thread->id)->count(),
-            'post__first' => $firstPost?->id ?? 0,
-            'post__first_time' => $firstPost?->time?->timestamp ?? 0,
-            'post__last' => $lastPost?->id ?? 0,
-            'post__last_time' => $lastPost?->time?->timestamp ?? 0,
+            'post_count' => Post::where('thread_id', $thread->id)->count(),
+            'first_post_id' => $firstPost?->id ?? 0,
+            'first_post_at' => $firstPost?->time?->timestamp ?? 0,
+            'last_post_id' => $lastPost?->id ?? 0,
+            'last_post_at' => $lastPost?->time?->timestamp ?? 0,
         ];
     }
 
     private function expectedBoardCounters(Board $board): array
     {
         $lastPost = Post::query()
-            ->where('board', $board->id)
+            ->where('board_id', $board->id)
             ->orderByDesc('time')
             ->orderByDesc('id')
             ->first();
 
         return [
-            'thread__total' => Thread::where('board', $board->id)->count(),
-            'post__total' => Post::where('board', $board->id)->count(),
-            'post__last' => $lastPost?->id ?? 0,
-            'post__last_time' => $lastPost?->time?->timestamp ?? 0,
+            'thread_count' => Thread::where('board_id', $board->id)->count(),
+            'post_count' => Post::where('board_id', $board->id)->count(),
+            'last_post_id' => $lastPost?->id ?? 0,
+            'last_post_at' => $lastPost?->time?->timestamp ?? 0,
         ];
     }
 

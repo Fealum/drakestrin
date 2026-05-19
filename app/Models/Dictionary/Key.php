@@ -7,27 +7,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Key extends Model
 {
-    protected $table = 'dra_dictionarykey';
-
     protected $fillable = [
-        'dictionary__from',
-        'dictionary__to',
+        'from_word_id',
+        'to_word_id',
     ];
 
     public $timestamps = false;
 
     protected $casts = [
-        'dictionary__from' => 'integer',
-        'dictionary__to' => 'integer',
+        'from_word_id' => 'integer',
+        'to_word_id' => 'integer',
     ];
 
     public function fromWord(): BelongsTo
     {
-        return $this->belongsTo(Word::class, 'dictionary__from');
+        return $this->belongsTo(Word::class);
     }
 
     public function toWord(): BelongsTo
     {
-        return $this->belongsTo(Word::class, 'dictionary__to');
+        return $this->belongsTo(Word::class);
     }
 }

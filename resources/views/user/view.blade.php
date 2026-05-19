@@ -42,7 +42,7 @@
             <ol>
                 <li><em>Mitglied seit:</em> <x-datetime :time="$user->regdate" /></li>
                 <li><em>Letzter Besuch:</em> <x-datetime :time="$user->lastvisit" /></li>
-                <li><em>Beiträge insgesamt:</em> <a href="{{ url('/board/filter/user_contains:'.$user->id) }}">{{ number_format($user->post__total ?? 0, 0, ',', '.') }}</a></li>
+                <li><em>Beiträge insgesamt:</em> <a href="{{ url('/board/filter/user_contains:'.$user->id) }}">{{ number_format($user->post_count ?? 0, 0, ',', '.') }}</a></li>
                 <li><em>Beiträge pro Tag:</em> {{ number_format($user->postsPerDay(), 2, ',', '.') }}</li>
             </ol>
         </li>
@@ -109,7 +109,7 @@
                     @endif
                 @endauth
                 @foreach ($user->contacts as $contact)
-                @php($protocol = $contact->protocolModel)
+                @php($protocol = $contact->protocol)
                 <li><em>{{ $protocol?->name }}:</em>
                     @if ($protocol?->link)
                     <a href="{{ str_replace('\\1', $contact->contact, $protocol->link) }}">{{ $contact->contact }}</a>

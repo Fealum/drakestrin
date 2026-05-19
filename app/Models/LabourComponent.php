@@ -7,24 +7,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LabourComponent extends Model
 {
-    protected $table = 'dra_labour_component';
-
     public $timestamps = false;
 
     protected $casts = [
-        'labour' => 'integer',
-        'item' => 'integer',
+        'labour_id' => 'integer',
+        'item_id' => 'integer',
         'quantity' => 'integer',
         'type' => 'integer',
     ];
 
-    public function labourModel(): BelongsTo
+    public function labour(): BelongsTo
     {
-        return $this->belongsTo(Labour::class, 'labour');
+        return $this->belongsTo(Labour::class);
     }
 
-    public function itemModel(): BelongsTo
+    public function item(): BelongsTo
     {
-        return $this->belongsTo(Item::class, 'item');
+        return $this->belongsTo(Item::class);
     }
 }

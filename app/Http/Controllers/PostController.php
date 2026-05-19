@@ -41,10 +41,10 @@ class PostController extends Controller
             $character = $this->resolveCharacterForCreate($request, $thread, $data, $time);
 
             $post = Post::create([
-                'board' => $thread->board,
-                'thread' => $thread->id,
-                'user' => $request->user()->id,
-                'character' => $character->id,
+                'board_id' => $thread->board_id,
+                'thread_id' => $thread->id,
+                'user_id' => $request->user()->id,
+                'character_id' => $character->id,
                 'time' => $time,
                 'message' => trim($data['message']),
                 'smilies' => (int) $request->boolean('smilies'),
@@ -53,7 +53,7 @@ class PostController extends Controller
             ]);
 
             $counters->refreshThread($thread);
-            $counters->refreshBoard($thread->boardModel);
+            $counters->refreshBoard($thread->board);
             $counters->refreshUser($request->user()->id);
             $counters->refreshCharacter($character->id);
 
@@ -69,7 +69,7 @@ class PostController extends Controller
 
         return view('post.edit', [
             'characters' => auth()->user()->characters()->orderBy('name')->get(),
-            'post' => $post->load(['characterModel', 'threadModel.boardModel']),
+            'post' => $post->load(['character', 'thread.board']),
         ]);
     }
 
@@ -83,12 +83,12 @@ class PostController extends Controller
         ]);
 
         $character = $this->userCharacter((int) $data['character']);
-        $oldCharacterId = $post->character;
+        $oldCharacterId = $post->character_id;
         $counters = app(ForumCounters::class);
 
         DB::transaction(function () use ($post, $character, $data, $oldCharacterId, $counters) {
             $post->update([
-                'character' => $character->id,
+                'character_id' => $character->id,
                 'message' => trim($data['message']),
             ]);
 
@@ -108,10 +108,10 @@ class PostController extends Controller
     public function delete(Post $post): View
     {
         $this->authorize('delete', $post);
-        $post->load(['characterModel', 'threadModel.boardModel', 'author']);
+        $post->load(['character', 'thread.board', 'author']);
 
         return view('post.delete', [
-            'deletesThread' => $post->threadModel->posts()->count() === 1,
+            'deletesThread' => $post->thread->posts()->count() === 1,
             'post' => $post,
         ]);
     }
@@ -119,14 +119,14 @@ class PostController extends Controller
     public function ip(Post $post): View
     {
         $this->authorize('viewIp', $post);
-        $post->load(['author', 'characterModel', 'threadModel']);
+        $post->load(['author', 'character', 'thread']);
 
         $authorIps = Post::query()
             ->select('ip')
             ->selectRaw('COUNT(*) as post_count')
             ->selectRaw('MIN(time) as first_post_time')
             ->selectRaw('MAX(time) as last_post_time')
-            ->where('user', $post->user)
+            ->where('user_id', $post->user_id)
             ->whereNotNull('ip')
             ->where('ip', '<>', '')
             ->groupBy('ip')
@@ -135,7 +135,7 @@ class PostController extends Controller
             ->get();
 
         $sameIpUsers = Post::query()
-            ->select('user')
+            ->select('user_id')
             ->selectRaw('COUNT(*) as post_count')
             ->selectRaw('MIN(time) as first_post_time')
             ->selectRaw('MAX(time) as last_post_time')
@@ -143,7 +143,7 @@ class PostController extends Controller
             ->where('ip', $post->ip)
             ->whereNotNull('ip')
             ->where('ip', '<>', '')
-            ->groupBy('user')
+            ->groupBy('user_id')
             ->orderByDesc('post_count')
             ->orderByDesc('last_post_time')
             ->get();
@@ -160,10 +160,10 @@ class PostController extends Controller
         $this->authorize('delete', $post);
         $request->validate(['delete' => ['required', 'accepted']]);
 
-        $thread = $post->threadModel;
-        $board = $post->boardModel;
-        $userId = $post->user;
-        $characterId = $post->character;
+        $thread = $post->thread;
+        $board = $post->board;
+        $userId = $post->user_id;
+        $characterId = $post->character_id;
         $counters = app(ForumCounters::class);
         $deletesThread = $thread->posts()->count() === 1;
 
@@ -224,7 +224,7 @@ class PostController extends Controller
         return Character::create([
             'name' => $name,
             'regdate' => $time,
-            'user' => $request->user()->id,
+            'user_id' => $request->user()->id,
             'usertext' => '',
         ]);
     }
@@ -233,6 +233,6 @@ class PostController extends Controller
     {
         $page ??= $post->pageInThread(self::PAGE_ENTRIES);
 
-        return url('/thread/view/'.$post->thread.($page === 1 ? '' : '/'.$page).'#post'.$post->id);
+        return url('/thread/view/'.$post->thread_id.($page === 1 ? '' : '/'.$page).'#post'.$post->id);
     }
 }

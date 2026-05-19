@@ -1,6 +1,6 @@
 @inject('forumFormatter', 'App\Services\Board\ForumFormatter')
 
-<x-main-layout :title="'Beitrag im Thema »'.$post->threadModel->name.'« löschen'" alt-title="Beitrag löschen" css="thread">
+<x-main-layout :title="'Beitrag im Thema »'.$post->thread->name.'« löschen'" alt-title="Beitrag löschen" css="thread">
     <h3>Sicher?</h3>
     <p>Bist Du Dir sicher, dass Du diesen Beitrag löschen möchtest?</p>
     @if ($deletesThread)
@@ -8,13 +8,13 @@
     @endif
 
     <div class="post">
-        @if ($post->characterModel)
-        <x-avatar :subject="$post->characterModel" size="list" />
+        @if ($post->character)
+        <x-avatar :subject="$post->character" size="list" />
         @endif
         <div class="postuser">
             <h4>
-                @if ($post->characterModel)
-                <a href="{{ url('/user/character/'.$post->characterModel->id) }}">{{ $post->characterModel->name }}</a>
+                @if ($post->character)
+                <a href="{{ url('/user/character/'.$post->character->id) }}">{{ $post->character->name }}</a>
                 @else
                 Unbekannter Charakter
                 @endif

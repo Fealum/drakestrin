@@ -1,6 +1,6 @@
 @php
     $items = collect($selectedIds)
-        ->map(fn (int $id) => $lookup->get($id) ?? ['id' => $id, 'name' => '#'.$id, 'avatar' => asset('img/character_avatar.id/thumb/i/_.jpg')])
+        ->map(fn (int $id) => $lookup->get($id) ?? ['id' => $id, 'name' => '#'.$id, 'avatar' => asset('img/avatarCharacter.id/thumb/i/_.jpg')])
         ->values();
 @endphp
 

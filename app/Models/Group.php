@@ -9,16 +9,9 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Group extends Model
 {
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'dra_group';
-
     protected $fillable = [
         'name',
-        'group__parent',
+        'parent_id',
         'priority',
     ];
 
@@ -29,18 +22,18 @@ class Group extends Model
      */
     public $timestamps = false;
 
-    public function group(): BelongsTo
+    public function parent(): BelongsTo
     {
-        return $this->belongsTo(Group::class, 'group__parent');
+        return $this->belongsTo(self::class);
     }
 
     public function permissions(): MorphMany
     {
-        return $this->morphMany(Permission::class, 'recipient_legacy', 'table__recipient', 'recipient');
+        return $this->morphMany(Permission::class, 'recipient');
     }
 
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'dra_group2user', 'group', 'user');
+        return $this->belongsToMany(User::class);
     }
 }

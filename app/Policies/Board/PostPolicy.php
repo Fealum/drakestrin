@@ -20,12 +20,12 @@ class PostPolicy
 
     public function update(User $user, Post $post): bool
     {
-        return $this->permissions->allowsOwn('editpost', $post, $post->user, $user);
+        return $this->permissions->allowsOwn('editpost', $post, $post->user_id, $user);
     }
 
     public function delete(User $user, Post $post): bool
     {
-        return $this->permissions->allowsOwn('deletepost', $post, $post->user, $user);
+        return $this->permissions->allowsOwn('deletepost', $post, $post->user_id, $user);
     }
 
     public function viewIp(User $user, Post $post): bool

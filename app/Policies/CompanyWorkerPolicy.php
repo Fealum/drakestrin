@@ -29,8 +29,8 @@ class CompanyWorkerPolicy
 
     private function owns(User $user, CompanyWorker $worker): bool
     {
-        $worker->loadMissing('companyModel.characterModel');
+        $worker->loadMissing('company.character');
 
-        return (int) $worker->companyModel?->characterModel?->user === (int) $user->id;
+        return (int) $worker->company?->character?->user_id === (int) $user->id;
     }
 }

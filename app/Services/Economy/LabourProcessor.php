@@ -24,12 +24,12 @@ class LabourProcessor
         ];
 
         LabourActive::query()
-            ->with(['worker.companyModel', 'labourModel.components.itemModel'])
+            ->with(['companyWorker.company', 'labour.components.item'])
             ->where('until', '<=', $now)
             ->orderBy('until')
             ->chunkById(100, function ($activeLabours) use ($now, &$stats) {
                 foreach ($activeLabours as $activeLabour) {
-                    $result = DB::transaction(fn () => $this->processOne($activeLabour->fresh(['worker.companyModel', 'labourModel.components.itemModel']), $now));
+                    $result = DB::transaction(fn () => $this->processOne($activeLabour->fresh(['companyWorker.company', 'labour.components.item']), $now));
                     $stats[$result]++;
                 }
             });
@@ -39,13 +39,13 @@ class LabourProcessor
 
     private function processOne(?LabourActive $activeLabour, int $now): string
     {
-        if (! $activeLabour || ! $activeLabour->worker || ! $activeLabour->worker->companyModel || ! $activeLabour->labourModel) {
+        if (! $activeLabour || ! $activeLabour->companyWorker || ! $activeLabour->companyWorker->company || ! $activeLabour->labour) {
             return 'skipped_resources';
         }
 
-        $worker = $activeLabour->worker;
-        $company = $worker->companyModel;
-        $labour = $activeLabour->labourModel;
+        $worker = $activeLabour->companyWorker;
+        $company = $worker->company;
+        $labour = $activeLabour->labour;
 
         if (($worker->paid?->timestamp ?? 0) <= $now - 7776000) {
             return 'skipped_unpaid';
@@ -96,12 +96,12 @@ class LabourProcessor
 
     private function maxProcessesByInputs(LabourActive $activeLabour, int $requested): int
     {
-        $companyId = $activeLabour->worker->companyModel->id;
+        $companyId = $activeLabour->companyWorker->company->id;
         $max = $requested;
 
-        foreach ($activeLabour->labourModel->components->where('type', 0) as $component) {
+        foreach ($activeLabour->labour->components->where('type', 0) as $component) {
             $neededPerProcess = max(1, (int) $component->quantity);
-            $available = $this->inventory->available((int) $component->item, 2, $companyId, -2);
+            $available = $this->inventory->available((int) $component->item_id, 2, $companyId, -2);
             $max = min($max, (int) floor($available / $neededPerProcess));
         }
 
@@ -110,26 +110,26 @@ class LabourProcessor
 
     private function consumeInputs(LabourActive $activeLabour, int $processes): void
     {
-        $companyId = $activeLabour->worker->companyModel->id;
+        $companyId = $activeLabour->companyWorker->company->id;
 
-        foreach ($activeLabour->labourModel->components->where('type', 0) as $component) {
-            $this->inventory->take((int) $component->item, (int) $component->quantity * $processes, 2, $companyId, -2);
+        foreach ($activeLabour->labour->components->where('type', 0) as $component) {
+            $this->inventory->take((int) $component->item_id, (int) $component->quantity * $processes, 2, $companyId, -2);
         }
     }
 
     private function createOutputs(LabourActive $activeLabour, int $processes): void
     {
-        $companyId = $activeLabour->worker->companyModel->id;
+        $companyId = $activeLabour->companyWorker->company->id;
 
-        foreach ($activeLabour->labourModel->components->where('type', 2) as $component) {
-            $this->inventory->add((int) $component->item, (int) $component->quantity * $processes, 2, $companyId, (int) $activeLabour->prodas);
+        foreach ($activeLabour->labour->components->where('type', 2) as $component) {
+            $this->inventory->add((int) $component->item_id, (int) $component->quantity * $processes, 2, $companyId, (int) $activeLabour->prodas);
         }
     }
 
     private function returnTools(LabourActive $activeLabour, int $companyId): void
     {
-        foreach ($activeLabour->labourModel->components->where('type', 1) as $component) {
-            $this->inventory->take((int) $component->item, (int) $component->quantity, 2, $companyId, -3, -2);
+        foreach ($activeLabour->labour->components->where('type', 1) as $component) {
+            $this->inventory->take((int) $component->item_id, (int) $component->quantity, 2, $companyId, -3, -2);
         }
     }
 }

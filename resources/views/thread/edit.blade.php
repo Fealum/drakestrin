@@ -7,7 +7,7 @@
             <select name="board" id="board" required>
                 @foreach ($boards as $option)
                 @php($board = $option['board'])
-                <option value="{{ $board->id }}" @selected((int) old('board', $thread->board) === $board->id) @disabled($option['disabled'])>{!! str_repeat('&mdash;', $option['level']) !!}{{ $board->name }}</option>
+                <option value="{{ $board->id }}" @selected((int) old('board', $thread->board_id) === $board->id) @disabled($option['disabled'])>{!! str_repeat('&mdash;', $option['level']) !!}{{ $board->name }}</option>
                 @endforeach
             </select>
         </p>

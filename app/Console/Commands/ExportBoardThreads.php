@@ -43,10 +43,10 @@ class ExportBoardThreads extends Command
             '',
         ];
 
-        $threads = Thread::with('posts.characterModel')
-            ->where('board', $board->id)
+        $threads = Thread::with('posts.character')
+            ->where('board_id', $board->id)
             ->orderByDesc('important')
-            ->orderByDesc('post__last_time')
+            ->orderByDesc('last_post_at')
             ->orderBy('id')
             ->get();
 
@@ -55,7 +55,7 @@ class ExportBoardThreads extends Command
             $lines[] = '';
 
             foreach ($thread->posts as $post) {
-                $author = $post->characterModel?->name ?? 'Unbekannter Charakter';
+                $author = $post->character?->name ?? 'Unbekannter Charakter';
                 $time = $post->time?->format('Y-m-d H:i:s') ?? '';
 
                 $lines[] = '### Beitrag von ' . $author . ', ' . $time;
@@ -65,12 +65,12 @@ class ExportBoardThreads extends Command
             }
         }
 
-        $childBoards = Board::where('board', $board->id)
+        $children = Board::where('parent_id', $board->id)
             ->orderBy('sort')
             ->orderByRaw('LOWER(name)')
             ->get();
 
-        foreach ($childBoards as $subBoard) {
+        foreach ($children as $subBoard) {
             $lines[] = rtrim($this->renderBoard($subBoard));
             $lines[] = '';
         }

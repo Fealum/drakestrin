@@ -52,9 +52,9 @@
             'last_post_time_formatted' => \Illuminate\Support\Carbon::createFromTimestamp((int) $ip->last_post_time)->format('d.m.Y, H:i'),
         ])->values();
         $sameIpUserRows = $sameIpUsers->map(fn ($entry) => [
-            'label' => $entry->author?->name ?? ('Nutzer #'.$entry->user),
+            'label' => $entry->author?->name ?? ('Nutzer #'.$entry->user_id),
             'url' => $entry->author ? url('/user/view/'.$entry->author->id) : null,
-            'is_post_author' => (int) $entry->user === $post->user,
+            'is_post_author' => (int) $entry->user_id === $post->user_id,
             'post_count' => (int) $entry->post_count,
             'first_post_time' => (int) $entry->first_post_time,
             'first_post_time_formatted' => \Illuminate\Support\Carbon::createFromTimestamp((int) $entry->first_post_time)->format('d.m.Y, H:i'),
@@ -64,21 +64,21 @@
     @endphp
 
     <div class="post">
-        @if ($post->characterModel)
-        <x-avatar :subject="$post->characterModel" size="list" />
+        @if ($post->character)
+        <x-avatar :subject="$post->character" size="list" />
         @endif
 
         <div class="postuser">
             <h4>
-                @if ($post->characterModel)
-                <a href="{{ url('/user/character/'.$post->characterModel->id) }}">{{ $post->characterModel->name }}</a>
+                @if ($post->character)
+                <a href="{{ url('/user/character/'.$post->character->id) }}">{{ $post->character->name }}</a>
                 @else
                 Unbekannter Charakter
                 @endif
                 <span class="datetime"><x-datetime :time="$post->time" /></span>
             </h4>
             <p>
-                <a class="postnumber small" href="{{ url('/thread/view/'.$post->thread.'#post'.$post->id) }}">Beitrag #{{ $post->id }}</a>
+                <a class="postnumber small" href="{{ url('/thread/view/'.$post->thread_id.'#post'.$post->id) }}">Beitrag #{{ $post->id }}</a>
             </p>
         </div>
 
@@ -154,9 +154,9 @@
                             @if ($entry->author)
                             <a href="{{ url('/user/view/'.$entry->author->id) }}">{{ $entry->author->name }}</a>
                             @else
-                            Nutzer #{{ $entry->user }}
+                            Nutzer #{{ $entry->user_id }}
                             @endif
-                            @if ((int) $entry->user === $post->user)
+                            @if ((int) $entry->user_id === $post->user_id)
                             (Autor dieses Beitrags)
                             @endif
                         </td>

@@ -16,6 +16,7 @@ use App\Models\Board\Thread;
 use App\Models\Dictionary\Key;
 use App\Models\Dictionary\Word;
 use App\Models\Territory\Territory;
+use App\Support\PermissionEntityType;
 use Diglactic\Breadcrumbs\Breadcrumbs;
 
 // This import is also not required, and you could replace `BreadcrumbTrail $trail`
@@ -62,8 +63,8 @@ Breadcrumbs::for('user.edit', function (BreadcrumbTrail $trail, User $user) {
 });
 
 Breadcrumbs::for('user.character', function (BreadcrumbTrail $trail, Character $character) {
-    if ($character->userModel) {
-        $trail->parent('user.view', $character->userModel);
+    if ($character->user) {
+        $trail->parent('user.view', $character->user);
     } else {
         $trail->parent('user');
     }
@@ -87,8 +88,8 @@ Breadcrumbs::for('user.create_contact', function (BreadcrumbTrail $trail, User $
 });
 
 Breadcrumbs::for('user.edit_contact', function (BreadcrumbTrail $trail, \App\Models\UserContact $contact) {
-    if ($contact->userModel) {
-        $trail->parent('user.view', $contact->userModel);
+    if ($contact->user) {
+        $trail->parent('user.view', $contact->user);
     } else {
         $trail->parent('user');
     }
@@ -97,8 +98,8 @@ Breadcrumbs::for('user.edit_contact', function (BreadcrumbTrail $trail, \App\Mod
 });
 
 Breadcrumbs::for('user.delete_contact', function (BreadcrumbTrail $trail, \App\Models\UserContact $contact) {
-    if ($contact->userModel) {
-        $trail->parent('user.view', $contact->userModel);
+    if ($contact->user) {
+        $trail->parent('user.view', $contact->user);
     } else {
         $trail->parent('user');
     }
@@ -131,8 +132,8 @@ Breadcrumbs::for('company.view', function (BreadcrumbTrail $trail, Company $comp
 });
 
 Breadcrumbs::for('company.worker', function (BreadcrumbTrail $trail, CompanyWorker $worker) {
-    if ($worker->companyModel) {
-        $trail->parent('company.view', $worker->companyModel);
+    if ($worker->company) {
+        $trail->parent('company.view', $worker->company);
     } else {
         $trail->parent('company');
     }
@@ -150,8 +151,8 @@ Breadcrumbs::for('board.filter', function (BreadcrumbTrail $trail) {
 });
 
 Breadcrumbs::for('board.view', function (BreadcrumbTrail $trail, Board $board) {
-    if ($board->parentBoard) {
-        $trail->parent('board.view', $board->parentBoard);
+    if ($board->parent) {
+        $trail->parent('board.view', $board->parent);
     } else {
         $trail->parent('board');
     }
@@ -174,8 +175,8 @@ Breadcrumbs::for('permission.create_board', function (BreadcrumbTrail $trail, Bo
 });
 
 Breadcrumbs::for('permission.edit', function (BreadcrumbTrail $trail, Permission $permission) {
-    if ((int) $permission->table__subject === 3 && $permission->subject_legacy) {
-        $trail->parent('board.permissions', $permission->subject_legacy);
+    if ((int) $permission->subject_type === PermissionEntityType::BOARD && $permission->subject) {
+        $trail->parent('board.permissions', $permission->subject);
     } else {
         $trail->parent('board');
     }
@@ -184,8 +185,8 @@ Breadcrumbs::for('permission.edit', function (BreadcrumbTrail $trail, Permission
 });
 
 Breadcrumbs::for('permission.delete', function (BreadcrumbTrail $trail, Permission $permission) {
-    if ((int) $permission->table__subject === 3 && $permission->subject_legacy) {
-        $trail->parent('board.permissions', $permission->subject_legacy);
+    if ((int) $permission->subject_type === PermissionEntityType::BOARD && $permission->subject) {
+        $trail->parent('board.permissions', $permission->subject);
     } else {
         $trail->parent('board');
     }
@@ -194,8 +195,8 @@ Breadcrumbs::for('permission.delete', function (BreadcrumbTrail $trail, Permissi
 });
 
 Breadcrumbs::for('thread.view', function (BreadcrumbTrail $trail, Thread $thread) {
-    if ($thread->boardModel) {
-        $trail->parent('board.view', $thread->boardModel);
+    if ($thread->board) {
+        $trail->parent('board.view', $thread->board);
     } else {
         $trail->parent('board');
     }
@@ -224,17 +225,17 @@ Breadcrumbs::for('thread.delete', function (BreadcrumbTrail $trail, Thread $thre
 });
 
 Breadcrumbs::for('post.edit', function (BreadcrumbTrail $trail, Post $post) {
-    $trail->parent('thread.view', $post->threadModel);
+    $trail->parent('thread.view', $post->thread);
     $trail->push('Beitrag bearbeiten', route('post.edit', $post->id));
 });
 
 Breadcrumbs::for('post.delete', function (BreadcrumbTrail $trail, Post $post) {
-    $trail->parent('thread.view', $post->threadModel);
+    $trail->parent('thread.view', $post->thread);
     $trail->push('Beitrag löschen', route('post.delete', $post->id));
 });
 
 Breadcrumbs::for('post.ip', function (BreadcrumbTrail $trail, Post $post) {
-    $trail->parent('thread.view', $post->threadModel);
+    $trail->parent('thread.view', $post->thread);
     $trail->push('IP-Adresse', route('post.ip', $post->id));
 });
 

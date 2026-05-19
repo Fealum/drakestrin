@@ -6,13 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Configuration extends Model
 {
-    protected $table = 'dra_configuration';
-
     protected $fillable = [
-        'table__recipient',
-        'recipient',
-        'table__subject',
-        'subject',
+        'recipient_type',
+        'recipient_id',
+        'subject_type',
+        'subject_id',
         'setting',
         'value',
     ];
@@ -20,10 +18,10 @@ class Configuration extends Model
     public $timestamps = false;
 
     protected $casts = [
-        'table__recipient' => 'integer',
-        'recipient' => 'integer',
-        'table__subject' => 'integer',
-        'subject' => 'integer',
+        'recipient_type' => 'integer',
+        'recipient_id' => 'integer',
+        'subject_type' => 'integer',
+        'subject_id' => 'integer',
         'setting' => 'integer',
         'value' => 'integer',
     ];

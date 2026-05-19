@@ -7,28 +7,26 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserContact extends Model
 {
-    protected $table = 'dra_user_contact';
-
     public $timestamps = false;
 
     protected $fillable = [
-        'user',
-        'protocol',
+        'user_id',
+        'protocol_id',
         'contact',
     ];
 
     protected $casts = [
-        'user' => 'integer',
-        'protocol' => 'integer',
+        'user_id' => 'integer',
+        'protocol_id' => 'integer',
     ];
 
-    public function userModel(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user');
+        return $this->belongsTo(User::class);
     }
 
-    public function protocolModel(): BelongsTo
+    public function protocol(): BelongsTo
     {
-        return $this->belongsTo(Protocol::class, 'protocol');
+        return $this->belongsTo(Protocol::class);
     }
 }

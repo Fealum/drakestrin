@@ -49,7 +49,7 @@
                     </a>
                 </p>
                 <p class="small">
-                    <a href="{{ url('/board/filter/user_contains:'.$user->id) }}">{{ number_format($user->post__total ?? 0, 0, ',', '.') }} Beiträge</a>
+                    <a href="{{ url('/board/filter/user_contains:'.$user->id) }}">{{ number_format($user->post_count ?? 0, 0, ',', '.') }} Beiträge</a>
                     seit <x-datetime :time="$user->regdate" only-date="1" />
                     ({{ number_format($user->postsPerDay(), 2, ',', '.') }} / Tag)
                 </p>

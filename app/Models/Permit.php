@@ -9,13 +9,6 @@ class Permit extends Model
 {
     use HasFactory;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'dra_permit';
-
     protected $fillable = [
         'name',
         'standard',

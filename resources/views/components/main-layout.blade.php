@@ -115,8 +115,8 @@
 		<p id="online">
 			@foreach ($online as $value)
 			<span>
-				@if ($value->user_legacy)
-				<a href="{{ route('user.view', $value->user) }}"><x-avatar :subject="$value->user_legacy" size="dropdown" />{{ $value->user_legacy->name }}</a>, {{ $value->time->format('H:i') }}<br />
+				@if ($value->user)
+				<a href="{{ route('user.view', $value->user) }}"><x-avatar :subject="$value->user" size="dropdown" />{{ $value->user->name }}</a>, {{ $value->time->format('H:i') }}<br />
 				@else
 				Unbekannter Nutzer, {{ $value->time->format('H:i') }}<br />
 				@endif

@@ -122,7 +122,7 @@
 
     <p>
         {{ number_format($thread->views, 0, ',', '.') }} Aufrufe,
-        {{ number_format($thread->post__total, 0, ',', '.') }} Beiträge.
+        {{ number_format($thread->post_count, 0, ',', '.') }} Beiträge.
         @if ($canEditThread)
         <a class="option edit" title="editieren" href="{{ route('thread.edit', ['thread' => $thread->id]) }}">editieren</a>
         @endif
@@ -134,7 +134,7 @@
     @include('board._pagination', ['paginator' => $posts, 'baseUrl' => url('/thread/view/'.$thread->id)])
 
     @forelse ($posts as $post)
-    @php($character = $post->characterModel)
+    @php($character = $post->character)
     <div id="post{{ $post->id }}" class="post">
         @if ($character)
         <x-avatar :subject="$character" size="post" />
@@ -179,14 +179,14 @@
         <div class="postcontent">
             @if ($post->transfers->isNotEmpty())
                 @foreach ($post->transfers as $transfer)
-                    @php($sender = $transfer->senderCharacter)
-                    @php($recipient = $transfer->recipientCharacter)
+                    @php($sender = $transfer->sender)
+                    @php($recipient = $transfer->recipient)
                     @if ($sender)
                     <a href="{{ url('/user/character/'.$sender->id) }}"><x-avatar :subject="$sender" size="list" :title="$sender->name" /></a>
                     @endif
                     &rarr;
                     @foreach ($transfer->items as $transferItem)
-                        @php($item = $transferItem->itemModel)
+                        @php($item = $transferItem->item)
                         @if ($item)
                         {{ $item->name }} ({{ $item->makeunitary($transferItem->stack) }})
                         @endif
@@ -275,7 +275,7 @@
             <h5>{{ $character->name }}</h5>
             <ul class="inventory-char" id="inventory-char-{{ $character->id }}">
                 @foreach ($character->inventory as $inventory)
-                @php($item = $inventory->itemModel)
+                @php($item = $inventory->item)
                 <li>
                     <input name="inventory[{{ $inventory->id }}]" value="{{ $inventory->id }}" id="inventory-{{ $inventory->id }}" type="checkbox">
                     <label for="inventory-{{ $inventory->id }}">

@@ -8,6 +8,7 @@ use App\Models\Character;
 use App\Models\Configuration;
 use App\Models\Permission;
 use App\Models\User;
+use App\Support\PermissionEntityType;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -45,8 +46,8 @@ class BoardController extends Controller
 
         $filters = $this->parseFilterString($filter);
         $query = ForumThread::query()
-            ->with(['boardModel', 'firstPost.characterModel', 'lastPost.characterModel'])
-            ->orderByDesc('post__last_time');
+            ->with(['board', 'firstPost.character', 'lastPost.character'])
+            ->orderByDesc('last_post_at');
 
         $this->applyFilters($query, $filters);
 
@@ -56,8 +57,8 @@ class BoardController extends Controller
             route('board.filter', ['filter' => $filter ?: null])
         );
 
-        $boards = Board::with('childBoards.childBoards')
-            ->where('board', 0)
+        $boards = Board::with('children.children')
+            ->where('parent_id', 0)
             ->orderBy('sort')
             ->orderByRaw('LOWER(name)')
             ->get();
@@ -88,10 +89,10 @@ class BoardController extends Controller
         $change = $change === 0 ? 0 : 1;
 
         Configuration::query()->updateOrCreate([
-            'table__recipient' => 0,
-            'recipient' => auth()->id(),
-            'table__subject' => 3,
-            'subject' => $board->id,
+            'recipient_type' => 0,
+            'recipient_id' => auth()->id(),
+            'subject_type' => PermissionEntityType::BOARD,
+            'subject_id' => $board->id,
             'setting' => 4,
         ], [
             'value' => $change,
@@ -109,9 +110,9 @@ class BoardController extends Controller
         $this->authorize('view', $board);
 
         $board->load([
-            'parentBoard',
-            'permissionsAsSubject.permit_legacy',
-            'permissionsAsSubject.recipient_legacy',
+            'parent',
+            'permissionRules.permit',
+            'permissionRules.recipient',
         ]);
 
         $permissionNames = [
@@ -137,10 +138,10 @@ class BoardController extends Controller
                     'value' => $this->permissionService->check($permit, $board, $request->user()),
                 ])
                 ->values(),
-            'specificPermissions' => $board->permissionsAsSubject
+            'specificPermissions' => $board->permissionRules
                 ->sortBy(fn (Permission $permission) => [
                     $permission->recipientName(),
-                    $permission->permit_legacy?->name ?? '',
+                    $permission->permit?->name ?? '',
                 ])
                 ->values(),
         ]);
@@ -194,7 +195,7 @@ class BoardController extends Controller
                         $users->orWhereKey((int) $query);
                     }
                 })
-                ->orderByDesc('post__total')
+                ->orderByDesc('post_count')
                 ->orderBy('name')
                 ->limit(10)
                 ->get()
@@ -219,7 +220,7 @@ class BoardController extends Controller
                         $characters->orWhereKey((int) $query);
                     }
                 })
-                ->orderByDesc('post__total')
+                ->orderByDesc('post_count')
                 ->orderBy('name')
                 ->limit(10)
                 ->get()
@@ -242,41 +243,41 @@ class BoardController extends Controller
         }
 
         if (($filters['board'] ?? []) !== []) {
-            $query->whereIn('board', $filters['board']);
+            $query->whereIn('board_id', $filters['board']);
         }
 
         if (($filters['user_first'] ?? []) !== []) {
-            $query->whereHas('firstPost', fn (Builder $post) => $post->whereIn('user', $filters['user_first']));
+            $query->whereHas('firstPost', fn (Builder $post) => $post->whereIn('user_id', $filters['user_first']));
         }
 
         if (($filters['user_contains'] ?? []) !== []) {
-            $query->whereHas('posts', fn (Builder $post) => $post->whereIn('user', $filters['user_contains']));
+            $query->whereHas('posts', fn (Builder $post) => $post->whereIn('user_id', $filters['user_contains']));
         }
 
         if (($filters['user_last'] ?? []) !== []) {
-            $query->whereHas('lastPost', fn (Builder $post) => $post->whereIn('user', $filters['user_last']));
+            $query->whereHas('lastPost', fn (Builder $post) => $post->whereIn('user_id', $filters['user_last']));
         }
 
         if (($filters['char_first'] ?? []) !== []) {
-            $query->whereHas('firstPost', fn (Builder $post) => $post->whereIn('character', $filters['char_first']));
+            $query->whereHas('firstPost', fn (Builder $post) => $post->whereIn('character_id', $filters['char_first']));
         }
 
         if (($filters['char_contains'] ?? []) !== []) {
-            $query->whereHas('posts', fn (Builder $post) => $post->whereIn('character', $filters['char_contains']));
+            $query->whereHas('posts', fn (Builder $post) => $post->whereIn('character_id', $filters['char_contains']));
         }
 
         if (($filters['char_last'] ?? []) !== []) {
-            $query->whereHas('lastPost', fn (Builder $post) => $post->whereIn('character', $filters['char_last']));
+            $query->whereHas('lastPost', fn (Builder $post) => $post->whereIn('character_id', $filters['char_last']));
         }
 
         if (($filters['date_first'] ?? '') !== '') {
             [$from, $to] = $this->dateFilterRange($filters['date_first']);
-            $this->applyDateRange($query, 'post__first_time', $from, $to);
+            $this->applyDateRange($query, 'first_post_at', $from, $to);
         }
 
         if (($filters['date_last'] ?? '') !== '') {
             [$from, $to] = $this->dateFilterRange($filters['date_last']);
-            $this->applyDateRange($query, 'post__last_time', $from, $to);
+            $this->applyDateRange($query, 'last_post_at', $from, $to);
         }
     }
 
@@ -389,11 +390,11 @@ class BoardController extends Controller
         }
 
         return Configuration::query()
-            ->where('table__recipient', 0)
-            ->where('recipient', auth()->id())
-            ->where('table__subject', 3)
+            ->where('recipient_type', 0)
+            ->where('recipient_id', auth()->id())
+            ->where('subject_type', PermissionEntityType::BOARD)
             ->where('setting', 4)
-            ->pluck('value', 'subject');
+            ->pluck('value', 'subject_id');
     }
 
     private function visibleBoardTree(Collection $boards): Collection
@@ -401,8 +402,8 @@ class BoardController extends Controller
         return $boards
             ->filter(fn (Board $board) => Gate::allows('view', $board))
             ->map(function (Board $board) {
-                if ($board->relationLoaded('childBoards')) {
-                    $board->setRelation('childBoards', $this->visibleBoardTree($board->childBoards));
+                if ($board->relationLoaded('children')) {
+                    $board->setRelation('children', $this->visibleBoardTree($board->children));
                 }
 
                 return $board;
@@ -423,7 +424,7 @@ class BoardController extends Controller
 
         return $boards->flatMap(function (Board $board) use ($viewedThreads) {
             $ids = collect();
-            $childIds = $this->viewedBoardIds($board->childBoards, $viewedThreads);
+            $childIds = $this->viewedBoardIds($board->children, $viewedThreads);
 
             if ($this->boardHasNewPosts($board, $viewedThreads) || $childIds->isNotEmpty()) {
                 $ids->push($board->id);
@@ -438,10 +439,10 @@ class BoardController extends Controller
         $lastVisit = auth()->user()?->lastvisit?->timestamp ?? 0;
 
         return ForumThread::query()
-            ->where('board', $board->id)
-            ->where('post__last_time', '>=', $lastVisit)
+            ->where('board_id', $board->id)
+            ->where('last_post_at', '>=', $lastVisit)
             ->get()
-            ->contains(fn (ForumThread $thread) => ($viewedThreads[$thread->id] ?? 0) < $thread->getRawOriginal('post__last_time'));
+            ->contains(fn (ForumThread $thread) => ($viewedThreads[$thread->id] ?? 0) < $thread->getRawOriginal('last_post_at'));
     }
 
     private function paginateCollection($items, int $page, string $path): LengthAwarePaginator

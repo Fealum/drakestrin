@@ -10,10 +10,10 @@
         <li><h4>Aktivität</h4>
             <ol>
                 <li><em>Charakter erstellt:</em> <x-datetime :time="$character->regdate" /></li>
-                @if ($character->userModel)
-                <li><em>Übergeordneter Nutzer:</em> <a href="{{ route('user.view', $character->userModel->id) }}">{{ $character->userModel->name }}</a></li>
+                @if ($character->user)
+                <li><em>Übergeordneter Nutzer:</em> <a href="{{ route('user.view', $character->user->id) }}">{{ $character->user->name }}</a></li>
                 @endif
-                <li><em>Beiträge insgesamt:</em> <a href="{{ url('/board/filter/char_contains:'.$character->id) }}">{{ number_format($character->post__total ?? 0, 0, ',', '.') }}</a></li>
+                <li><em>Beiträge insgesamt:</em> <a href="{{ url('/board/filter/char_contains:'.$character->id) }}">{{ number_format($character->post_count ?? 0, 0, ',', '.') }}</a></li>
                 <li><em>Beiträge pro Tag:</em> {{ number_format($character->postsPerDay(), 2, ',', '.') }}</li>
             </ol>
         </li>
@@ -58,7 +58,7 @@
         <li><h4>Besitz</h4>
             <ol class="inventory">
                 @foreach ($character->inventory as $inventory)
-                @php($item = $inventory->itemModel)
+                @php($item = $inventory->item)
                 @if ($item)
                 <li>
                     <img src="{{ url('/img/item.img/'.$item->img.'.png') }}" title="{{ $item->name }}" alt="">

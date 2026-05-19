@@ -9,8 +9,8 @@
             <ul>
                 @foreach ($user->characters as $character)
                 <li>
-                    <input name="character__avatar" value="{{ $character->id }}" id="character__avatar-{{ $character->id }}" type="radio" @checked((int) old('character__avatar', $user->character__avatar) === $character->id)>
-                    <label for="character__avatar-{{ $character->id }}"><x-avatar :subject="$character" size="list" :title="$character->name" /></label>
+                    <input name="avatar_character_id" value="{{ $character->id }}" id="avatar_character_id-{{ $character->id }}" type="radio" @checked((int) old('avatar_character_id', $user->avatar_character_id) === $character->id)>
+                    <label for="avatar_character_id-{{ $character->id }}"><x-avatar :subject="$character" size="list" :title="$character->name" /></label>
                 </li>
                 @endforeach
             </ul>
@@ -52,6 +52,6 @@
     </form>
 
     <h3>Nutzerkonto</h3>
-    <em>Beiträge:</em> {{ number_format($user->post__total ?? 0, 0, ',', '.') }}<br>
+    <em>Beiträge:</em> {{ number_format($user->post_count ?? 0, 0, ',', '.') }}<br>
     <em>Mitglied seit:</em> <x-datetime :time="$user->regdate" /><br>
 </x-main-layout>

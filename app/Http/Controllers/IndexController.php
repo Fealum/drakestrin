@@ -14,11 +14,11 @@ class IndexController extends Controller
         $postCount7d = Post::where('time', '>=', now()->subDays(7)->timestamp)->count();
 
         $word = Word::with(['translationKeysFrom.toWord.wordType'])
-            ->where('language', 2)
+            ->where('language_id', 2)
             ->inRandomOrder()
             ->first();
 
-        $news = Post::where('thread', 2108)
+        $news = Post::where('thread_id', 2108)
             ->orderByDesc('time')
             ->first();
 

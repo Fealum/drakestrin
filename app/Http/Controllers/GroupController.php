@@ -22,8 +22,8 @@ class GroupController extends Controller
 
         $users = $group->users()
             ->with('characters')
-            ->select('dra_user.*')
-            ->orderByRaw('LOWER(dra_user.name)')
+            ->select('users.*')
+            ->orderByRaw('LOWER(users.name)')
             ->get();
 
         return view('group.view', [

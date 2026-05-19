@@ -28,7 +28,7 @@ class UserReadTest extends TestCase
         $this->prefix = '000_ct_user_' . substr(str_replace('.', '_', uniqid('', true)), 0, 8);
         $this->timestamp = now()->subDays(10)->timestamp;
 
-        $this->viewerId = DB::table('dra_user')->insertGetId([
+        $this->viewerId = DB::table('users')->insertGetId([
             'name' => $this->prefix . '_viewer',
             'password' => 'secret',
             'email' => $this->prefix . '_viewer@example.test',
@@ -43,7 +43,7 @@ class UserReadTest extends TestCase
             'wohnort' => '',
         ]);
 
-        $this->userId = DB::table('dra_user')->insertGetId([
+        $this->userId = DB::table('users')->insertGetId([
             'name' => $this->prefix . '_member',
             'password' => 'secret',
             'email' => $this->prefix . '_member@example.test',
@@ -57,13 +57,13 @@ class UserReadTest extends TestCase
             'work' => $this->prefix . '_work',
             'usertext' => $this->prefix . "_profile\ntext",
             'gender' => 1,
-            'post__total' => 12,
+            'post_count' => 12,
             'wohnort' => '',
         ]);
 
-        $this->characterId = DB::table('dra_character')->insertGetId([
+        $this->characterId = DB::table('characters')->insertGetId([
             'name' => $this->prefix . '_character',
-            'post__total' => 7,
+            'post_count' => 7,
             'regdate' => $this->timestamp,
             'birthday' => 2048,
             'interests' => $this->prefix . '_char_interests',
@@ -71,40 +71,40 @@ class UserReadTest extends TestCase
             'work' => $this->prefix . '_char_work',
             'gender' => 2,
             'usertext' => $this->prefix . '_char_text',
-            'user' => $this->userId,
+            'user_id' => $this->userId,
         ]);
 
-        DB::table('dra_group2user')->insert([
-            'user' => $this->userId,
-            'group' => 2,
+        DB::table('group_user')->insert([
+            'user_id' => $this->userId,
+            'group_id' => 2,
         ]);
 
         $this->protocolId = self::TEST_PROTOCOL_ID;
-        DB::table('dra_protocol')->updateOrInsert(['id' => $this->protocolId], [
+        DB::table('protocols')->updateOrInsert(['id' => $this->protocolId], [
             'name' => 'Proto',
             'format' => '',
             'link' => 'https://example.test/\1',
         ]);
 
-        $this->contactId = DB::table('dra_user_contact')->insertGetId([
-            'user' => $this->userId,
-            'protocol' => $this->protocolId,
+        $this->contactId = DB::table('user_contacts')->insertGetId([
+            'user_id' => $this->userId,
+            'protocol_id' => $this->protocolId,
             'contact' => $this->prefix . '_contact',
         ]);
     }
 
     protected function tearDown(): void
     {
-        DB::table('dra_user_contact')
+        DB::table('user_contacts')
             ->where('id', $this->contactId)
-            ->orWhere('user', $this->userId)
+            ->orWhere('user_id', $this->userId)
             ->delete();
-        DB::table('dra_protocol')->where('id', $this->protocolId)->delete();
-        DB::table('dra_permission')->whereIn('recipient', [$this->viewerId, $this->userId])->delete();
-        DB::table('dra_group2user')->where('user', $this->userId)->delete();
-        DB::table('dra_character')->where('name', 'like', $this->prefix . '%')->delete();
-        DB::table('dra_online')->whereIn('user', [$this->viewerId, $this->userId])->delete();
-        DB::table('dra_user')->where('name', 'like', $this->prefix . '%')->delete();
+        DB::table('protocols')->where('id', $this->protocolId)->delete();
+        DB::table('permissions')->whereIn('recipient_id', [$this->viewerId, $this->userId])->delete();
+        DB::table('group_user')->where('user_id', $this->userId)->delete();
+        DB::table('characters')->where('name', 'like', $this->prefix . '%')->delete();
+        DB::table('onlines')->whereIn('user_id', [$this->viewerId, $this->userId])->delete();
+        DB::table('users')->where('name', 'like', $this->prefix . '%')->delete();
 
         parent::tearDown();
     }
@@ -197,20 +197,20 @@ class UserReadTest extends TestCase
             'name' => $this->prefix . '_new_character',
         ]);
 
-        $characterId = DB::table('dra_character')
+        $characterId = DB::table('characters')
             ->where('name', $this->prefix . '_new_character')
             ->value('id');
 
         $this->assertNotNull($characterId);
         $response->assertRedirect('/user/editcharacter/' . $characterId);
-        $this->assertDatabaseHas('dra_character', [
+        $this->assertDatabaseHas('characters', [
             'id' => $characterId,
-            'user' => $this->userId,
+            'user_id' => $this->userId,
             'usertext' => '',
         ]);
     }
 
-    public function test_user_owner_can_edit_profile_and_select_character_avatar(): void
+    public function test_user_owner_can_edit_profile_and_select_avatarCharacter(): void
     {
         $this->actingAs(User::findOrFail($this->userId));
 
@@ -219,7 +219,7 @@ class UserReadTest extends TestCase
         $form->assertSee('Avatar des folgenden Charakters als Nutzeravatar benutzen');
 
         $response = $this->post('/user/edit/' . $this->userId, [
-            'character__avatar' => $this->characterId,
+            'avatar_character_id' => $this->characterId,
             'usertext' => $this->prefix . '_updated_usertext',
             'gender' => 3,
             'birthday' => 2999,
@@ -230,9 +230,9 @@ class UserReadTest extends TestCase
         ]);
 
         $response->assertRedirect('/user/view/' . $this->userId);
-        $this->assertDatabaseHas('dra_user', [
+        $this->assertDatabaseHas('users', [
             'id' => $this->userId,
-            'character__avatar' => $this->characterId,
+            'avatar_character_id' => $this->characterId,
             'usertext' => $this->prefix . '_updated_usertext',
             'gender' => 3,
             'birthday' => 2999,
@@ -251,13 +251,13 @@ class UserReadTest extends TestCase
         $createForm->assertSee('Neue Kontaktmöglichkeit erstellen');
 
         $create = $this->post('/user/createcontact/' . $this->userId, [
-            'protocol' => $this->protocolId,
+            'protocol_id' => $this->protocolId,
             'contact' => $this->prefix . '_new_contact',
         ]);
         $create->assertRedirect('/user/view/' . $this->userId);
 
-        $contactId = DB::table('dra_user_contact')
-            ->where('user', $this->userId)
+        $contactId = DB::table('user_contacts')
+            ->where('user_id', $this->userId)
             ->where('contact', $this->prefix . '_new_contact')
             ->value('id');
 
@@ -268,11 +268,11 @@ class UserReadTest extends TestCase
         $editForm->assertSee('Kontaktmöglichkeit bearbeiten');
 
         $edit = $this->post('/user/editcontact/' . $contactId, [
-            'protocol' => $this->protocolId,
+            'protocol_id' => $this->protocolId,
             'contact' => $this->prefix . '_changed_contact',
         ]);
         $edit->assertRedirect('/user/view/' . $this->userId);
-        $this->assertDatabaseHas('dra_user_contact', [
+        $this->assertDatabaseHas('user_contacts', [
             'id' => $contactId,
             'contact' => $this->prefix . '_changed_contact',
         ]);
@@ -285,7 +285,7 @@ class UserReadTest extends TestCase
             'delete' => 1,
         ]);
         $delete->assertRedirect('/user/view/' . $this->userId);
-        $this->assertDatabaseMissing('dra_user_contact', [
+        $this->assertDatabaseMissing('user_contacts', [
             'id' => $contactId,
         ]);
     }
@@ -313,7 +313,7 @@ class UserReadTest extends TestCase
         ]);
 
         $response->assertRedirect('/user/character/' . $this->characterId);
-        $this->assertDatabaseHas('dra_character', [
+        $this->assertDatabaseHas('characters', [
             'id' => $this->characterId,
             'usertext' => $this->prefix . '_updated_text',
             'gender' => 1,
@@ -329,12 +329,12 @@ class UserReadTest extends TestCase
 
     private function grantPermit(int $userId, string $permitName, int $value = 1): void
     {
-        DB::table('dra_permission')->insert([
-            'table__recipient' => 0,
-            'recipient' => $userId,
-            'table__subject' => 0,
-            'subject' => 0,
-            'permit' => DB::table('dra_permit')->where('name', $permitName)->value('id'),
+        DB::table('permissions')->insert([
+            'recipient_type' => 0,
+            'recipient_id' => $userId,
+            'subject_type' => 0,
+            'subject_id' => 0,
+            'permit_id' => DB::table('permits')->where('name', $permitName)->value('id'),
             'value' => $value,
         ]);
 

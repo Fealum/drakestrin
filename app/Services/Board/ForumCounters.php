@@ -12,23 +12,23 @@ class ForumCounters
     public function refreshThread(Thread $thread): void
     {
         $firstPost = Post::query()
-            ->where('thread', $thread->id)
+            ->where('thread_id', $thread->id)
             ->orderBy('time')
             ->orderBy('id')
             ->first();
 
         $lastPost = Post::query()
-            ->where('thread', $thread->id)
+            ->where('thread_id', $thread->id)
             ->orderByDesc('time')
             ->orderByDesc('id')
             ->first();
 
         $thread->update([
-            'post__total' => Post::where('thread', $thread->id)->count(),
-            'post__first' => $firstPost?->id ?? 0,
-            'post__first_time' => $firstPost?->time?->timestamp ?? 0,
-            'post__last' => $lastPost?->id ?? 0,
-            'post__last_time' => $lastPost?->time?->timestamp ?? 0,
+            'post_count' => Post::where('thread_id', $thread->id)->count(),
+            'first_post_id' => $firstPost?->id ?? 0,
+            'first_post_at' => $firstPost?->time?->timestamp ?? 0,
+            'last_post_id' => $lastPost?->id ?? 0,
+            'last_post_at' => $lastPost?->time?->timestamp ?? 0,
         ]);
     }
 
@@ -39,31 +39,31 @@ class ForumCounters
         }
 
         $lastPost = Post::query()
-            ->where('board', $board->id)
+            ->where('board_id', $board->id)
             ->orderByDesc('time')
             ->orderByDesc('id')
             ->first();
 
         $board->update([
-            'thread__total' => Thread::where('board', $board->id)->count(),
-            'post__total' => Post::where('board', $board->id)->count(),
-            'post__last' => $lastPost?->id ?? 0,
-            'post__last_time' => $lastPost?->time?->timestamp ?? 0,
+            'thread_count' => Thread::where('board_id', $board->id)->count(),
+            'post_count' => Post::where('board_id', $board->id)->count(),
+            'last_post_id' => $lastPost?->id ?? 0,
+            'last_post_at' => $lastPost?->time?->timestamp ?? 0,
         ]);
     }
 
     public function refreshUser(int $userId): void
     {
-        DB::table('dra_user')
+        DB::table('users')
             ->where('id', $userId)
-            ->update(['post__total' => Post::where('user', $userId)->count()]);
+            ->update(['post_count' => Post::where('user_id', $userId)->count()]);
     }
 
     public function refreshCharacter(int $characterId): void
     {
-        DB::table('dra_character')
+        DB::table('characters')
             ->where('id', $characterId)
-            ->update(['post__total' => Post::where('character', $characterId)->count()]);
+            ->update(['post_count' => Post::where('character_id', $characterId)->count()]);
     }
 
     public function refreshUsers(iterable $userIds): void

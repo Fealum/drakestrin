@@ -28,7 +28,7 @@ class CompanyReadTest extends TestCase
         $this->prefix = '000_ct_company_' . substr(str_replace('.', '_', uniqid('', true)), 0, 8);
         $this->timestamp = now()->subDays(10)->timestamp;
 
-        $this->userId = DB::table('dra_user')->insertGetId([
+        $this->userId = DB::table('users')->insertGetId([
             'name' => $this->prefix . '_owner',
             'password' => 'secret',
             'email' => $this->prefix . '_owner@example.test',
@@ -43,7 +43,7 @@ class CompanyReadTest extends TestCase
             'wohnort' => '',
         ]);
 
-        $this->otherUserId = DB::table('dra_user')->insertGetId([
+        $this->otherUserId = DB::table('users')->insertGetId([
             'name' => $this->prefix . '_visitor',
             'password' => 'secret',
             'email' => $this->prefix . '_visitor@example.test',
@@ -58,9 +58,9 @@ class CompanyReadTest extends TestCase
             'wohnort' => '',
         ]);
 
-        $this->characterId = DB::table('dra_character')->insertGetId([
+        $this->characterId = DB::table('characters')->insertGetId([
             'name' => $this->prefix . '_character',
-            'post__total' => 0,
+            'post_count' => 0,
             'regdate' => $this->timestamp,
             'birthday' => 0,
             'interests' => '',
@@ -68,32 +68,32 @@ class CompanyReadTest extends TestCase
             'work' => '',
             'gender' => 0,
             'usertext' => '',
-            'user' => $this->userId,
+            'user_id' => $this->userId,
         ]);
 
-        $territoryId = (int) DB::table('dra_territory')->value('id');
+        $territoryId = (int) DB::table('territories')->value('id');
 
-        $this->companyId = DB::table('dra_company')->insertGetId([
+        $this->companyId = DB::table('companies')->insertGetId([
             'name' => $this->prefix . '_company',
             'type' => 2,
-            'character' => $this->characterId,
+            'character_id' => $this->characterId,
             'description' => $this->prefix . '_description',
             'text' => '',
-            'territory' => $territoryId,
-            'thread' => 0,
+            'territory_id' => $territoryId,
+            'thread_id' => 0,
             'url' => '',
             'volksgeld' => 0,
         ]);
 
-        $this->workerId = DB::table('dra_company_worker')->insertGetId([
+        $this->workerId = DB::table('company_workers')->insertGetId([
             'name' => $this->prefix . '_worker',
             'type' => 3,
-            'company' => $this->companyId,
+            'company_id' => $this->companyId,
             'hired' => $this->timestamp,
             'paid' => $this->timestamp,
         ]);
 
-        $this->itemId = DB::table('dra_item')->insertGetId([
+        $this->itemId = DB::table('items')->insertGetId([
             'name' => $this->prefix . '_item',
             'stackable' => 1,
             'description' => '',
@@ -102,7 +102,7 @@ class CompanyReadTest extends TestCase
             'unit' => '',
         ]);
 
-        $this->toolItemId = DB::table('dra_item')->insertGetId([
+        $this->toolItemId = DB::table('items')->insertGetId([
             'name' => $this->prefix . '_tool',
             'stackable' => 0,
             'description' => '',
@@ -111,7 +111,7 @@ class CompanyReadTest extends TestCase
             'unit' => '',
         ]);
 
-        $this->outputItemId = DB::table('dra_item')->insertGetId([
+        $this->outputItemId = DB::table('items')->insertGetId([
             'name' => $this->prefix . '_output',
             'stackable' => 1,
             'description' => '',
@@ -120,17 +120,17 @@ class CompanyReadTest extends TestCase
             'unit' => '',
         ]);
 
-        DB::table('dra_inventory')->insert([
-            'item' => $this->itemId,
+        DB::table('inventories')->insert([
+            'item_id' => $this->itemId,
             'stack' => 3,
             'wear' => -2,
-            'table__owner' => 2,
-            'owner' => $this->companyId,
+            'owner_type' => 2,
+            'owner_id' => $this->companyId,
             'timelastvalue' => $this->timestamp,
             'data' => '',
         ]);
 
-        $this->labourId = DB::table('dra_labour')->insertGetId([
+        $this->labourId = DB::table('labours')->insertGetId([
             'name' => $this->prefix . '_labour',
             'type' => 2,
             'duration' => 120,
@@ -140,9 +140,9 @@ class CompanyReadTest extends TestCase
             'ergebnis' => '',
         ]);
 
-        DB::table('dra_labour_active')->insert([
-            'company_worker' => $this->workerId,
-            'labour' => $this->labourId,
+        DB::table('labour_actives')->insert([
+            'company_worker_id' => $this->workerId,
+            'labour_id' => $this->labourId,
             'since' => $this->timestamp,
             'until' => $this->timestamp + 120,
             'prodas' => -2,
@@ -154,19 +154,19 @@ class CompanyReadTest extends TestCase
 
     protected function tearDown(): void
     {
-        DB::table('dra_labour_active')->where('company_worker', $this->workerId)->delete();
-        DB::table('dra_labour_component')
-            ->where('labour', $this->labourId)
-            ->orWhereIn('item', [$this->itemId, $this->toolItemId, $this->outputItemId])
+        DB::table('labour_actives')->where('company_worker_id', $this->workerId)->delete();
+        DB::table('labour_components')
+            ->where('labour_id', $this->labourId)
+            ->orWhereIn('item_id', [$this->itemId, $this->toolItemId, $this->outputItemId])
             ->delete();
-        DB::table('dra_labour')->where('id', $this->labourId)->delete();
-        DB::table('dra_inventory')->where('owner', $this->companyId)->where('table__owner', 2)->delete();
-        DB::table('dra_item')->whereIn('id', [$this->itemId, $this->toolItemId, $this->outputItemId])->delete();
-        DB::table('dra_company_worker')->where('company', $this->companyId)->delete();
-        DB::table('dra_company')->where('id', $this->companyId)->delete();
-        DB::table('dra_character')->where('id', $this->characterId)->delete();
-        DB::table('dra_online')->whereIn('user', [$this->userId, $this->otherUserId])->delete();
-        DB::table('dra_user')->whereIn('id', [$this->userId, $this->otherUserId])->delete();
+        DB::table('labours')->where('id', $this->labourId)->delete();
+        DB::table('inventories')->where('owner_id', $this->companyId)->where('owner_type', 2)->delete();
+        DB::table('items')->whereIn('id', [$this->itemId, $this->toolItemId, $this->outputItemId])->delete();
+        DB::table('company_workers')->where('company_id', $this->companyId)->delete();
+        DB::table('companies')->where('id', $this->companyId)->delete();
+        DB::table('characters')->where('id', $this->characterId)->delete();
+        DB::table('onlines')->whereIn('user_id', [$this->userId, $this->otherUserId])->delete();
+        DB::table('users')->whereIn('id', [$this->userId, $this->otherUserId])->delete();
 
         parent::tearDown();
     }
@@ -243,8 +243,8 @@ class CompanyReadTest extends TestCase
         $response = $this->get('/company/hire/' . $this->companyId . '/4');
 
         $response->assertRedirect('/company/view/' . $this->companyId);
-        $this->assertDatabaseHas('dra_company_worker', [
-            'company' => $this->companyId,
+        $this->assertDatabaseHas('company_workers', [
+            'company_id' => $this->companyId,
             'type' => 4,
         ]);
 
@@ -260,17 +260,17 @@ class CompanyReadTest extends TestCase
         $response = $this->get('/company/hire/' . $this->companyId . '/4');
 
         $response->assertForbidden();
-        $this->assertSame(1, DB::table('dra_company_worker')->where('company', $this->companyId)->count());
+        $this->assertSame(1, DB::table('company_workers')->where('company_id', $this->companyId)->count());
     }
 
     public function test_company_can_only_have_one_clerk(): void
     {
         $this->actingAs(User::findOrFail($this->userId));
 
-        DB::table('dra_company_worker')->insert([
+        DB::table('company_workers')->insert([
             'name' => $this->prefix . '_clerk',
             'type' => 5,
-            'company' => $this->companyId,
+            'company_id' => $this->companyId,
             'hired' => $this->timestamp,
             'paid' => $this->timestamp,
         ]);
@@ -278,7 +278,7 @@ class CompanyReadTest extends TestCase
         $response = $this->get('/company/hire/' . $this->companyId . '/5');
 
         $response->assertRedirect('/company/view/' . $this->companyId);
-        $this->assertSame(1, DB::table('dra_company_worker')->where('company', $this->companyId)->where('type', 5)->count());
+        $this->assertSame(1, DB::table('company_workers')->where('company_id', $this->companyId)->where('type', 5)->count());
 
         $detail = $this->followingRedirects()->get('/company/view/' . $this->companyId);
         $detail->assertOk();
@@ -289,16 +289,16 @@ class CompanyReadTest extends TestCase
     {
         $this->actingAs(User::findOrFail($this->userId));
 
-        DB::table('dra_company_worker')
+        DB::table('company_workers')
             ->where('id', $this->workerId)
             ->update(['paid' => now()->timestamp - (3 * 2592000)]);
 
-        DB::table('dra_inventory')->insert([
-            'item' => 1,
+        DB::table('inventories')->insert([
+            'item_id' => 1,
             'stack' => 50000,
             'wear' => -1,
-            'table__owner' => 2,
-            'owner' => $this->companyId,
+            'owner_type' => 2,
+            'owner_id' => $this->companyId,
             'timelastvalue' => $this->timestamp,
             'data' => '',
         ]);
@@ -306,14 +306,14 @@ class CompanyReadTest extends TestCase
         $response = $this->get('/company/fire/' . $this->workerId);
 
         $response->assertRedirect('/company/view/' . $this->companyId);
-        $this->assertDatabaseMissing('dra_company_worker', ['id' => $this->workerId]);
-        $this->assertDatabaseMissing('dra_labour_active', ['company_worker' => $this->workerId]);
-        $this->assertDatabaseHas('dra_inventory', [
-            'item' => 1,
+        $this->assertDatabaseMissing('company_workers', ['id' => $this->workerId]);
+        $this->assertDatabaseMissing('labour_actives', ['company_worker_id' => $this->workerId]);
+        $this->assertDatabaseHas('inventories', [
+            'item_id' => 1,
             'stack' => 0,
             'wear' => -1,
-            'table__owner' => 2,
-            'owner' => $this->companyId,
+            'owner_type' => 2,
+            'owner_id' => $this->companyId,
         ]);
 
         $detail = $this->followingRedirects()->get('/company/view/' . $this->companyId);
@@ -331,8 +331,8 @@ class CompanyReadTest extends TestCase
         $response = $this->get('/company/fire/' . $this->workerId);
 
         $response->assertForbidden();
-        $this->assertDatabaseHas('dra_company_worker', ['id' => $this->workerId]);
-        $this->assertDatabaseHas('dra_labour_active', ['company_worker' => $this->workerId]);
+        $this->assertDatabaseHas('company_workers', ['id' => $this->workerId]);
+        $this->assertDatabaseHas('labour_actives', ['company_worker_id' => $this->workerId]);
     }
 
     public function test_company_owner_can_pay_due_worker_salaries(): void
@@ -343,24 +343,24 @@ class CompanyReadTest extends TestCase
         $firstPaidAt = now()->timestamp - (2 * $period);
         $secondPaidAt = now()->timestamp - (3 * $period);
 
-        DB::table('dra_company_worker')
+        DB::table('company_workers')
             ->where('id', $this->workerId)
             ->update(['paid' => $firstPaidAt]);
 
-        $secondWorkerId = DB::table('dra_company_worker')->insertGetId([
+        $secondWorkerId = DB::table('company_workers')->insertGetId([
             'name' => $this->prefix . '_second_worker',
             'type' => 1,
-            'company' => $this->companyId,
+            'company_id' => $this->companyId,
             'hired' => $this->timestamp,
             'paid' => $secondPaidAt,
         ]);
 
-        DB::table('dra_inventory')->insert([
-            'item' => 1,
+        DB::table('inventories')->insert([
+            'item_id' => 1,
             'stack' => 200000,
             'wear' => -1,
-            'table__owner' => 2,
-            'owner' => $this->companyId,
+            'owner_type' => 2,
+            'owner_id' => $this->companyId,
             'timelastvalue' => $this->timestamp,
             'data' => '',
         ]);
@@ -368,18 +368,18 @@ class CompanyReadTest extends TestCase
         $response = $this->get('/company/pay/' . $this->companyId);
 
         $response->assertRedirect('/company/view/' . $this->companyId);
-        $this->assertDatabaseHas('dra_inventory', [
-            'item' => 1,
+        $this->assertDatabaseHas('inventories', [
+            'item_id' => 1,
             'stack' => 30000,
             'wear' => -1,
-            'table__owner' => 2,
-            'owner' => $this->companyId,
+            'owner_type' => 2,
+            'owner_id' => $this->companyId,
         ]);
-        $this->assertDatabaseHas('dra_company_worker', [
+        $this->assertDatabaseHas('company_workers', [
             'id' => $this->workerId,
             'paid' => $firstPaidAt + (2 * $period),
         ]);
-        $this->assertDatabaseHas('dra_company_worker', [
+        $this->assertDatabaseHas('company_workers', [
             'id' => $secondWorkerId,
             'paid' => $secondPaidAt + (3 * $period),
         ]);
@@ -396,24 +396,24 @@ class CompanyReadTest extends TestCase
         $period = 2592000;
         $paidAt = now()->timestamp - (2 * $period);
 
-        DB::table('dra_company_worker')
+        DB::table('company_workers')
             ->where('id', $this->workerId)
             ->update(['paid' => $paidAt]);
 
-        $secondWorkerId = DB::table('dra_company_worker')->insertGetId([
+        $secondWorkerId = DB::table('company_workers')->insertGetId([
             'name' => $this->prefix . '_unpaid_worker',
             'type' => 1,
-            'company' => $this->companyId,
+            'company_id' => $this->companyId,
             'hired' => $this->timestamp,
             'paid' => $paidAt,
         ]);
 
-        DB::table('dra_inventory')->insert([
-            'item' => 1,
+        DB::table('inventories')->insert([
+            'item_id' => 1,
             'stack' => 80000,
             'wear' => -1,
-            'table__owner' => 2,
-            'owner' => $this->companyId,
+            'owner_type' => 2,
+            'owner_id' => $this->companyId,
             'timelastvalue' => $this->timestamp,
             'data' => '',
         ]);
@@ -421,18 +421,18 @@ class CompanyReadTest extends TestCase
         $response = $this->get('/company/pay/' . $this->companyId);
 
         $response->assertRedirect('/company/view/' . $this->companyId);
-        $this->assertDatabaseHas('dra_inventory', [
-            'item' => 1,
+        $this->assertDatabaseHas('inventories', [
+            'item_id' => 1,
             'stack' => 0,
             'wear' => -1,
-            'table__owner' => 2,
-            'owner' => $this->companyId,
+            'owner_type' => 2,
+            'owner_id' => $this->companyId,
         ]);
-        $this->assertDatabaseHas('dra_company_worker', [
+        $this->assertDatabaseHas('company_workers', [
             'id' => $this->workerId,
             'paid' => $paidAt + (2 * $period),
         ]);
-        $this->assertDatabaseHas('dra_company_worker', [
+        $this->assertDatabaseHas('company_workers', [
             'id' => $secondWorkerId,
             'paid' => $paidAt,
         ]);
@@ -480,7 +480,7 @@ class CompanyReadTest extends TestCase
     {
         $this->actingAs(User::findOrFail($this->userId));
         $this->prepareAssignableLabour();
-        DB::table('dra_labour_active')->where('company_worker', $this->workerId)->delete();
+        DB::table('labour_actives')->where('company_worker_id', $this->workerId)->delete();
 
         $response = $this->post('/company/worker/' . $this->workerId, [
             'labour' => $this->labourId,
@@ -493,26 +493,26 @@ class CompanyReadTest extends TestCase
         ]);
 
         $response->assertRedirect('/company/worker/' . $this->workerId);
-        $this->assertDatabaseHas('dra_labour_active', [
-            'company_worker' => $this->workerId,
-            'labour' => $this->labourId,
+        $this->assertDatabaseHas('labour_actives', [
+            'company_worker_id' => $this->workerId,
+            'labour_id' => $this->labourId,
             'prodas' => 25,
             'quantity' => 2,
             'instances' => 2,
             'nextinsta' => 0,
         ]);
-        $this->assertDatabaseHas('dra_inventory', [
-            'item' => $this->itemId,
+        $this->assertDatabaseHas('inventories', [
+            'item_id' => $this->itemId,
             'stack' => 1,
             'wear' => -2,
-            'table__owner' => 2,
-            'owner' => $this->companyId,
+            'owner_type' => 2,
+            'owner_id' => $this->companyId,
         ]);
-        $this->assertDatabaseHas('dra_inventory', [
-            'item' => $this->toolItemId,
+        $this->assertDatabaseHas('inventories', [
+            'item_id' => $this->toolItemId,
             'wear' => -3,
-            'table__owner' => 2,
-            'owner' => $this->companyId,
+            'owner_type' => 2,
+            'owner_id' => $this->companyId,
         ]);
 
         $detail = $this->followingRedirects()->get('/company/worker/' . $this->workerId);
@@ -535,17 +535,17 @@ class CompanyReadTest extends TestCase
         ]);
 
         $response->assertForbidden();
-        $this->assertSame(1, DB::table('dra_labour_active')->where('company_worker', $this->workerId)->count());
+        $this->assertSame(1, DB::table('labour_actives')->where('company_worker_id', $this->workerId)->count());
     }
 
     public function test_assign_labour_fails_when_required_inventory_is_missing(): void
     {
         $this->actingAs(User::findOrFail($this->userId));
         $this->prepareAssignableLabour();
-        DB::table('dra_inventory')
-            ->where('item', $this->itemId)
-            ->where('owner', $this->companyId)
-            ->where('table__owner', 2)
+        DB::table('inventories')
+            ->where('item_id', $this->itemId)
+            ->where('owner_id', $this->companyId)
+            ->where('owner_type', 2)
             ->update(['stack' => 1]);
 
         $response = $this->post('/company/worker/' . $this->workerId, [
@@ -558,7 +558,7 @@ class CompanyReadTest extends TestCase
         ]);
 
         $response->assertRedirect('/company/worker/' . $this->workerId);
-        $this->assertSame(1, DB::table('dra_labour_active')->where('company_worker', $this->workerId)->count());
+        $this->assertSame(1, DB::table('labour_actives')->where('company_worker_id', $this->workerId)->count());
 
         $detail = $this->followingRedirects()->get('/company/worker/' . $this->workerId);
         $detail->assertOk();
@@ -570,12 +570,12 @@ class CompanyReadTest extends TestCase
         $this->prepareAssignableLabour();
         $now = now()->timestamp;
 
-        DB::table('dra_company_worker')
+        DB::table('company_workers')
             ->where('id', $this->workerId)
             ->update(['paid' => $now]);
 
-        DB::table('dra_labour_active')
-            ->where('company_worker', $this->workerId)
+        DB::table('labour_actives')
+            ->where('company_worker_id', $this->workerId)
             ->update([
                 'until' => $now - 120,
                 'prodas' => -2,
@@ -583,35 +583,35 @@ class CompanyReadTest extends TestCase
                 'instances' => 1,
             ]);
 
-        DB::table('dra_inventory')
-            ->where('item', $this->toolItemId)
-            ->where('owner', $this->companyId)
-            ->where('table__owner', 2)
+        DB::table('inventories')
+            ->where('item_id', $this->toolItemId)
+            ->where('owner_id', $this->companyId)
+            ->where('owner_type', 2)
             ->update(['wear' => -3]);
 
         $stats = app(LabourProcessor::class)->processDue($now);
 
         $this->assertSame(1, $stats['finished']);
-        $this->assertDatabaseMissing('dra_labour_active', ['company_worker' => $this->workerId]);
-        $this->assertDatabaseHas('dra_inventory', [
-            'item' => $this->itemId,
+        $this->assertDatabaseMissing('labour_actives', ['company_worker_id' => $this->workerId]);
+        $this->assertDatabaseHas('inventories', [
+            'item_id' => $this->itemId,
             'stack' => 1,
             'wear' => -2,
-            'table__owner' => 2,
-            'owner' => $this->companyId,
+            'owner_type' => 2,
+            'owner_id' => $this->companyId,
         ]);
-        $this->assertDatabaseHas('dra_inventory', [
-            'item' => $this->toolItemId,
+        $this->assertDatabaseHas('inventories', [
+            'item_id' => $this->toolItemId,
             'wear' => -2,
-            'table__owner' => 2,
-            'owner' => $this->companyId,
+            'owner_type' => 2,
+            'owner_id' => $this->companyId,
         ]);
-        $this->assertDatabaseHas('dra_inventory', [
-            'item' => $this->outputItemId,
+        $this->assertDatabaseHas('inventories', [
+            'item_id' => $this->outputItemId,
             'stack' => 1,
             'wear' => -2,
-            'table__owner' => 2,
-            'owner' => $this->companyId,
+            'owner_type' => 2,
+            'owner_id' => $this->companyId,
         ]);
     }
 
@@ -620,54 +620,54 @@ class CompanyReadTest extends TestCase
         $this->prepareAssignableLabour();
         $now = now()->timestamp;
 
-        DB::table('dra_company_worker')
+        DB::table('company_workers')
             ->where('id', $this->workerId)
             ->update(['paid' => $now - 7776001]);
 
-        DB::table('dra_labour_active')
-            ->where('company_worker', $this->workerId)
+        DB::table('labour_actives')
+            ->where('company_worker_id', $this->workerId)
             ->update(['until' => $now - 120]);
 
         $stats = app(LabourProcessor::class)->processDue($now);
 
         $this->assertGreaterThanOrEqual(1, $stats['skipped_unpaid']);
-        $this->assertDatabaseHas('dra_labour_active', ['company_worker' => $this->workerId]);
-        $this->assertDatabaseMissing('dra_inventory', [
-            'item' => $this->outputItemId,
-            'owner' => $this->companyId,
-            'table__owner' => 2,
+        $this->assertDatabaseHas('labour_actives', ['company_worker_id' => $this->workerId]);
+        $this->assertDatabaseMissing('inventories', [
+            'item_id' => $this->outputItemId,
+            'owner_id' => $this->companyId,
+            'owner_type' => 2,
         ]);
     }
 
     private function prepareAssignableLabour(): void
     {
-        DB::table('dra_labour_component')->insert([
+        DB::table('labour_components')->insert([
             [
-                'labour' => $this->labourId,
-                'item' => $this->itemId,
+                'labour_id' => $this->labourId,
+                'item_id' => $this->itemId,
                 'quantity' => 2,
                 'type' => 0,
             ],
             [
-                'labour' => $this->labourId,
-                'item' => $this->toolItemId,
+                'labour_id' => $this->labourId,
+                'item_id' => $this->toolItemId,
                 'quantity' => 1,
                 'type' => 1,
             ],
             [
-                'labour' => $this->labourId,
-                'item' => $this->outputItemId,
+                'labour_id' => $this->labourId,
+                'item_id' => $this->outputItemId,
                 'quantity' => 1,
                 'type' => 2,
             ],
         ]);
 
-        DB::table('dra_inventory')->insert([
-            'item' => $this->toolItemId,
+        DB::table('inventories')->insert([
+            'item_id' => $this->toolItemId,
             'stack' => 0,
             'wear' => -2,
-            'table__owner' => 2,
-            'owner' => $this->companyId,
+            'owner_type' => 2,
+            'owner_id' => $this->companyId,
             'timelastvalue' => $this->timestamp,
             'data' => '',
         ]);

@@ -9,11 +9,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Word extends Model
 {
-    protected $table = 'dra_dictionary';
-
     protected $fillable = [
-        'language',
-        'wordtype',
+        'language_id',
+        'word_type_id',
         'word',
         'val',
     ];
@@ -21,38 +19,38 @@ class Word extends Model
     public $timestamps = false;
 
     protected $casts = [
-        'language' => 'integer',
-        'wordtype' => 'integer',
+        'language_id' => 'integer',
+        'word_type_id' => 'integer',
         'val' => 'integer',
     ];
 
-    public function languageModel(): BelongsTo
+    public function language(): BelongsTo
     {
-        return $this->belongsTo(Language::class, 'language');
+        return $this->belongsTo(Language::class);
     }
 
     public function wordType(): BelongsTo
     {
-        return $this->belongsTo(WordType::class, 'wordtype');
+        return $this->belongsTo(WordType::class);
     }
 
     public function translationKeysFrom(): HasMany
     {
-        return $this->hasMany(Key::class, 'dictionary__from');
+        return $this->hasMany(Key::class, 'from_word_id');
     }
 
     public function translationKeysTo(): HasMany
     {
-        return $this->hasMany(Key::class, 'dictionary__to');
+        return $this->hasMany(Key::class, 'to_word_id');
     }
 
     public function translations(): BelongsToMany
     {
         return $this->belongsToMany(
             Word::class,
-            'dra_dictionarykey',
-            'dictionary__from',
-            'dictionary__to'
+            'keys',
+            'from_word_id',
+            'to_word_id'
         )->withPivot('id');
     }
 
@@ -60,9 +58,9 @@ class Word extends Model
     {
         return $this->belongsToMany(
             Word::class,
-            'dra_dictionarykey',
-            'dictionary__to',
-            'dictionary__from'
+            'keys',
+            'to_word_id',
+            'from_word_id'
         )->withPivot('id');
     }
 }

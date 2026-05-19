@@ -8,14 +8,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CompanyWorker extends Model
 {
-    protected $table = 'dra_company_worker';
-
     protected $dateFormat = 'U';
 
     protected $fillable = [
         'name',
         'type',
-        'company',
+        'company_id',
         'hired',
         'paid',
     ];
@@ -24,20 +22,20 @@ class CompanyWorker extends Model
 
     protected $casts = [
         'type' => 'integer',
-        'company' => 'integer',
+        'company_id' => 'integer',
         'hired' => 'datetime',
         'paid' => 'datetime',
     ];
 
-    public function companyModel(): BelongsTo
+    public function company(): BelongsTo
     {
-        return $this->belongsTo(Company::class, 'company');
+        return $this->belongsTo(Company::class);
     }
 
     public function activeLabours(): HasMany
     {
-        return $this->hasMany(LabourActive::class, 'company_worker')
-            ->with('labourModel.components.itemModel')
+        return $this->hasMany(LabourActive::class)
+            ->with('labour.components.item')
             ->orderBy('since');
     }
 

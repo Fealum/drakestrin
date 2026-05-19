@@ -36,7 +36,7 @@ class UserController extends Controller
         $order ??= 'postsperday,d;name,a';
         $query = User::query()
             ->with('characters')
-            ->select('dra_user.*');
+            ->select('users.*');
 
         $this->applyOrder($query, $order);
 
@@ -56,7 +56,7 @@ class UserController extends Controller
     {
         $user->load([
             'characters',
-            'contacts.protocolModel',
+            'contacts.protocol',
             'groups',
         ]);
 
@@ -81,7 +81,7 @@ class UserController extends Controller
 
         if ($request->isMethod('post')) {
             $data = $request->validate([
-                'character__avatar' => ['nullable', 'integer', 'exists:dra_character,id'],
+                'avatar_character_id' => ['nullable', 'integer', 'exists:characters,id'],
                 'usertext' => ['nullable', 'string'],
                 'gender' => ['nullable', 'integer', 'in:0,1,2,3'],
                 'birthday' => ['nullable', 'integer', 'min:0'],
@@ -90,14 +90,14 @@ class UserController extends Controller
                 'work' => ['nullable', 'string', 'max:255'],
             ]);
 
-            $avatarId = (int) ($data['character__avatar'] ?? 0);
+            $avatarId = (int) ($data['avatar_character_id'] ?? 0);
 
             if ($avatarId && ! $user->characters->contains('id', $avatarId)) {
                 abort_unless($this->permissionService->allows('edituser', $user, $request->user()), 403);
             }
 
             $user->update([
-                'character__avatar' => $avatarId ?: null,
+                'avatar_character_id' => $avatarId ?: null,
                 'usertext' => $data['usertext'] ?? '',
                 'gender' => (int) ($data['gender'] ?? 0),
                 'birthday' => (int) ($data['birthday'] ?? 0),
@@ -122,8 +122,8 @@ class UserController extends Controller
             $data = $this->validateContact($request);
 
             UserContact::create([
-                'user' => $user->id,
-                'protocol' => (int) $data['protocol'],
+                'user_id' => $user->id,
+                'protocol_id' => (int) $data['protocol_id'],
                 'contact' => trim($data['contact']),
             ]);
 
@@ -138,15 +138,15 @@ class UserController extends Controller
 
     public function editContact(Request $request, UserContact $contact): View|RedirectResponse
     {
-        $contact->load(['protocolModel', 'userModel']);
-        $user = $contact->userModel;
+        $contact->load(['protocol', 'user']);
+        $user = $contact->user;
         abort_unless($user && $this->canEditUser($user, $request->user()), 403);
 
         if ($request->isMethod('post')) {
             $data = $this->validateContact($request);
 
             $contact->update([
-                'protocol' => (int) $data['protocol'],
+                'protocol_id' => (int) $data['protocol_id'],
                 'contact' => trim($data['contact']),
             ]);
 
@@ -161,8 +161,8 @@ class UserController extends Controller
 
     public function deleteContact(Request $request, UserContact $contact): View|RedirectResponse
     {
-        $contact->load(['protocolModel', 'userModel']);
-        $user = $contact->userModel;
+        $contact->load(['protocol', 'user']);
+        $user = $contact->user;
         abort_unless($user && $this->canEditUser($user, $request->user()), 403);
 
         if ($request->isMethod('post')) {
@@ -190,7 +190,7 @@ class UserController extends Controller
             $character = Character::create([
                 'name' => trim($data['name']),
                 'regdate' => now()->timestamp,
-                'user' => $user->id,
+                'user_id' => $user->id,
                 'usertext' => '',
             ]);
 
@@ -206,15 +206,15 @@ class UserController extends Controller
     {
         $character->load([
             'companies',
-            'inventory.itemModel',
+            'inventory.item',
             'territories',
-            'userModel',
+            'user',
         ]);
 
         $this->setLocation($character);
 
         $viewer = auth()->user();
-        $ownerId = $character->userModel?->id;
+        $ownerId = $character->user?->id;
         $canEdit = $viewer && ($viewer->id === $ownerId || $this->permissionService->allows('editcharacter', $character, $viewer));
 
         return view('user.character', [
@@ -225,10 +225,10 @@ class UserController extends Controller
 
     public function editCharacter(Request $request, Character $character): View|RedirectResponse
     {
-        $character->load(['companies', 'inventory.itemModel', 'userModel']);
+        $character->load(['companies', 'inventory.item', 'user']);
         $this->setLocation($character);
 
-        $ownerId = $character->userModel?->id;
+        $ownerId = $character->user?->id;
         abort_unless(
             $request->user()
             && ($request->user()->id === $ownerId || $this->permissionService->allows('editcharacter', $character, $request->user())),
@@ -275,9 +275,9 @@ class UserController extends Controller
     private function applyOrder(Builder $query, string $order): void
     {
         $fields = [
-            'post' => 'post__total',
+            'post' => 'post_count',
             'name' => 'LOWER(name)',
-            'postsperday' => '(post__total / GREATEST(((UNIX_TIMESTAMP() - regdate) / 86400), 1))',
+            'postsperday' => '(post_count / GREATEST(((UNIX_TIMESTAMP() - regdate) / 86400), 1))',
             'regdate' => 'regdate',
             'lastvisit' => 'lastvisit',
         ];
@@ -310,7 +310,7 @@ class UserController extends Controller
     private function validateContact(Request $request): array
     {
         return $request->validate([
-            'protocol' => ['required', 'integer', 'exists:dra_protocol,id'],
+            'protocol_id' => ['required', 'integer', 'exists:protocols,id'],
             'contact' => ['required', 'string', 'max:255'],
         ]);
     }

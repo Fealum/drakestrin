@@ -6,46 +6,45 @@ use App\Models\Board\Post;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Transfer extends Model
 {
-    protected $table = 'dra_transfer';
-
     public $timestamps = false;
 
     protected $fillable = [
-        'post',
-        'sender',
-        'table__sender',
-        'recipient',
-        'table__recipient',
+        'post_id',
+        'sender_id',
+        'sender_type',
+        'recipient_id',
+        'recipient_type',
     ];
 
     protected $casts = [
-        'post' => 'integer',
-        'sender' => 'integer',
-        'table__sender' => 'integer',
-        'recipient' => 'integer',
-        'table__recipient' => 'integer',
+        'post_id' => 'integer',
+        'sender_id' => 'integer',
+        'sender_type' => 'integer',
+        'recipient_id' => 'integer',
+        'recipient_type' => 'integer',
     ];
 
-    public function postModel(): BelongsTo
+    public function post(): BelongsTo
     {
-        return $this->belongsTo(Post::class, 'post');
+        return $this->belongsTo(Post::class);
     }
 
-    public function senderCharacter(): BelongsTo
+    public function sender(): MorphTo
     {
-        return $this->belongsTo(Character::class, 'sender');
+        return $this->morphTo();
     }
 
-    public function recipientCharacter(): BelongsTo
+    public function recipient(): MorphTo
     {
-        return $this->belongsTo(Character::class, 'recipient');
+        return $this->morphTo();
     }
 
     public function items(): HasMany
     {
-        return $this->hasMany(TransferItem::class, 'transfer');
+        return $this->hasMany(TransferItem::class);
     }
 }

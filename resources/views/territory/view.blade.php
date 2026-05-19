@@ -139,7 +139,7 @@
             'landUrl' => route('territory.land_geojson'),
             'territoryBaseUrl' => url('/territory/view'),
             'imageBaseUrl' => asset('images/territory'),
-            'capitalId' => $territory->settlement,
+            'capitalId' => $territory->capital_id,
         ]))"
         @endif
     >

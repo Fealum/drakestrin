@@ -42,7 +42,7 @@ class Controller extends BaseController
     function setLocation($object)
     {
         if (Auth::check()) {
-            $online = Online::where('user', Auth::id())->first();
+            $online = Online::where('user_id', Auth::id())->first();
             if ($online) {
                 $online->locateable_type = array_search(get_class($object), Relation::morphMap(), true);
                 $online->locateable_id = $object->id;

@@ -19,48 +19,48 @@ class TerritoryTest extends TestCase
 
         $this->prefix = 'ctt_' . substr(str_replace('.', '_', uniqid('', true)), 0, 12);
 
-        $this->capitalId = DB::table('dra_settlement')->insertGetId([
+        $this->capitalId = DB::table('settlements')->insertGetId([
             'name' => $this->prefix . '_capital',
             'population' => 1234,
             'priority' => 1,
         ]);
 
-        $this->childCapitalId = DB::table('dra_settlement')->insertGetId([
+        $this->childCapitalId = DB::table('settlements')->insertGetId([
             'name' => $this->prefix . '_child_capital',
             'population' => 2345,
             'priority' => 1,
         ]);
 
-        $this->territoryId = DB::table('dra_territory')->insertGetId([
+        $this->territoryId = DB::table('territories')->insertGetId([
             'name' => $this->prefix . '_province',
             'type' => '2',
-            'territory' => 1,
-            'character' => 0,
+            'parent_id' => 1,
+            'character_id' => 0,
             'area' => 100000000,
             'population' => 1000,
             'geldstand' => 0,
             'beliebtheit' => 50,
-            'settlement' => $this->capitalId,
+            'capital_id' => $this->capitalId,
         ]);
 
-        $this->childTerritoryId = DB::table('dra_territory')->insertGetId([
+        $this->childTerritoryId = DB::table('territories')->insertGetId([
             'name' => $this->prefix . '_county',
             'type' => '3b',
-            'territory' => $this->territoryId,
-            'character' => 0,
+            'parent_id' => $this->territoryId,
+            'character_id' => 0,
             'area' => 50000000,
             'population' => 500,
             'geldstand' => 0,
             'beliebtheit' => 50,
-            'settlement' => $this->childCapitalId,
+            'capital_id' => $this->childCapitalId,
         ]);
 
-        DB::statement('UPDATE dra_territory SET geom = ST_GeomFromText(?) WHERE id = ?', [
+        DB::statement('UPDATE territories SET geom = ST_GeomFromText(?) WHERE id = ?', [
             'MULTIPOLYGON(((0 0,0 1,1 1,1 0,0 0)))',
             $this->childTerritoryId,
         ]);
 
-        DB::statement('UPDATE dra_settlement SET geom = ST_GeomFromText(?) WHERE id = ?', [
+        DB::statement('UPDATE settlements SET geom = ST_GeomFromText(?) WHERE id = ?', [
             'POINT(0.5 0.5)',
             $this->childCapitalId,
         ]);
@@ -68,11 +68,11 @@ class TerritoryTest extends TestCase
 
     protected function tearDown(): void
     {
-        DB::table('dra_territory')
+        DB::table('territories')
             ->where('name', 'like', $this->prefix . '%')
             ->delete();
 
-        DB::table('dra_settlement')
+        DB::table('settlements')
             ->where('name', 'like', $this->prefix . '%')
             ->delete();
 

@@ -24,12 +24,12 @@ class ThreadPolicy
 
     public function update(User $user, Thread $thread): bool
     {
-        return $this->permissions->allowsOwn('editthread', $thread, $thread->firstPost?->user, $user);
+        return $this->permissions->allowsOwn('editthread', $thread, $thread->firstPost?->user_id, $user);
     }
 
     public function delete(User $user, Thread $thread): bool
     {
-        return $this->permissions->allowsOwn('deletethread', $thread, $thread->firstPost?->user, $user);
+        return $this->permissions->allowsOwn('deletethread', $thread, $thread->firstPost?->user_id, $user);
     }
 
     public function markAsImportant(User $user, Thread $thread): bool

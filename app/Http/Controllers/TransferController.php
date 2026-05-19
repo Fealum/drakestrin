@@ -28,17 +28,17 @@ class TransferController extends Controller
         abort_unless($this->permissionService->allows('transfer', $thread, $request->user()), 403);
 
         $data = $request->validate([
-            'character' => ['required', 'integer', 'exists:dra_character,id'],
+            'character' => ['required', 'integer', 'exists:characters,id'],
             'inventory' => ['required', 'array', 'min:1'],
-            'inventory.*' => ['integer', 'exists:dra_inventory,id'],
+            'inventory.*' => ['integer', 'exists:inventories,id'],
             'inventorystack' => ['nullable', 'array'],
             'inventorystack.*' => ['nullable', 'string', 'max:40'],
-            'recipient' => ['required', 'integer', 'exists:dra_character,id'],
+            'recipient' => ['required', 'integer', 'exists:characters,id'],
         ]);
 
         $sender = Character::query()
             ->whereKey((int) $data['character'])
-            ->where('user', $request->user()->id)
+            ->where('user_id', $request->user()->id)
             ->firstOrFail();
         $recipient = Character::findOrFail((int) $data['recipient']);
 
@@ -53,10 +53,10 @@ class TransferController extends Controller
             ->values();
 
         $inventories = Inventory::query()
-            ->with('itemModel')
+            ->with('item')
             ->whereIn('id', $selectedInventoryIds)
-            ->where('table__owner', 6)
-            ->where('owner', $sender->id)
+            ->where('owner_type', 6)
+            ->where('owner_id', $sender->id)
             ->get()
             ->keyBy('id');
 
@@ -69,10 +69,10 @@ class TransferController extends Controller
         $post = DB::transaction(function () use ($request, $thread, $sender, $recipient, $selectedInventoryIds, $inventories, $data, $counters) {
             $time = now()->timestamp;
             $actionPost = Post::create([
-                'thread' => $thread->id,
-                'board' => $thread->board,
-                'user' => 2,
-                'character' => 3,
+                'thread_id' => $thread->id,
+                'board_id' => $thread->board_id,
+                'user_id' => 2,
+                'character_id' => 3,
                 'time' => $time,
                 'message' => '',
                 'smilies' => 0,
@@ -81,35 +81,35 @@ class TransferController extends Controller
             ]);
 
             $transfer = Transfer::create([
-                'post' => $actionPost->id,
-                'table__sender' => 6,
-                'sender' => $sender->id,
-                'table__recipient' => 6,
-                'recipient' => $recipient->id,
+                'post_id' => $actionPost->id,
+                'sender_type' => 6,
+                'sender_id' => $sender->id,
+                'recipient_type' => 6,
+                'recipient_id' => $recipient->id,
             ]);
 
             foreach ($selectedInventoryIds as $inventoryId) {
                 $inventory = $inventories->get($inventoryId);
 
-                if (! $inventory || ! $inventory->itemModel) {
+                if (! $inventory || ! $inventory->item) {
                     continue;
                 }
 
                 [$itemId, $stack] = $this->inventory->moveInventory($inventory, 6, $recipient->id, 0, $data['inventorystack'][$inventoryId] ?? null);
 
                 TransferItem::create([
-                    'transfer' => $transfer->id,
-                    'item' => $itemId,
+                    'transfer_id' => $transfer->id,
+                    'item_id' => $itemId,
                     'stack' => $stack,
                 ]);
             }
 
-            $thread->post__last = $actionPost->id;
-            $thread->post__last_time = $time;
+            $thread->last_post_id = $actionPost->id;
+            $thread->last_post_at = $time;
             $thread->save();
 
             $counters->refreshThread($thread);
-            $counters->refreshBoard($thread->boardModel);
+            $counters->refreshBoard($thread->board);
             $counters->refreshUser(2);
             $counters->refreshCharacter(3);
 

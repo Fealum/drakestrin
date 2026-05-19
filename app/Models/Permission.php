@@ -11,19 +11,12 @@ class Permission extends Model
 {
     use HasFactory;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'dra_permission';
-
     protected $fillable = [
-        'table__recipient',
-        'recipient',
-        'table__subject',
-        'subject',
-        'permit',
+        'recipient_type',
+        'recipient_id',
+        'subject_type',
+        'subject_id',
+        'permit_id',
         'value',
     ];
 
@@ -34,27 +27,27 @@ class Permission extends Model
      */
     public $timestamps = false;
 
-    public function recipient_legacy(): MorphTo
+    public function recipient(): MorphTo
     {
-        return $this->morphTo(__FUNCTION__, 'table__recipient', 'recipient');
+        return $this->morphTo();
     }
 
-    public function subject_legacy(): MorphTo
+    public function subject(): MorphTo
     {
-        return $this->morphTo(__FUNCTION__, 'table__subject', 'subject');
+        return $this->morphTo();
     }
 
-    public function permit_legacy(): BelongsTo
+    public function permit(): BelongsTo
     {
-        return $this->belongsTo(Permit::class, 'permit');
+        return $this->belongsTo(Permit::class);
     }
 
     public function recipientName(): string
     {
-        if ((int) $this->table__recipient === 0 && (int) $this->recipient === 0) {
+        if ((int) $this->recipient_type === 0 && (int) $this->recipient_id === 0) {
             return 'Alle';
         }
 
-        return $this->recipient_legacy?->name ?? ('#' . $this->recipient);
+        return $this->recipient?->name ?? ('#' . $this->recipient_id);
     }
 }
