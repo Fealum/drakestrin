@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Board\DestroyThreadRequest;
+use App\Http\Requests\Board\StoreThreadRequest;
+use App\Http\Requests\Board\UpdateThreadRequest;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
-use App\Models\Character;
-use App\Services\Board\ForumCounters;
+use App\Services\Board\ThreadWriter;
+use App\Services\PermissionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -19,66 +21,20 @@ class ThreadController extends Controller
 {
     private const PAGE_ENTRIES = 20;
 
-    public function create(Request $request, ?Board $board = null): View|RedirectResponse
+    public function __construct(PermissionService $permissionService, private ThreadWriter $threads)
     {
-        $this->requireUser();
-        $this->authorize('create', ForumThread::class);
+        parent::__construct($permissionService);
+    }
 
+    public function create(StoreThreadRequest $request, ?Board $board = null): View|RedirectResponse
+    {
         if ($request->isMethod('post')) {
-            $data = $request->validate([
-                'board' => ['required', 'integer', 'exists:boards,id'],
-                'character' => ['required', 'integer'],
-                'name' => ['required', 'string', 'max:225'],
-                'message' => ['required', 'string'],
-                'important' => ['nullable', 'boolean'],
-                'smilies' => ['nullable', 'boolean'],
-                'signature' => ['nullable', 'boolean'],
-            ]);
-
-            $board = Board::findOrFail((int) $data['board']);
+            $data = $request->data();
+            $board = Board::findOrFail($data->boardId);
             $this->authorize('createThread', $board);
 
-            $character = $this->userCharacter((int) $data['character']);
-            $counters = app(ForumCounters::class);
             $canMarkAsImportant = $request->user()->can('markAsImportant', new ForumThread(['board_id' => $board->id]));
-
-            $thread = DB::transaction(function () use ($request, $board, $character, $data, $counters, $canMarkAsImportant) {
-                $time = now()->timestamp;
-
-                $thread = ForumThread::create([
-                    'board_id' => $board->id,
-                    'name' => trim($data['name']),
-                    'first_post_at' => $time,
-                    'post_count' => 1,
-                    'last_post_at' => $time,
-                    'views' => 0,
-                    'important' => $canMarkAsImportant ? (int) $request->boolean('important') : 0,
-                ]);
-
-                $post = Post::create([
-                    'board_id' => $board->id,
-                    'thread_id' => $thread->id,
-                    'user_id' => $request->user()->id,
-                    'character_id' => $character->id,
-                    'time' => $time,
-                    'message' => trim($data['message']),
-                    'smilies' => (int) $request->boolean('smilies'),
-                    'signature' => (int) $request->boolean('signature'),
-                    'ip' => $request->ip(),
-                ]);
-
-                $thread->update([
-                    'first_post_id' => $post->id,
-                    'last_post_id' => $post->id,
-                ]);
-
-                $counters->refreshThread($thread);
-                $counters->refreshBoard($board);
-                $counters->refreshUser($request->user()->id);
-                $counters->refreshCharacter($character->id);
-
-                return $thread;
-            });
+            $thread = $this->threads->create($board, $request->user(), $data, $canMarkAsImportant, $request->ip());
 
             return redirect()->route('thread.view', ['thread' => $thread->id]);
         }
@@ -151,39 +107,15 @@ class ThreadController extends Controller
         return $response;
     }
 
-    public function edit(Request $request, ForumThread $thread): View|RedirectResponse
+    public function edit(UpdateThreadRequest $request, ForumThread $thread): View|RedirectResponse
     {
-        $this->authorize('update', $thread);
-
         if ($request->isMethod('post')) {
-            $data = $request->validate([
-                'board' => ['required', 'integer', 'exists:boards,id'],
-                'name' => ['required', 'string', 'max:225'],
-                'important' => ['nullable', 'boolean'],
-            ]);
-
-            $oldBoard = $thread->board;
-            $newBoard = Board::findOrFail((int) $data['board']);
+            $data = $request->data();
+            $newBoard = Board::findOrFail($data->boardId);
             $this->authorize('createThread', $newBoard);
 
-            $counters = app(ForumCounters::class);
             $canMarkAsImportant = $request->user()->can('markAsImportant', $thread);
-
-            DB::transaction(function () use ($request, $thread, $oldBoard, $newBoard, $data, $counters, $canMarkAsImportant) {
-                $thread->update([
-                    'board_id' => $newBoard->id,
-                    'name' => trim($data['name']),
-                    'important' => $canMarkAsImportant ? (int) $request->boolean('important') : $thread->important,
-                ]);
-
-                if (! $oldBoard || $oldBoard->id !== $newBoard->id) {
-                    Post::where('thread_id', $thread->id)->update(['board_id' => $newBoard->id]);
-                    $counters->refreshBoard($oldBoard);
-                }
-
-                $counters->refreshThread($thread);
-                $counters->refreshBoard($newBoard);
-            });
+            $this->threads->update($thread, $newBoard, $data, $canMarkAsImportant);
 
             return redirect()->route('thread.view', ['thread' => $thread->id]);
         }
@@ -205,39 +137,11 @@ class ThreadController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, ForumThread $thread): RedirectResponse
+    public function destroy(DestroyThreadRequest $request, ForumThread $thread): RedirectResponse
     {
-        $this->authorize('delete', $thread);
-        $request->validate(['delete' => ['required', 'accepted']]);
-
-        $board = $thread->board;
-        $userIds = $thread->posts()->pluck('user_id');
-        $characterIds = $thread->posts()->pluck('character_id');
-        $counters = app(ForumCounters::class);
-
-        DB::transaction(function () use ($thread, $board, $userIds, $characterIds, $counters) {
-            Post::where('thread_id', $thread->id)->delete();
-            $thread->delete();
-
-            $counters->refreshBoard($board);
-            $counters->refreshUsers($userIds);
-            $counters->refreshCharacters($characterIds);
-        });
+        $this->threads->delete($thread);
 
         return redirect()->route('board');
-    }
-
-    private function requireUser(): void
-    {
-        abort_unless(auth()->check(), 403);
-    }
-
-    private function userCharacter(int $characterId): Character
-    {
-        return auth()->user()
-            ->characters()
-            ->whereKey($characterId)
-            ->firstOrFail();
     }
 
     private function quoteText(Post $post): string
