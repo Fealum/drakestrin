@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Company;
-use App\Models\CompanyWorker;
-use App\Models\Labour;
-use App\Models\LabourActive;
+use App\Models\Economy\Company;
+use App\Models\Economy\CompanyWorker;
+use App\Models\Economy\Labour;
+use App\Models\Economy\LabourActive;
 use App\Services\InventoryService;
 use App\Services\PermissionService;
 use Illuminate\Http\RedirectResponse;

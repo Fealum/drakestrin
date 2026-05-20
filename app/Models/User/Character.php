@@ -1,9 +1,11 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User;
 
 use App\Models\Board\Post;
-use App\Models\Inventory;
+use App\Models\Economy\Company;
+use App\Models\Economy\Inventory;
+use App\Models\User as Account;
 use App\Models\Territory\Territory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -55,7 +57,7 @@ class Character extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Account::class);
     }
 
     public function posts(): HasMany

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\User;
 
+use App\Models\User as Account;
 use Illuminate\Database\Eloquent\Model;
 
 class Message extends Model
@@ -22,11 +23,11 @@ class Message extends Model
 
     public function sender()
     {
-        return $this->belongsTo(User::class, 'sender_user_id');
+        return $this->belongsTo(Account::class, 'sender_user_id');
     }
 
     public function recipient()
     {
-        return $this->belongsTo(User::class, 'recipient_user_id');
+        return $this->belongsTo(Account::class, 'recipient_user_id');
     }
 }

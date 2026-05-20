@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Board\Board;
 use App\Models\Board\Thread as ForumThread;
-use App\Models\Character;
-use App\Models\Configuration;
-use App\Models\Permission;
+use App\Models\User\Character;
+use App\Models\Core\Configuration;
+use App\Models\Access\Permission;
 use App\Models\User;
 use App\Support\PermissionEntityType;
 use Illuminate\Contracts\Database\Eloquent\Builder;

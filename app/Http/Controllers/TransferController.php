@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
-use App\Models\Character;
-use App\Models\Inventory;
-use App\Models\Transfer;
-use App\Models\TransferItem;
+use App\Models\User\Character;
+use App\Models\Economy\Inventory;
+use App\Models\Economy\Transfer;
+use App\Models\Economy\TransferItem;
 use App\Services\Board\ForumCounters;
 use App\Services\InventoryService;
 use App\Services\PermissionService;

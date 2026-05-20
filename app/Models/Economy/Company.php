@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Economy;
 
+use App\Models\User\Character;
 use App\Models\Territory\Territory;
 use App\Models\Board\Thread;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

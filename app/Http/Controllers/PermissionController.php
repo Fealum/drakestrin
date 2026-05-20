@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Board\Board;
-use App\Models\Group;
-use App\Models\Permission;
-use App\Models\Permit;
+use App\Models\Access\Group;
+use App\Models\Access\Permission;
+use App\Models\Access\Permit;
 use App\Models\User;
 use App\Support\PermissionEntityType;
 use Illuminate\Http\RedirectResponse;

@@ -2,7 +2,7 @@
 
 namespace App\Models\Territory;
 
-use App\Models\Character;
+use App\Models\User\Character;
 use App\Models\Concerns\HasSpatialGeometry;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

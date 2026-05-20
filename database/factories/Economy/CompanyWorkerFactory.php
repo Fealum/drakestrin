@@ -1,12 +1,12 @@
 <?php
 
-namespace Database\Factories;
+namespace Database\Factories\Economy;
 
-use App\Models\Company;
+use App\Models\Economy\Company;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\CompanyWorker>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Economy\CompanyWorker>
  */
 class CompanyWorkerFactory extends Factory
 {

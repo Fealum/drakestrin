@@ -3,13 +3,13 @@
 // Note: Laravel will automatically resolve `Breadcrumbs::` without
 // this import. This is nice for IDE syntax and refactoring.
 
-use App\Models\Page;
-use App\Models\Permission;
+use App\Models\Encyclopedia\Page;
+use App\Models\Access\Permission;
 use App\Models\User;
-use App\Models\Character;
-use App\Models\Company;
-use App\Models\CompanyWorker;
-use App\Models\Group;
+use App\Models\User\Character;
+use App\Models\Economy\Company;
+use App\Models\Economy\CompanyWorker;
+use App\Models\Access\Group;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\Thread;
@@ -87,7 +87,7 @@ Breadcrumbs::for('user.create_contact', function (BreadcrumbTrail $trail, User $
     $trail->push('Neue Kontaktmöglichkeit erstellen', route('user.create_contact', $user->id));
 });
 
-Breadcrumbs::for('user.edit_contact', function (BreadcrumbTrail $trail, \App\Models\UserContact $contact) {
+Breadcrumbs::for('user.edit_contact', function (BreadcrumbTrail $trail, \App\Models\User\UserContact $contact) {
     if ($contact->user) {
         $trail->parent('user.view', $contact->user);
     } else {
@@ -97,7 +97,7 @@ Breadcrumbs::for('user.edit_contact', function (BreadcrumbTrail $trail, \App\Mod
     $trail->push('Kontaktmöglichkeit bearbeiten', route('user.edit_contact', $contact->id));
 });
 
-Breadcrumbs::for('user.delete_contact', function (BreadcrumbTrail $trail, \App\Models\UserContact $contact) {
+Breadcrumbs::for('user.delete_contact', function (BreadcrumbTrail $trail, \App\Models\User\UserContact $contact) {
     if ($contact->user) {
         $trail->parent('user.view', $contact->user);
     } else {

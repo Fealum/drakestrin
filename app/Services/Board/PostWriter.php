@@ -6,7 +6,7 @@ use App\Data\Board\CreatePostData;
 use App\Data\Board\UpdatePostData;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
-use App\Models\Character;
+use App\Models\User\Character;
 use App\Models\User;
 use App\Services\PermissionService;
 use Illuminate\Support\Facades\DB;

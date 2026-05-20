@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Character;
-use App\Models\Protocol;
+use App\Models\User\Character;
+use App\Models\User\Protocol;
 use App\Models\User;
-use App\Models\UserContact;
+use App\Models\User\UserContact;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

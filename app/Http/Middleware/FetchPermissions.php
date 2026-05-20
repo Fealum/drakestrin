@@ -2,8 +2,8 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Permission;
-use App\Models\Permit;
+use App\Models\Access\Permission;
+use App\Models\Access\Permit;
 use App\Models\User;
 use App\Services\PermissionService;
 use Closure;

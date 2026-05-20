@@ -2,8 +2,8 @@
 
 namespace App\Models\Board;
 
-use App\Models\Character;
-use App\Models\Transfer;
+use App\Models\User\Character;
+use App\Models\Economy\Transfer;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

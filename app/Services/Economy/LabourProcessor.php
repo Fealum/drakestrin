@@ -2,8 +2,8 @@
 
 namespace App\Services\Economy;
 
-use App\Models\CompanyWorker;
-use App\Models\LabourActive;
+use App\Models\Economy\CompanyWorker;
+use App\Models\Economy\LabourActive;
 use App\Services\InventoryService;
 use Illuminate\Support\Facades\DB;
 

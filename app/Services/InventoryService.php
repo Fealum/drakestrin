@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Inventory;
-use App\Models\Item;
+use App\Models\Economy\Inventory;
+use App\Models\Economy\Item;
 
 class InventoryService
 {

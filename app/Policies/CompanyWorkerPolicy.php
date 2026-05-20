@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-use App\Models\CompanyWorker;
+use App\Models\Economy\CompanyWorker;
 use App\Models\User;
 
 class CompanyWorkerPolicy

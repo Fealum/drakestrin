@@ -7,7 +7,7 @@ use App\Data\Board\UpdateThreadData;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
-use App\Models\Character;
+use App\Models\User\Character;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 

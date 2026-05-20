@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Group;
+use App\Models\Access\Group;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;

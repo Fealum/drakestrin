@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Carbon\Carbon;
-use App\Models\Online;
+use App\Models\Core\Online;
 use App\Services\PermissionService;
 use Illuminate\Database\Eloquent\Relations\Relation;
 

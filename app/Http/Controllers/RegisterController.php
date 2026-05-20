@@ -13,8 +13,8 @@ use Illuminate\View\View;
 use Carbon\Carbon;
 use App\Mail\EmailValidation;
 use App\Models\User;
-use App\Models\ValidEmail;
-use App\Models\Group;
+use App\Models\User\ValidEmail;
+use App\Models\Access\Group;
 
 class RegisterController extends Controller
 {
@@ -45,7 +45,7 @@ class RegisterController extends Controller
         $this->clearValidEmails();
 
         $uniqueEmail = Validator::make($request->all(), [
-            'email' => 'bail|unique:App\Models\User|unique:App\Models\ValidEmail',
+            'email' => 'bail|unique:App\Models\User|unique:App\Models\User\ValidEmail',
         ]);
 
         if ($uniqueEmail->fails()) {
