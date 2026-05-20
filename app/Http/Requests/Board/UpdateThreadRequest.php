@@ -25,7 +25,7 @@ class UpdateThreadRequest extends FormRequest
         ];
     }
 
-    public function data(): UpdateThreadData
+    public function toData(): UpdateThreadData
     {
         return UpdateThreadData::fromArray($this->validated());
     }

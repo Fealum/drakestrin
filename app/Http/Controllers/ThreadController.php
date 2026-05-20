@@ -29,7 +29,7 @@ class ThreadController extends Controller
     public function create(StoreThreadRequest $request, ?Board $board = null): View|RedirectResponse
     {
         if ($request->isMethod('post')) {
-            $data = $request->data();
+            $data = $request->toData();
             $board = Board::findOrFail($data->boardId);
             $this->authorize('createThread', $board);
 
@@ -110,7 +110,7 @@ class ThreadController extends Controller
     public function edit(UpdateThreadRequest $request, ForumThread $thread): View|RedirectResponse
     {
         if ($request->isMethod('post')) {
-            $data = $request->data();
+            $data = $request->toData();
             $newBoard = Board::findOrFail($data->boardId);
             $this->authorize('createThread', $newBoard);
 

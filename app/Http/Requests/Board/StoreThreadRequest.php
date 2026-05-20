@@ -30,7 +30,7 @@ class StoreThreadRequest extends FormRequest
         ];
     }
 
-    public function data(): CreateThreadData
+    public function toData(): CreateThreadData
     {
         return CreateThreadData::fromArray($this->validated());
     }

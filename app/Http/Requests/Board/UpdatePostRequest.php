@@ -20,7 +20,7 @@ class UpdatePostRequest extends FormRequest
         ];
     }
 
-    public function data(): UpdatePostData
+    public function toData(): UpdatePostData
     {
         return UpdatePostData::fromArray($this->validated());
     }

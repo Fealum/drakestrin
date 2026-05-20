@@ -28,7 +28,7 @@ class PostController extends Controller
 
     public function create(StorePostRequest $request, ForumThread $thread): RedirectResponse
     {
-        $post = $this->posts->create($thread, $request->user(), $request->data(), $request->ip());
+        $post = $this->posts->create($thread, $request->user(), $request->toData(), $request->ip());
 
         return redirect($this->postUrl($post, 'last'));
     }
@@ -45,7 +45,7 @@ class PostController extends Controller
 
     public function update(UpdatePostRequest $request, Post $post): RedirectResponse
     {
-        $this->posts->update($post, $request->user(), $request->data());
+        $this->posts->update($post, $request->user(), $request->toData());
 
         return redirect($this->postUrl($post->refresh()));
     }

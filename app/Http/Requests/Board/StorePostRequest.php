@@ -24,7 +24,7 @@ class StorePostRequest extends FormRequest
         ];
     }
 
-    public function data(): CreatePostData
+    public function toData(): CreatePostData
     {
         return CreatePostData::fromArray($this->validated());
     }
