@@ -18,9 +18,7 @@ class Configuration extends Model
     public $timestamps = false;
 
     protected $casts = [
-        'recipient_type' => 'integer',
         'recipient_id' => 'integer',
-        'subject_type' => 'integer',
         'subject_id' => 'integer',
         'setting' => 'integer',
         'value' => 'integer',

@@ -11,6 +11,7 @@ use App\Support\PermissionEntityType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PermissionController extends Controller
@@ -23,10 +24,12 @@ class PermissionController extends Controller
         if ($request->isMethod('post')) {
             $data = $this->validatedPermissionData($request);
 
+            $recipientType = PermissionEntityType::fromDatabase($data['recipient_type']);
+
             Permission::updateOrCreate([
-                'recipient_type' => (int) $data['recipient_type'],
+                'recipient_type' => $recipientType->value,
                 'recipient_id' => (int) $data['recipient_id'],
-                'subject_type' => PermissionEntityType::BOARD,
+                'subject_type' => PermissionEntityType::BOARD->value,
                 'subject_id' => $board->id,
                 'permit_id' => (int) $data['permit_id'],
             ], [
@@ -42,8 +45,8 @@ class PermissionController extends Controller
             'board' => $board,
             'permits' => Permit::query()->orderBy('name')->get(),
             'recipientTypes' => [
-                PermissionEntityType::USER => 'Global/Nutzer',
-                PermissionEntityType::GROUP => 'Gruppe',
+                PermissionEntityType::USER->value => 'Global/Nutzer',
+                PermissionEntityType::GROUP->value => 'Gruppe',
             ],
         ]);
     }
@@ -54,9 +57,10 @@ class PermissionController extends Controller
 
         if ($request->isMethod('post')) {
             $data = $this->validatedPermissionData($request);
+            $recipientType = PermissionEntityType::fromDatabase($data['recipient_type']);
 
             $permission->update([
-                'recipient_type' => (int) $data['recipient_type'],
+                'recipient_type' => $recipientType->value,
                 'recipient_id' => (int) $data['recipient_id'],
                 'permit_id' => (int) $data['permit_id'],
                 'value' => (int) $data['value'],
@@ -96,17 +100,22 @@ class PermissionController extends Controller
     private function validatedPermissionData(Request $request): array
     {
         $data = $request->validate([
-            'recipient_type' => ['required', 'integer', 'in:0,4'],
+            'recipient_type' => ['required', Rule::in([
+                PermissionEntityType::USER->value,
+                PermissionEntityType::GROUP->value,
+            ])],
             'recipient_id' => ['required', 'integer', 'min:0'],
             'permit_id' => ['required', 'integer', 'exists:permits,id'],
             'value' => ['required', 'integer', 'in:0,1,2'],
         ]);
 
-        if ((int) $data['recipient_type'] === PermissionEntityType::GROUP) {
+        $recipientType = PermissionEntityType::fromDatabase($data['recipient_type']);
+
+        if ($recipientType === PermissionEntityType::GROUP) {
             Group::findOrFail((int) $data['recipient_id']);
         }
 
-        if ((int) $data['recipient_type'] === PermissionEntityType::USER && (int) $data['recipient_id'] !== 0) {
+        if ($recipientType === PermissionEntityType::USER && (int) $data['recipient_id'] !== 0) {
             User::findOrFail((int) $data['recipient_id']);
         }
 
@@ -122,7 +131,7 @@ class PermissionController extends Controller
 
     private function redirectToSubject(Permission $permission): RedirectResponse
     {
-        if ((int) $permission->subject_type === PermissionEntityType::BOARD) {
+        if (PermissionEntityType::fromDatabase($permission->subject_type) === PermissionEntityType::BOARD) {
             return redirect()->route('board.permissions', ['board' => $permission->subject_id]);
         }
 
@@ -132,8 +141,8 @@ class PermissionController extends Controller
     private function recipientTypes(): array
     {
         return [
-            PermissionEntityType::USER => 'Global/Nutzer',
-            PermissionEntityType::GROUP => 'Gruppe',
+            PermissionEntityType::USER->value => 'Global/Nutzer',
+            PermissionEntityType::GROUP->value => 'Gruppe',
         ];
     }
 }

@@ -18,7 +18,6 @@ class Inventory extends Model
         'stack' => 'integer',
         'wear' => 'integer',
         'owner_id' => 'integer',
-        'owner_type' => 'integer',
     ];
 
     protected $fillable = [

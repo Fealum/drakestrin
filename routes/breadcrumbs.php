@@ -175,7 +175,7 @@ Breadcrumbs::for('permission.create_board', function (BreadcrumbTrail $trail, Bo
 });
 
 Breadcrumbs::for('permission.edit', function (BreadcrumbTrail $trail, Permission $permission) {
-    if ((int) $permission->subject_type === PermissionEntityType::BOARD && $permission->subject) {
+    if (PermissionEntityType::fromDatabase($permission->subject_type) === PermissionEntityType::BOARD && $permission->subject) {
         $trail->parent('board.permissions', $permission->subject);
     } else {
         $trail->parent('board');
@@ -185,7 +185,7 @@ Breadcrumbs::for('permission.edit', function (BreadcrumbTrail $trail, Permission
 });
 
 Breadcrumbs::for('permission.delete', function (BreadcrumbTrail $trail, Permission $permission) {
-    if ((int) $permission->subject_type === PermissionEntityType::BOARD && $permission->subject) {
+    if (PermissionEntityType::fromDatabase($permission->subject_type) === PermissionEntityType::BOARD && $permission->subject) {
         $trail->parent('board.permissions', $permission->subject);
     } else {
         $trail->parent('board');

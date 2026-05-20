@@ -4,6 +4,7 @@ namespace Database\Factories\Economy;
 
 use App\Models\User\Character;
 use App\Models\Economy\Item;
+use App\Support\PermissionEntityType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,7 +19,7 @@ class InventoryFactory extends Factory
             'stack' => 1,
             'wear' => 0,
             'owner_id' => Character::factory(),
-            'owner_type' => 6,
+            'owner_type' => PermissionEntityType::CHARACTER->value,
             'timelastvalue' => 0,
             'data' => '',
         ];
@@ -27,7 +28,7 @@ class InventoryFactory extends Factory
     public function company(): static
     {
         return $this->state(fn (array $attributes) => [
-            'owner_type' => 2,
+            'owner_type' => PermissionEntityType::COMPANY->value,
         ]);
     }
 }

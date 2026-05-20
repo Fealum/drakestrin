@@ -5,9 +5,6 @@ namespace App\Services;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\Thread;
-use App\Models\User\Character;
-use App\Models\Access\Group;
-use App\Models\Encyclopedia\Page;
 use App\Models\Access\Permit;
 use App\Models\User;
 use App\Support\PermissionEntityType;
@@ -73,8 +70,8 @@ class PermissionService
     {
         $type = $this->entityTypeFor($object);
 
-        if ($type !== null && isset($this->permissions[$type][$object->id][$action])) {
-            return (int) $this->permissions[$type][$object->id][$action];
+        if ($type !== null && isset($this->permissions[$type->value][$object->id][$action])) {
+            return (int) $this->permissions[$type->value][$object->id][$action];
         }
 
         $parent = $this->permissionParent($object);
@@ -86,17 +83,9 @@ class PermissionService
         return (int) ($this->permits[$action] ?? 0);
     }
 
-    private function entityTypeFor(Model $object): ?int
+    private function entityTypeFor(Model $object): ?PermissionEntityType
     {
-        return match (true) {
-            $object instanceof User => PermissionEntityType::USER,
-            $object instanceof Thread => PermissionEntityType::THREAD,
-            $object instanceof Board => PermissionEntityType::BOARD,
-            $object instanceof Group => PermissionEntityType::GROUP,
-            $object instanceof Page => PermissionEntityType::ENCYCLOPEDIA,
-            $object instanceof Character => PermissionEntityType::CHARACTER,
-            default => null,
-        };
+        return PermissionEntityType::fromModel($object);
     }
 
     private function permissionParent(Model $object): ?Model

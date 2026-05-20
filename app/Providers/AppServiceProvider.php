@@ -8,6 +8,7 @@ use Illuminate\Support\Facades;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\View\View;
 use App\Services\PermissionService;
+use App\Support\PermissionEntityType;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,22 +28,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Custom polymorphic types
-        Relation::enforceMorphMap([
-            0 => 'App\Models\User',
-            1 => 'App\Models\Board\Thread',
-            2 => 'App\Models\Economy\Company',
-            3 => 'App\Models\Board\Board',
-            4 => 'App\Models\Access\Group',
-            5 => 'App\Models\Encyclopedia\Page',
-            6 => 'App\Models\User\Character',
-            8 => 'App\Models\Economy\CompanyWorker',
-            'company_worker' => 'App\Models\Economy\CompanyWorker',
-            'character' => 'App\Models\User\Character',
-            'dictionary_word' => 'App\Models\Dictionary\Word',
-            'territory' => 'App\Models\Territory\Territory',
-            'thread' => 'App\Models\Board\Thread',
-            'user' => 'App\Models\User',
-        ]);
+        Relation::enforceMorphMap(PermissionEntityType::morphMap());
 
         Blade::if('permission', function ($permission, $object = null, $user = null) {
             $permissionService = app(PermissionService::class);

@@ -2,6 +2,7 @@
 
 namespace App\Models\Access;
 
+use App\Support\PermissionEntityType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,7 +45,7 @@ class Permission extends Model
 
     public function recipientName(): string
     {
-        if ((int) $this->recipient_type === 0 && (int) $this->recipient_id === 0) {
+        if (PermissionEntityType::fromDatabase($this->recipient_type) === PermissionEntityType::USER && (int) $this->recipient_id === 0) {
             return 'Alle';
         }
 

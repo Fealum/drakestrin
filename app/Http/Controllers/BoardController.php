@@ -89,9 +89,9 @@ class BoardController extends Controller
         $change = $change === 0 ? 0 : 1;
 
         Configuration::query()->updateOrCreate([
-            'recipient_type' => 0,
+            'recipient_type' => PermissionEntityType::USER->value,
             'recipient_id' => auth()->id(),
-            'subject_type' => PermissionEntityType::BOARD,
+            'subject_type' => PermissionEntityType::BOARD->value,
             'subject_id' => $board->id,
             'setting' => 4,
         ], [
@@ -390,9 +390,9 @@ class BoardController extends Controller
         }
 
         return Configuration::query()
-            ->where('recipient_type', 0)
+            ->where('recipient_type', PermissionEntityType::USER->value)
             ->where('recipient_id', auth()->id())
-            ->where('subject_type', PermissionEntityType::BOARD)
+            ->where('subject_type', PermissionEntityType::BOARD->value)
             ->where('setting', 4)
             ->pluck('value', 'subject_id');
     }

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\View;
 use Carbon\Carbon;
 use App\Models\Core\Online;
 use App\Services\PermissionService;
-use Illuminate\Database\Eloquent\Relations\Relation;
+use App\Support\PermissionEntityType;
 
 class Controller extends BaseController
 {
@@ -44,7 +44,7 @@ class Controller extends BaseController
         if (Auth::check()) {
             $online = Online::where('user_id', Auth::id())->first();
             if ($online) {
-                $online->locateable_type = array_search(get_class($object), Relation::morphMap(), true);
+                $online->locateable_type = PermissionEntityType::fromModel($object)?->value;
                 $online->locateable_id = $object->id;
                 $online->save();
             }

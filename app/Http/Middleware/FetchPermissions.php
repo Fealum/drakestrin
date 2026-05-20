@@ -6,6 +6,7 @@ use App\Models\Access\Permission;
 use App\Models\Access\Permit;
 use App\Models\User;
 use App\Services\PermissionService;
+use App\Support\PermissionEntityType;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -48,7 +49,7 @@ class FetchPermissions
         foreach ($permits as $permit) {
             $this->permits[$permit->name] = $permit->standard;
         }
-        $globalPermissions = Permission::where('recipient_type', 0)->where('recipient_id', 0)->get();
+        $globalPermissions = Permission::where('recipient_type', PermissionEntityType::USER->value)->where('recipient_id', 0)->get();
         if (count($globalPermissions) > 0) {
             foreach ($globalPermissions as $p) {
                 $this->permissions[$p->subject_type][$p->subject_id][$p->permit->name] = $p->value;

@@ -5,6 +5,7 @@ namespace App\Services\Economy;
 use App\Models\Economy\CompanyWorker;
 use App\Models\Economy\LabourActive;
 use App\Services\InventoryService;
+use App\Support\PermissionEntityType;
 use Illuminate\Support\Facades\DB;
 
 class LabourProcessor
@@ -101,7 +102,7 @@ class LabourProcessor
 
         foreach ($activeLabour->labour->components->where('type', 0) as $component) {
             $neededPerProcess = max(1, (int) $component->quantity);
-            $available = $this->inventory->available((int) $component->item_id, 2, $companyId, -2);
+            $available = $this->inventory->available((int) $component->item_id, PermissionEntityType::COMPANY, $companyId, -2);
             $max = min($max, (int) floor($available / $neededPerProcess));
         }
 
@@ -113,7 +114,7 @@ class LabourProcessor
         $companyId = $activeLabour->companyWorker->company->id;
 
         foreach ($activeLabour->labour->components->where('type', 0) as $component) {
-            $this->inventory->take((int) $component->item_id, (int) $component->quantity * $processes, 2, $companyId, -2);
+            $this->inventory->take((int) $component->item_id, (int) $component->quantity * $processes, PermissionEntityType::COMPANY, $companyId, -2);
         }
     }
 
@@ -122,14 +123,14 @@ class LabourProcessor
         $companyId = $activeLabour->companyWorker->company->id;
 
         foreach ($activeLabour->labour->components->where('type', 2) as $component) {
-            $this->inventory->add((int) $component->item_id, (int) $component->quantity * $processes, 2, $companyId, (int) $activeLabour->prodas);
+            $this->inventory->add((int) $component->item_id, (int) $component->quantity * $processes, PermissionEntityType::COMPANY, $companyId, (int) $activeLabour->prodas);
         }
     }
 
     private function returnTools(LabourActive $activeLabour, int $companyId): void
     {
         foreach ($activeLabour->labour->components->where('type', 1) as $component) {
-            $this->inventory->take((int) $component->item_id, (int) $component->quantity, 2, $companyId, -3, -2);
+            $this->inventory->take((int) $component->item_id, (int) $component->quantity, PermissionEntityType::COMPANY, $companyId, -3, -2);
         }
     }
 }

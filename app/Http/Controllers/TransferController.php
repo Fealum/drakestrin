@@ -11,6 +11,7 @@ use App\Models\Economy\TransferItem;
 use App\Services\Board\ForumCounters;
 use App\Services\InventoryService;
 use App\Services\PermissionService;
+use App\Support\PermissionEntityType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -55,7 +56,7 @@ class TransferController extends Controller
         $inventories = Inventory::query()
             ->with('item')
             ->whereIn('id', $selectedInventoryIds)
-            ->where('owner_type', 6)
+            ->where('owner_type', PermissionEntityType::CHARACTER->value)
             ->where('owner_id', $sender->id)
             ->get()
             ->keyBy('id');
@@ -82,9 +83,9 @@ class TransferController extends Controller
 
             $transfer = Transfer::create([
                 'post_id' => $actionPost->id,
-                'sender_type' => 6,
+                'sender_type' => PermissionEntityType::CHARACTER->value,
                 'sender_id' => $sender->id,
-                'recipient_type' => 6,
+                'recipient_type' => PermissionEntityType::CHARACTER->value,
                 'recipient_id' => $recipient->id,
             ]);
 
@@ -95,7 +96,7 @@ class TransferController extends Controller
                     continue;
                 }
 
-                [$itemId, $stack] = $this->inventory->moveInventory($inventory, 6, $recipient->id, 0, $data['inventorystack'][$inventoryId] ?? null);
+                [$itemId, $stack] = $this->inventory->moveInventory($inventory, PermissionEntityType::CHARACTER, $recipient->id, 0, $data['inventorystack'][$inventoryId] ?? null);
 
                 TransferItem::create([
                     'transfer_id' => $transfer->id,

@@ -8,6 +8,7 @@ use App\Models\Economy\Labour;
 use App\Models\Economy\LabourActive;
 use App\Services\InventoryService;
 use App\Services\PermissionService;
+use App\Support\PermissionEntityType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -141,9 +142,9 @@ class CompanyController extends Controller
 
             foreach ($labour->components->where('type', '!=', 2) as $component) {
                 if ((int) $component->type === 1) {
-                    $this->inventory->take((int) $component->item_id, (int) $component->quantity, 2, $company->id, -2, -3);
+                    $this->inventory->take((int) $component->item_id, (int) $component->quantity, PermissionEntityType::COMPANY, $company->id, -2, -3);
                 } else {
-                    $this->inventory->take((int) $component->item_id, (int) $component->quantity, 2, $company->id, -2);
+                    $this->inventory->take((int) $component->item_id, (int) $component->quantity, PermissionEntityType::COMPANY, $company->id, -2);
                 }
             }
 
@@ -201,7 +202,7 @@ class CompanyController extends Controller
         Gate::authorize('pay', $company);
 
         $paid = DB::transaction(function () use ($company) {
-            $balance = $this->inventory->available(1, 2, $company->id, -1);
+            $balance = $this->inventory->available(1, PermissionEntityType::COMPANY, $company->id, -1);
 
             if ($balance <= 0) {
                 return null;
@@ -235,7 +236,7 @@ class CompanyController extends Controller
             }
 
             if ($paid['sumpaid'] > 0) {
-                $this->inventory->debitStack(1, $paid['sumpaid'], 2, $company->id, -1);
+                $this->inventory->debitStack(1, $paid['sumpaid'], PermissionEntityType::COMPANY, $company->id, -1);
             }
 
             return $paid;
@@ -293,7 +294,7 @@ class CompanyController extends Controller
         }
 
         foreach ($labour->components->where('type', '!=', 2) as $component) {
-            if ($this->inventory->available((int) $component->item_id, 2, $company->id, -2) < (int) $component->quantity) {
+            if ($this->inventory->available((int) $component->item_id, PermissionEntityType::COMPANY, $company->id, -2) < (int) $component->quantity) {
                 return false;
             }
         }
@@ -318,7 +319,7 @@ class CompanyController extends Controller
         $paid = 0;
 
         if ($owed > 0) {
-            $paid = $this->inventory->debitStack(1, $owed, 2, $company->id, -1);
+            $paid = $this->inventory->debitStack(1, $owed, PermissionEntityType::COMPANY, $company->id, -1);
         }
 
         return [
