@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
+use App\Models\Character;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -30,7 +31,7 @@ class ForumModelTest extends TestCase
         $this->prefix = 'ct_forum_' . substr(str_replace('.', '_', uniqid('', true)), 0, 12);
         $this->postTime = now()->subHour()->timestamp;
 
-        $this->userId = DB::table('users')->insertGetId([
+        $user = User::factory()->create([
             'name' => $this->prefix . '_user',
             'password' => 'secret',
             'email' => $this->prefix . '@example.test',
@@ -44,8 +45,9 @@ class ForumModelTest extends TestCase
             'usertext' => '',
             'wohnort' => '',
         ]);
+        $this->userId = $user->id;
 
-        $this->characterId = DB::table('characters')->insertGetId([
+        $character = Character::factory()->create([
             'name' => $this->prefix . '_character',
             'regdate' => $this->postTime,
             'interests' => '',
@@ -54,8 +56,9 @@ class ForumModelTest extends TestCase
             'usertext' => '',
             'user_id' => $this->userId,
         ]);
+        $this->characterId = $character->id;
 
-        $this->secondCharacterId = DB::table('characters')->insertGetId([
+        $secondCharacter = Character::factory()->create([
             'name' => $this->prefix . '_second_character',
             'regdate' => $this->postTime + 100,
             'interests' => '',
@@ -64,13 +67,14 @@ class ForumModelTest extends TestCase
             'usertext' => '',
             'user_id' => $this->userId,
         ]);
+        $this->secondCharacterId = $secondCharacter->id;
 
         DB::table('group_user')->insert([
             'user_id' => $this->userId,
             'group_id' => 2,
         ]);
 
-        $this->parentBoardId = DB::table('boards')->insertGetId([
+        $parentBoard = Board::factory()->category()->create([
             'parent_id' => 0,
             'name' => $this->prefix . '_parent',
             'password' => '',
@@ -78,8 +82,9 @@ class ForumModelTest extends TestCase
             'sort' => 1,
             'cat' => 1,
         ]);
+        $this->parentBoardId = $parentBoard->id;
 
-        $this->childBoardId = DB::table('boards')->insertGetId([
+        $childBoard = Board::factory()->create([
             'parent_id' => $this->parentBoardId,
             'name' => $this->prefix . '_child',
             'password' => '',
@@ -87,8 +92,9 @@ class ForumModelTest extends TestCase
             'sort' => 1,
             'cat' => 0,
         ]);
+        $this->childBoardId = $childBoard->id;
 
-        $this->otherBoardId = DB::table('boards')->insertGetId([
+        $otherBoard = Board::factory()->create([
             'parent_id' => $this->parentBoardId,
             'name' => $this->prefix . '_other_child',
             'password' => '',
@@ -96,15 +102,17 @@ class ForumModelTest extends TestCase
             'sort' => 2,
             'cat' => 0,
         ]);
+        $this->otherBoardId = $otherBoard->id;
 
-        $this->threadId = DB::table('threads')->insertGetId([
+        $thread = ForumThread::factory()->create([
             'board_id' => $this->childBoardId,
             'name' => $this->prefix . '_thread',
             'first_post_at' => $this->postTime,
             'last_post_at' => $this->postTime,
         ]);
+        $this->threadId = $thread->id;
 
-        $this->postId = DB::table('posts')->insertGetId([
+        $post = Post::factory()->create([
             'board_id' => $this->childBoardId,
             'thread_id' => $this->threadId,
             'user_id' => $this->userId,
@@ -115,6 +123,7 @@ class ForumModelTest extends TestCase
             'signature' => 0,
             'ip' => '127.0.0.1',
         ]);
+        $this->postId = $post->id;
 
         DB::table('threads')
             ->where('id', $this->threadId)

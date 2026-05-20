@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Territory\Settlement;
+use App\Models\Territory\Territory;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -19,19 +21,21 @@ class TerritoryTest extends TestCase
 
         $this->prefix = 'ctt_' . substr(str_replace('.', '_', uniqid('', true)), 0, 12);
 
-        $this->capitalId = DB::table('settlements')->insertGetId([
+        $capital = Settlement::factory()->create([
             'name' => $this->prefix . '_capital',
             'population' => 1234,
             'priority' => 1,
         ]);
+        $this->capitalId = $capital->id;
 
-        $this->childCapitalId = DB::table('settlements')->insertGetId([
+        $childCapital = Settlement::factory()->create([
             'name' => $this->prefix . '_child_capital',
             'population' => 2345,
             'priority' => 1,
         ]);
+        $this->childCapitalId = $childCapital->id;
 
-        $this->territoryId = DB::table('territories')->insertGetId([
+        $territory = Territory::factory()->create([
             'name' => $this->prefix . '_province',
             'type' => '2',
             'parent_id' => 1,
@@ -42,8 +46,9 @@ class TerritoryTest extends TestCase
             'beliebtheit' => 50,
             'capital_id' => $this->capitalId,
         ]);
+        $this->territoryId = $territory->id;
 
-        $this->childTerritoryId = DB::table('territories')->insertGetId([
+        $childTerritory = Territory::factory()->create([
             'name' => $this->prefix . '_county',
             'type' => '3b',
             'parent_id' => $this->territoryId,
@@ -54,6 +59,7 @@ class TerritoryTest extends TestCase
             'beliebtheit' => 50,
             'capital_id' => $this->childCapitalId,
         ]);
+        $this->childTerritoryId = $childTerritory->id;
 
         DB::statement('UPDATE territories SET geom = ST_GeomFromText(?) WHERE id = ?', [
             'MULTIPOLYGON(((0 0,0 1,1 1,1 0,0 0)))',
