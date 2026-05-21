@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Territory extends Model
 {
@@ -45,6 +46,13 @@ class Territory extends Model
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id')
+            ->orderByRaw('LOWER(name)');
+    }
+
+    public function locations(): MorphMany
+    {
+        return $this->morphMany(Location::class, 'parent')
+            ->orderBy('priority')
             ->orderByRaw('LOWER(name)');
     }
 

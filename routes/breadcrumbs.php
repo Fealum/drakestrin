@@ -15,6 +15,8 @@ use App\Models\Board\Post;
 use App\Models\Board\Thread;
 use App\Models\Dictionary\Key;
 use App\Models\Dictionary\Word;
+use App\Models\Territory\Location;
+use App\Models\Territory\Settlement;
 use App\Models\Territory\Territory;
 use App\Support\PermissionEntityType;
 use Diglactic\Breadcrumbs\Breadcrumbs;
@@ -224,6 +226,16 @@ Breadcrumbs::for('thread.delete', function (BreadcrumbTrail $trail, Thread $thre
     $trail->push('Thema löschen', route('thread.delete', $thread->id));
 });
 
+Breadcrumbs::for('thread.scene.create', function (BreadcrumbTrail $trail, Thread $thread) {
+    $trail->parent('thread.view', $thread);
+    $trail->push('Szene setzen', route('thread.scene.create', $thread->id));
+});
+
+Breadcrumbs::for('thread.scene.end', function (BreadcrumbTrail $trail, Thread $thread) {
+    $trail->parent('thread.view', $thread);
+    $trail->push('Szene beenden', route('thread.scene.end', $thread->id));
+});
+
 Breadcrumbs::for('post.edit', function (BreadcrumbTrail $trail, Post $post) {
     $trail->parent('thread.view', $post->thread);
     $trail->push('Beitrag bearbeiten', route('post.edit', $post->id));
@@ -323,4 +335,42 @@ Breadcrumbs::for('territory.view', function (BreadcrumbTrail $trail, Territory $
     if ($territory->id !== 1) {
         $trail->push($territory->name, route('territory.view', $territory->id));
     }
+});
+
+Breadcrumbs::for('location.view', function (BreadcrumbTrail $trail, Location $location) {
+    $parent = $location->parent;
+
+    if ($parent instanceof Location) {
+        $trail->parent('location.view', $parent);
+    } elseif ($parent instanceof Territory) {
+        $trail->parent('territory.view', $parent);
+    } elseif ($parent instanceof Settlement && $parent->territories->isNotEmpty()) {
+        $trail->parent('territory.view', $parent->territories->first());
+    } else {
+        $trail->parent('territory');
+    }
+
+    $trail->push($location->name, route('location.view', $location->id));
+});
+
+Breadcrumbs::for('location.create', function (BreadcrumbTrail $trail, string $parentType, int|string $parentId) {
+    if ($parentType === 'territory' && ($territory = Territory::find($parentId))) {
+        $trail->parent('territory.view', $territory);
+    } elseif ($parentType === 'location' && ($location = Location::find($parentId))) {
+        $trail->parent('location.view', $location);
+    } else {
+        $trail->parent('territory');
+    }
+
+    $trail->push('Ort erstellen', route('location.create', ['parentType' => $parentType, 'parentId' => $parentId]));
+});
+
+Breadcrumbs::for('location.edit', function (BreadcrumbTrail $trail, Location $location) {
+    $trail->parent('location.view', $location);
+    $trail->push('Ort bearbeiten', route('location.edit', $location->id));
+});
+
+Breadcrumbs::for('location.delete', function (BreadcrumbTrail $trail, Location $location) {
+    $trail->parent('location.view', $location);
+    $trail->push('Ort löschen', route('location.delete', $location->id));
 });

@@ -23,7 +23,9 @@ class Transfer extends Model
     protected $casts = [
         'post_id' => 'integer',
         'sender_id' => 'integer',
+        'sender_type' => 'integer',
         'recipient_id' => 'integer',
+        'recipient_type' => 'integer',
     ];
 
     public function post(): BelongsTo

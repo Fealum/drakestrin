@@ -5,8 +5,14 @@ namespace Tests\Feature;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
+use App\Models\Territory\Location;
+use App\Models\Territory\Territory;
 use App\Models\User\Character;
 use App\Models\User;
+use App\Services\PermissionService;
+use App\Support\PermissionEntityType;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
@@ -23,6 +29,9 @@ class ForumModelTest extends TestCase
     private int $threadId;
     private int $postId;
     private int $postTime;
+    private int $locationId;
+    private int $originalSetThreadSceneStandard;
+    private int $originalEndThreadSceneStandard;
 
     protected function setUp(): void
     {
@@ -30,6 +39,8 @@ class ForumModelTest extends TestCase
 
         $this->prefix = 'ct_forum_' . substr(str_replace('.', '_', uniqid('', true)), 0, 12);
         $this->postTime = now()->subHour()->timestamp;
+        $this->originalSetThreadSceneStandard = (int) DB::table('permits')->where('name', 'setthreadscene')->value('standard');
+        $this->originalEndThreadSceneStandard = (int) DB::table('permits')->where('name', 'endthreadscene')->value('standard');
 
         $user = User::factory()->create([
             'name' => $this->prefix . '_user',
@@ -104,6 +115,16 @@ class ForumModelTest extends TestCase
         ]);
         $this->otherBoardId = $otherBoard->id;
 
+        $territoryId = (int) Territory::query()->whereDoesntHave('children')->value('id');
+        $location = Location::factory()->create([
+            'parent_type' => PermissionEntityType::TERRITORY->value,
+            'parent_id' => $territoryId,
+            'name' => $this->prefix . '_location',
+            'description' => '',
+            'priority' => 1,
+        ]);
+        $this->locationId = $location->id;
+
         $thread = ForumThread::factory()->create([
             'board_id' => $this->childBoardId,
             'name' => $this->prefix . '_thread',
@@ -145,8 +166,14 @@ class ForumModelTest extends TestCase
 
     protected function tearDown(): void
     {
+        DB::table('thread_scenes')
+            ->whereIn('thread_id', [$this->threadId])
+            ->orWhere('location_id', $this->locationId)
+            ->delete();
+
         DB::table('posts')
             ->where('message', 'like', $this->prefix . '%')
+            ->orWhere('thread_id', $this->threadId)
             ->delete();
 
         DB::table('inventories')
@@ -159,6 +186,10 @@ class ForumModelTest extends TestCase
             ->delete();
 
         DB::table('threads')
+            ->where('name', 'like', $this->prefix . '%')
+            ->delete();
+
+        DB::table('locations')
             ->where('name', 'like', $this->prefix . '%')
             ->delete();
 
@@ -190,6 +221,12 @@ class ForumModelTest extends TestCase
         DB::table('users')
             ->where('name', 'like', $this->prefix . '%')
             ->delete();
+
+        DB::table('permits')->where('name', 'setthreadscene')->update(['standard' => $this->originalSetThreadSceneStandard]);
+        DB::table('permits')->where('name', 'endthreadscene')->update(['standard' => $this->originalEndThreadSceneStandard]);
+        Cache::forget('user_permits:' . $this->userId);
+        Cache::forget('user_permissions:' . $this->userId);
+        app()->forgetInstance(PermissionService::class);
 
         parent::tearDown();
     }
@@ -857,9 +894,97 @@ class ForumModelTest extends TestCase
         ]);
     }
 
+    public function test_thread_scene_can_be_set_changed_ended_and_is_listed_on_location(): void
+    {
+        $this->setPermitStandard('setthreadscene', 2);
+        $this->setPermitStandard('endthreadscene', 2);
+        $this->actingAs(User::findOrFail($this->userId));
+
+        $sceneForm = $this->get('/thread/scene/create/' . $this->threadId);
+        $sceneForm->assertOk();
+        $sceneForm->assertSee($this->prefix . '_location');
+        $sceneForm->assertSee('type="datetime-local"', false);
+
+        $startedAt = CarbonImmutable::createFromTimestamp($this->postTime + 10, config('app.timezone'))->setSecond(0);
+        $setScene = $this->post('/thread/scene/create/' . $this->threadId, [
+            'location_id' => $this->locationId,
+            'story_started_at' => $startedAt->format('Y-m-d\TH:i'),
+        ]);
+
+        $setScene->assertRedirect('/thread/view/' . $this->threadId);
+        $firstSceneId = (int) DB::table('thread_scenes')
+            ->where('thread_id', $this->threadId)
+            ->where('location_id', $this->locationId)
+            ->value('id');
+
+        $this->assertDatabaseHas('thread_scenes', [
+            'id' => $firstSceneId,
+            'thread_id' => $this->threadId,
+            'location_id' => $this->locationId,
+            'story_started_at' => $startedAt->timestamp,
+            'story_ended_at' => null,
+        ]);
+
+        $threadPage = $this->get('/thread/view/' . $this->threadId);
+        $threadPage->assertOk();
+        $threadPage->assertSee($this->prefix . '_location');
+        $threadPage->assertSee('Szene beenden');
+
+        $secondLocation = Location::factory()->create([
+            'parent_type' => PermissionEntityType::LOCATION->value,
+            'parent_id' => $this->locationId,
+            'name' => $this->prefix . '_second_location',
+            'description' => '',
+            'priority' => 2,
+        ]);
+
+        $changedAt = CarbonImmutable::createFromTimestamp($this->postTime + 20, config('app.timezone'))->setSecond(0);
+        $changeScene = $this->post('/thread/scene/create/' . $this->threadId, [
+            'location_id' => $secondLocation->id,
+            'story_started_at' => $changedAt->format('Y-m-d\TH:i'),
+        ]);
+
+        $changeScene->assertRedirect('/thread/view/' . $this->threadId);
+        $this->assertDatabaseHas('thread_scenes', [
+            'id' => $firstSceneId,
+            'ends_at_post_id' => $this->postId,
+            'story_ended_at' => null,
+        ]);
+        $this->assertNotNull(DB::table('thread_scenes')->where('id', $firstSceneId)->value('ended_at'));
+
+        $endedAt = CarbonImmutable::createFromTimestamp($this->postTime + 30, config('app.timezone'))->setSecond(0);
+        $endScene = $this->post('/thread/scene/end/' . $this->threadId, [
+            'story_ended_at' => $endedAt->format('Y-m-d\TH:i'),
+        ]);
+
+        $endScene->assertRedirect('/thread/view/' . $this->threadId);
+        $this->assertDatabaseHas('thread_scenes', [
+            'thread_id' => $this->threadId,
+            'location_id' => $secondLocation->id,
+            'story_ended_at' => $endedAt->timestamp,
+        ]);
+
+        $locationPage = $this->get('/location/view/' . $this->locationId);
+        $locationPage->assertOk();
+        $locationPage->assertSee($this->prefix . '_thread');
+    }
+
     public function test_thread_view_rescues_legacy_inventory_transfer_form(): void
     {
         $this->actingAs(User::findOrFail($this->userId));
+
+        DB::table('thread_scenes')->insert([
+            'thread_id' => $this->threadId,
+            'location_id' => $this->locationId,
+            'starts_at_post_id' => null,
+            'ends_at_post_id' => null,
+            'story_started_at' => $this->postTime,
+            'story_ended_at' => null,
+            'ended_at' => null,
+            'created_by_user_id' => $this->userId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $itemId = DB::table('items')->insertGetId([
             'item' => '',
@@ -890,22 +1015,36 @@ class ForumModelTest extends TestCase
         $threadPage = $this->get('/thread/view/' . $this->threadId);
 
         $threadPage->assertOk();
-        $threadPage->assertSee('class="activeaction" href="#newpost"', false);
-        $threadPage->assertSee('href="#newaction"', false);
-        $threadPage->assertSee('name="newtransfer"', false);
-        $threadPage->assertSee('showActionPanel(window.location.hash === \'#newaction\' ? \'newaction\' : \'newpost\');', false);
-        $threadPage->assertSee('/transfer/transfer/' . $this->threadId, false);
-        $threadPage->assertSee('id="action-char-' . $this->characterId . '"', false);
+        $threadPage->assertDontSee('href="#newaction"', false);
+        $threadPage->assertDontSee('name="newtransfer"', false);
+        $threadPage->assertDontSee('showActionPanel(window.location.hash === \'#newaction\' ? \'newaction\' : \'newpost\');', false);
+        $threadPage->assertDontSee('/transfer/transfer/' . $this->threadId, false);
+        $threadPage->assertSee('name="newpost"', false);
+        $threadPage->assertSee('/post/create/' . $this->threadId, false);
+        $threadPage->assertSee('id="char-' . $this->characterId . '"', false);
         $threadPage->assertSee('id="inventory-' . $inventoryId . '"', false);
         $threadPage->assertSee('name="inventorystack[' . $inventoryId . ']"', false);
         $threadPage->assertSee('name="recipient"', false);
         $threadPage->assertSee('class="character-selector-search" x-show="! selected"', false);
-        $threadPage->assertSee('Handlung ausführen');
+        $threadPage->assertSee('Neuen Beitrag erstellen');
     }
 
     public function test_inventory_transfer_backend_moves_items_and_creates_action_post(): void
     {
         $this->actingAs(User::findOrFail($this->userId));
+
+        DB::table('thread_scenes')->insert([
+            'thread_id' => $this->threadId,
+            'location_id' => $this->locationId,
+            'starts_at_post_id' => null,
+            'ends_at_post_id' => null,
+            'story_started_at' => $this->postTime,
+            'story_ended_at' => null,
+            'ended_at' => null,
+            'created_by_user_id' => $this->userId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $itemId = DB::table('items')->insertGetId([
             'item' => '',
@@ -933,8 +1072,9 @@ class ForumModelTest extends TestCase
             'data' => '',
         ]);
 
-        $response = $this->post('/transfer/transfer/' . $this->threadId, [
+        $response = $this->post('/post/create/' . $this->threadId, [
             'character' => $this->characterId,
+            'message' => $this->prefix . '_transfer_post',
             'inventory' => [
                 $inventoryId => $inventoryId,
             ],
@@ -946,7 +1086,8 @@ class ForumModelTest extends TestCase
 
         $postId = (int) DB::table('posts')
             ->where('thread_id', $this->threadId)
-            ->where('character_id', 3)
+            ->where('character_id', $this->characterId)
+            ->where('message', $this->prefix . '_transfer_post')
             ->value('id');
         $transferId = (int) DB::table('transfers')
             ->where('post_id', $postId)
@@ -969,9 +1110,9 @@ class ForumModelTest extends TestCase
             'id' => $postId,
             'thread_id' => $this->threadId,
             'board_id' => $this->childBoardId,
-            'user_id' => 2,
-            'character_id' => 3,
-            'message' => '',
+            'user_id' => $this->userId,
+            'character_id' => $this->characterId,
+            'message' => $this->prefix . '_transfer_post',
         ]);
         $this->assertDatabaseHas('transfers', [
             'id' => $transferId,
@@ -990,6 +1131,7 @@ class ForumModelTest extends TestCase
         $threadPage = $this->get('/thread/view/' . $this->threadId . '/last');
 
         $threadPage->assertOk();
+        $threadPage->assertSee($this->prefix . '_transfer_post');
         $threadPage->assertSee($this->prefix . '_pear');
         $threadPage->assertSee('(2)');
     }
@@ -1212,5 +1354,13 @@ class ForumModelTest extends TestCase
                 'last_post_id' => $lastPostId,
                 'last_post_at' => $this->postTime + $count,
             ]);
+    }
+
+    private function setPermitStandard(string $name, int $standard): void
+    {
+        DB::table('permits')->where('name', $name)->update(['standard' => $standard]);
+        Cache::forget('user_permits:' . $this->userId);
+        Cache::forget('user_permissions:' . $this->userId);
+        app()->forgetInstance(PermissionService::class);
     }
 }

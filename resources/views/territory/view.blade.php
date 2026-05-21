@@ -180,4 +180,15 @@
         <li>Hauptstadt: {{ $territory->capital->name }} ({{ number_format($territory->capital->population, 0, ',', '.') }} Einwohner)</li>
         @endif
     </ol>
+
+    @if ($territory->locations->isNotEmpty())
+    <h3>Orte</h3>
+    <ol>
+        @include('location._children', ['locations' => $territory->locations])
+    </ol>
+    @endif
+
+    @can('create', [\App\Models\Territory\Location::class, $territory])
+    <p><a href="{{ route('location.create', ['parentType' => 'territory', 'parentId' => $territory->id]) }}">Ort erstellen</a></p>
+    @endcan
 </x-main-layout>

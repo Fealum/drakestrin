@@ -3,20 +3,26 @@
 namespace App\Services\Board;
 
 use App\Data\Board\CreatePostData;
+use App\Data\Economy\InventoryOwner;
+use App\Data\Economy\TransferParticipant;
 use App\Data\Board\UpdatePostData;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
 use App\Models\User\Character;
 use App\Models\User;
+use App\Services\Economy\TransferService;
 use App\Services\PermissionService;
+use App\Support\PermissionEntityType;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 class PostWriter
 {
     public function __construct(
         private ForumCounters $counters,
         private PermissionService $permissions,
+        private TransferService $transfers,
     ) {
     }
 
@@ -37,6 +43,10 @@ class PostWriter
                 'signature' => (int) $data->signature,
                 'ip' => $ip,
             ]);
+
+            if ($data->hasTransfer()) {
+                $this->attachTransfer($thread, $user, $character, $post, $data);
+            }
 
             $this->counters->refreshThread($thread);
             $this->counters->refreshBoard($thread->board);
@@ -122,6 +132,39 @@ class PostWriter
             'user_id' => $user->id,
             'usertext' => '',
         ]);
+    }
+
+    private function attachTransfer(ForumThread $thread, User $user, Character $sender, Post $post, CreatePostData $data): void
+    {
+        abort_unless($this->permissions->allows('transfer', $thread, $user), 403);
+        abort_unless($thread->currentScene()->exists(), 403);
+
+        if ($data->transferRecipientId === null) {
+            throw ValidationException::withMessages([
+                'recipient' => 'Bitte wähle einen Empfänger aus.',
+            ]);
+        }
+
+        if ($data->transferRecipientId === $sender->id) {
+            throw ValidationException::withMessages([
+                'recipient' => 'Sender und Empfänger müssen verschieden sein.',
+            ]);
+        }
+
+        try {
+            $this->transfers->transferInventories(
+                postId: $post->id,
+                sender: TransferParticipant::character($sender->id),
+                recipient: TransferParticipant::character($data->transferRecipientId),
+                source: new InventoryOwner(PermissionEntityType::CHARACTER, $sender->id),
+                target: new InventoryOwner(PermissionEntityType::CHARACTER, $data->transferRecipientId),
+                items: $data->transferItems,
+            );
+        } catch (InvalidArgumentException) {
+            throw ValidationException::withMessages([
+                'inventory' => 'Keine übertragbaren Gegenstände ausgewählt.',
+            ]);
+        }
     }
 
     private function userCharacter(User $user, int $characterId): Character

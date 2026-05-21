@@ -4,6 +4,7 @@ namespace App\Http\Requests\Board;
 
 use App\Data\Board\CreateThreadData;
 use App\Models\Board\Thread as ForumThread;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreThreadRequest extends FormRequest
@@ -27,11 +28,23 @@ class StoreThreadRequest extends FormRequest
             'important' => ['nullable', 'boolean'],
             'smilies' => ['nullable', 'boolean'],
             'signature' => ['nullable', 'boolean'],
+            'scene_location' => ['nullable', 'integer', 'exists:locations,id'],
+            'scene_story_started_at' => ['nullable', 'date_format:Y-m-d\TH:i'],
         ];
     }
 
     public function toData(): CreateThreadData
     {
-        return CreateThreadData::fromArray($this->validated());
+        $data = $this->validated();
+
+        if (filled($data['scene_story_started_at'] ?? null)) {
+            $data['scene_story_started_at'] = CarbonImmutable::createFromFormat(
+                'Y-m-d\TH:i',
+                $data['scene_story_started_at'],
+                config('app.timezone'),
+            )->timestamp;
+        }
+
+        return CreateThreadData::fromArray($data);
     }
 }

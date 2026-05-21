@@ -9,6 +9,7 @@ use App\Http\Controllers\DictionaryController;
 use App\Http\Controllers\EncyclopediaController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\IndexController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\PermissionController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\StaticPageController;
 use App\Http\Controllers\TerritoryController;
 use App\Http\Controllers\ThreadController;
+use App\Http\Controllers\ThreadSceneController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\VerifyCsrfToken;
@@ -64,6 +66,11 @@ Route::controller(ThreadController::class)->group(function () {
     Route::match(['get', 'post'], '/thread/edit/{thread}', 'edit')->name('thread.edit');
     Route::get('/thread/delete/{thread}', 'delete')->name('thread.delete');
     Route::post('/thread/delete/{thread}', 'destroy')->name('thread.destroy');
+});
+
+Route::controller(ThreadSceneController::class)->group(function () {
+    Route::match(['get', 'post'], '/thread/scene/create/{thread}', 'create')->name('thread.scene.create');
+    Route::match(['get', 'post'], '/thread/scene/end/{thread}', 'end')->name('thread.scene.end');
 });
 
 Route::controller(PostController::class)->group(function () {
@@ -168,6 +175,13 @@ Route::controller(TerritoryController::class)->group(function () {
     Route::get('/territory/{territory}/settlements.geojson', 'settlementsGeoJson')->name('territory.settlements_geojson');
 });
 Route::any('/territory/{legacyPath}', fn () => abort(404))->where('legacyPath', '.*');
+
+Route::controller(LocationController::class)->group(function () {
+    Route::match(['get', 'post'], '/location/create/{parentType}/{parentId}', 'create')->name('location.create');
+    Route::get('/location/view/{location}', 'view')->name('location.view');
+    Route::match(['get', 'post'], '/location/edit/{location}', 'edit')->name('location.edit');
+    Route::match(['get', 'post'], '/location/delete/{location}', 'delete')->name('location.delete');
+});
 
 Route::controller(LogController::class)->group(function () {
     Route::post('/log/in', 'in')->name('log.in');

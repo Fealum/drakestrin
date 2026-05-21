@@ -40,4 +40,14 @@ class ThreadPolicy
 
         return $this->permissions->allows('markasimportant', $thread, $user);
     }
+
+    public function setScene(User $user, Thread $thread): bool
+    {
+        return $this->permissions->allows('setthreadscene', $thread, $user);
+    }
+
+    public function endScene(User $user, Thread $thread): bool
+    {
+        return $this->permissions->allows('endthreadscene', $thread, $user);
+    }
 }

@@ -17,10 +17,15 @@ class StorePostRequest extends FormRequest
     {
         return [
             'character' => ['required'],
-            'message' => ['required', 'string'],
+            'message' => ['nullable', 'string', 'required_without:inventory'],
             'newcharname' => ['nullable', 'string', 'max:85'],
             'smilies' => ['nullable', 'boolean'],
             'signature' => ['nullable', 'boolean'],
+            'inventory' => ['nullable', 'array'],
+            'inventory.*' => ['integer', 'exists:inventories,id'],
+            'inventorystack' => ['nullable', 'array'],
+            'inventorystack.*' => ['nullable', 'string', 'max:40'],
+            'recipient' => ['nullable', 'integer', 'exists:characters,id', 'required_with:inventory'],
         ];
     }
 

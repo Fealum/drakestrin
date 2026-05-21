@@ -67,6 +67,21 @@ class Thread extends Model
             ->orderBy('id');
     }
 
+    public function scenes(): HasMany
+    {
+        return $this->hasMany(ThreadScene::class)
+            ->with('location')
+            ->orderBy('starts_at_post_id')
+            ->orderBy('id');
+    }
+
+    public function currentScene()
+    {
+        return $this->hasOne(ThreadScene::class)
+            ->whereNull('ended_at')
+            ->latestOfMany();
+    }
+
     public function firstPost(): BelongsTo
     {
         return $this->belongsTo(Post::class);

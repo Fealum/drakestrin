@@ -16,3 +16,9 @@ docker compose exec -T app php artisan test
 cd devop
 docker compose exec -T app php artisan test tests/Feature/ForumModelTest.php tests/Feature/CompanyReadTest.php tests/Feature/UserReadTest.php
 ```
+
+## Best practices
+
+- Code as if you were a senior Laravel developer.
+- Use model scopes and repositories.
+- Use requests and DTOs.

@@ -9,6 +9,8 @@ use App\Models\Dictionary\Word;
 use App\Models\Economy\Company;
 use App\Models\Economy\CompanyWorker;
 use App\Models\Encyclopedia\Page;
+use App\Models\Territory\Location;
+use App\Models\Territory\Settlement;
 use App\Models\Territory\Territory;
 use App\Models\User;
 use App\Models\User\Character;
@@ -26,6 +28,8 @@ enum PermissionEntityType: int
     case COMPANY_WORKER = 8;
     case DICTIONARY_WORD = 9;
     case TERRITORY = 10;
+    case LOCATION = 11;
+    case SETTLEMENT = 12;
 
     public function modelClass(): string
     {
@@ -40,6 +44,8 @@ enum PermissionEntityType: int
             self::COMPANY_WORKER => CompanyWorker::class,
             self::DICTIONARY_WORD => Word::class,
             self::TERRITORY => Territory::class,
+            self::LOCATION => Location::class,
+            self::SETTLEMENT => Settlement::class,
         };
     }
 
@@ -56,6 +62,8 @@ enum PermissionEntityType: int
             $model instanceof CompanyWorker => self::COMPANY_WORKER,
             $model instanceof Word => self::DICTIONARY_WORD,
             $model instanceof Territory => self::TERRITORY,
+            $model instanceof Location => self::LOCATION,
+            $model instanceof Settlement => self::SETTLEMENT,
             default => null,
         };
     }

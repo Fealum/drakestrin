@@ -26,6 +26,23 @@
             </p>
             @endif
 
+            @if ($canSetScene)
+            <p>
+                <label for="scene_location">Szene</label>
+                <select name="scene_location" id="scene_location">
+                    <option value="">Keine Szene setzen</option>
+                    @foreach ($locations as $location)
+                    <option value="{{ $location->id }}" @selected((int) old('scene_location') === $location->id)>{{ $location->name }}</option>
+                    @endforeach
+                </select>
+            </p>
+
+            <p>
+                <label for="scene_story_started_at">Erzählzeit</label>
+                <input type="datetime-local" name="scene_story_started_at" id="scene_story_started_at" value="{{ old('scene_story_started_at', now()->format('Y-m-d\TH:i')) }}">
+            </p>
+            @endif
+
             <div class="post-charselect">
                 <ul>
                     @foreach ($characters as $character)

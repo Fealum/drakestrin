@@ -7,6 +7,7 @@ use App\Data\Board\UpdateThreadData;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
+use App\Models\Board\ThreadScene;
 use App\Models\User\Character;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -51,6 +52,16 @@ class ThreadWriter
                 'last_post_id' => $post->id,
             ]);
 
+            if ($data->sceneLocationId) {
+                ThreadScene::create([
+                    'thread_id' => $thread->id,
+                    'location_id' => $data->sceneLocationId,
+                    'starts_at_post_id' => null,
+                    'story_started_at' => $data->sceneStoryStartedAt,
+                    'created_by_user_id' => $user->id,
+                ]);
+            }
+
             $this->counters->refreshThread($thread);
             $this->counters->refreshBoard($board);
             $this->counters->refreshUser($user->id);
@@ -88,6 +99,7 @@ class ThreadWriter
         $characterIds = $thread->posts()->pluck('character_id');
 
         DB::transaction(function () use ($thread, $board, $userIds, $characterIds) {
+            ThreadScene::where('thread_id', $thread->id)->delete();
             Post::where('thread_id', $thread->id)->delete();
             $thread->delete();
 

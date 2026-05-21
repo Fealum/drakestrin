@@ -4,39 +4,15 @@
     <x-slot:js>
         <script>
             document.addEventListener('DOMContentLoaded', function () {
-                const actionForm = document.querySelector('form[name="newtransfer"]');
+                const postForm = document.querySelector('form[name="newpost"]');
 
-                const actionTabs = document.getElementById('selectaction');
-                const newPost = document.getElementById('newpost');
-                const newAction = document.getElementById('newaction');
-
-                if (actionTabs && newPost && newAction) {
-                    const showActionPanel = function (target) {
-                        newPost.style.display = target === 'newpost' ? '' : 'none';
-                        newAction.style.display = target === 'newaction' ? '' : 'none';
-
-                        actionTabs.querySelectorAll('a[href="#newpost"], a[href="#newaction"]').forEach((link) => {
-                            link.classList.toggle('activeaction', link.getAttribute('href') === '#' + target);
-                        });
-                    };
-
-                    actionTabs.querySelectorAll('a[href="#newpost"], a[href="#newaction"]').forEach((link) => {
-                        link.addEventListener('click', function (event) {
-                            event.preventDefault();
-                            showActionPanel(link.hash.slice(1));
-                        });
-                    });
-
-                    showActionPanel(window.location.hash === '#newaction' ? 'newaction' : 'newpost');
-                }
-
-                if (actionForm) {
+                if (postForm) {
                     const updateInventoryVisibility = function () {
-                        actionForm.querySelectorAll('ul.inventory-char').forEach((list) => {
+                        postForm.querySelectorAll('ul.inventory-char').forEach((list) => {
                             list.style.display = 'none';
                         });
 
-                        const selectedCharacter = actionForm.querySelector('input[name="character"]:checked');
+                        const selectedCharacter = postForm.querySelector('input[name="character"]:checked');
 
                         if (selectedCharacter) {
                             const list = document.getElementById('inventory-char-' + selectedCharacter.value);
@@ -47,7 +23,7 @@
                         }
                     };
 
-                    actionForm.querySelectorAll('input[name="character"]').forEach((input) => {
+                    postForm.querySelectorAll('input[name="character"]').forEach((input) => {
                         input.addEventListener('change', updateInventoryVisibility);
                     });
 
@@ -129,11 +105,41 @@
         @if ($canDeleteThread)
         <a class="option delete" title="löschen" href="{{ route('thread.delete', ['thread' => $thread->id]) }}">löschen</a>
         @endif
+        @if ($canSetScene)
+        <a class="option scene" title="Szene setzen" href="{{ route('thread.scene.create', ['thread' => $thread->id]) }}">Szene setzen</a>
+        @endif
+        @if ($thread->currentScene && $canEndScene)
+        <a class="option scene" title="Szene beenden" href="{{ route('thread.scene.end', ['thread' => $thread->id]) }}">Szene beenden</a>
+        @endif
     </p>
 
     @include('board._pagination', ['paginator' => $posts, 'baseUrl' => url('/thread/view/'.$thread->id)])
 
-    @forelse ($posts as $post)
+    @forelse ($timelineEntries as $entry)
+    @if ($entry['type'] === 'scene_start')
+    @php($scene = $entry['scene'])
+    <div class="thread-scene" id="scene{{ $scene->id }}">
+        <p>
+            Szene:
+            <a href="{{ route('location.view', ['location' => $scene->location_id]) }}">{{ $scene->location?->name ?? 'Unbekannter Ort' }}</a>
+            @if ($scene->story_started_at)
+            ab <x-datetime :time="\Illuminate\Support\Carbon::createFromTimestamp($scene->story_started_at)" />
+            @endif
+        </p>
+    </div>
+    @elseif ($entry['type'] === 'scene_end')
+    @php($scene = $entry['scene'])
+    <div class="thread-scene">
+        <p>
+            Szene beendet:
+            <a href="{{ route('location.view', ['location' => $scene->location_id]) }}">{{ $scene->location?->name ?? 'Unbekannter Ort' }}</a>
+            @if ($scene->story_ended_at)
+            um <x-datetime :time="\Illuminate\Support\Carbon::createFromTimestamp($scene->story_ended_at)" />
+            @endif
+        </p>
+    </div>
+    @else
+    @php($post = $entry['post'])
     @php($character = $post->character)
     <div id="post{{ $post->id }}" class="post">
         @if ($character)
@@ -153,7 +159,7 @@
                 <span class="datetime"><x-datetime :time="$post->time" /></span>
             </h4>
             <p>
-                <a class="postnumber small" href="{{ url('/thread/view/'.$thread->id.($posts->currentPage() > 1 ? '/'.$posts->currentPage() : '')) }}#post{{ $post->id }}">{{ $loop->iteration + (($posts->currentPage() - 1) * $posts->perPage()) }}</a>
+                <a class="postnumber small" href="{{ url('/thread/view/'.$thread->id.($posts->currentPage() > 1 ? '/'.$posts->currentPage() : '')) }}#post{{ $post->id }}">{{ $entry['post_number'] + (($posts->currentPage() - 1) * $posts->perPage()) }}</a>
                 <a
                     class="option quote"
                     title="zitieren"
@@ -177,8 +183,13 @@
         </div>
 
         <div class="postcontent">
+            @if (trim($post->message) !== '')
+                {!! $forumFormatter->render($post->message, $post->smilies) !!}
+            @endif
+
             @if ($post->transfers->isNotEmpty())
                 @foreach ($post->transfers as $transfer)
+                <div class="post-transfer">
                     @php($sender = $transfer->sender)
                     @php($recipient = $transfer->recipient)
                     @if ($sender)
@@ -195,12 +206,12 @@
                     @if ($recipient)
                     <a href="{{ url('/user/character/'.$recipient->id) }}"><x-avatar :subject="$recipient" size="list" :title="$recipient->name" /></a>
                     @endif
+                </div>
                 @endforeach
-            @else
-                {!! $forumFormatter->render($post->message, $post->smilies) !!}
             @endif
         </div>
     </div>
+    @endif
     @empty
     <p>Keine Beiträge!</p>
     @endforelse
@@ -209,12 +220,6 @@
 
     @if ($canCreatePost)
     @php($inventoryCharacters = $characters->filter(fn ($character) => $character->inventory->isNotEmpty())->values())
-    @if ($canTransfer && $inventoryCharacters->isNotEmpty())
-    <ul id="selectaction">
-        <li><a class="activeaction" href="#newpost">Beitrag</a></li>
-        <li><a href="#newaction">Handlung</a></li>
-    </ul>
-    @endif
 
     @if ($characters->isNotEmpty() || $canCreateCharacter)
     <div id="newpost" class="post">
@@ -226,7 +231,7 @@
                     <li>
                         <input name="character" value="{{ $character->id }}" id="char-{{ $character->id }}" type="radio" @checked(old('character', $characters->first()->id) == $character->id)>
                         <label for="char-{{ $character->id }}">
-                            <x-avatar :subject="$character" size="list" :title="$character->name" />
+                            <x-avatar :subject="$character" :title="$character->name" />
                         </label>
                     </li>
                     @endforeach
@@ -244,35 +249,9 @@
             <input type="hidden" name="smilies" value="1">
             <input type="hidden" name="signature" value="1">
             <x-bbcode-textarea name="message" id="newpost-message" :value="old('message', $quotedMessage)" />
-            <input type="submit" value="Neuen Beitrag erstellen">
-        </form>
-    </div>
-    @else
-    <div class="nochar">
-        <h3>Noch kein Charakter vorhanden!</h3>
-        <p>Um Beiträge zu verfassen, musst Du zuerst einen Charakter erstellen.</p>
-    </div>
-    @endif
 
-    @if ($canTransfer && $inventoryCharacters->isNotEmpty())
-    <div id="newaction" class="post">
-        <form name="newtransfer" action="{{ route('transfer.transfer', ['thread' => $thread->id]) }}" method="post">
-            @csrf
-            <div class="post-charselect">
-                <ul>
-                    @foreach ($inventoryCharacters as $character)
-                    <li>
-                        <input name="character" value="{{ $character->id }}" id="action-char-{{ $character->id }}" type="radio" @checked($loop->first)>
-                        <label for="action-char-{{ $character->id }}">
-                            <x-avatar :subject="$character" size="list" :title="$character->name" />
-                        </label>
-                    </li>
-                    @endforeach
-                </ul>
-            </div>
-
+            @if ($canTransfer && $inventoryCharacters->isNotEmpty() && $thread->currentScene)
             @foreach ($inventoryCharacters as $character)
-            <h5>{{ $character->name }}</h5>
             <ul class="inventory-char" id="inventory-char-{{ $character->id }}">
                 @foreach ($character->inventory as $inventory)
                 @php($item = $inventory->item)
@@ -297,8 +276,15 @@
                 label="an"
                 placeholder="Empfänger suchen ..."
             />
-            <input type="submit" value="Handlung ausführen">
+            @endif
+
+            <input type="submit" value="Neuen Beitrag erstellen">
         </form>
+    </div>
+    @else
+    <div class="nochar">
+        <h3>Noch kein Charakter vorhanden!</h3>
+        <p>Um Beiträge zu verfassen, musst Du zuerst einen Charakter erstellen.</p>
     </div>
     @endif
     @endif

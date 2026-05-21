@@ -2,23 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Data\Economy\InventoryOwner;
+use App\Data\Economy\TransferInventoryItem;
+use App\Data\Economy\TransferParticipant;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
 use App\Models\User\Character;
-use App\Models\Economy\Inventory;
-use App\Models\Economy\Transfer;
-use App\Models\Economy\TransferItem;
 use App\Services\Board\ForumCounters;
-use App\Services\InventoryService;
+use App\Services\Economy\TransferService;
 use App\Services\PermissionService;
 use App\Support\PermissionEntityType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 class TransferController extends Controller
 {
-    public function __construct(PermissionService $permissionService, private InventoryService $inventory)
+    public function __construct(PermissionService $permissionService, private TransferService $transfers)
     {
         parent::__construct($permissionService);
     }
@@ -27,6 +28,7 @@ class TransferController extends Controller
     {
         abort_unless(auth()->check(), 403);
         abort_unless($this->permissionService->allows('transfer', $thread, $request->user()), 403);
+        abort_unless($thread->currentScene()->exists(), 403);
 
         $data = $request->validate([
             'character' => ['required', 'integer', 'exists:characters,id'],
@@ -52,70 +54,55 @@ class TransferController extends Controller
             ->map(fn ($inventoryId) => (int) $inventoryId)
             ->unique()
             ->values();
+        $selectedItems = $selectedInventoryIds
+            ->map(fn (int $inventoryId) => new TransferInventoryItem(
+                inventoryId: $inventoryId,
+                requestedStack: $data['inventorystack'][$inventoryId] ?? null,
+            ))
+            ->all();
 
-        $inventories = Inventory::query()
-            ->with('item')
-            ->whereIn('id', $selectedInventoryIds)
-            ->where('owner_type', PermissionEntityType::CHARACTER->value)
-            ->where('owner_id', $sender->id)
-            ->get()
-            ->keyBy('id');
+        $counters = app(ForumCounters::class);
 
-        if ($inventories->isEmpty()) {
+        try {
+            $post = DB::transaction(function () use ($request, $thread, $sender, $recipient, $selectedItems, $counters) {
+                $time = now()->timestamp;
+                $actionPost = Post::create([
+                    'thread_id' => $thread->id,
+                    'board_id' => $thread->board_id,
+                    'user_id' => $sender->user_id,
+                    'character_id' => $sender->id,
+                    'time' => $time,
+                    'message' => '',
+                    'smilies' => 0,
+                    'signature' => 0,
+                    'ip' => $request->ip(),
+                ]);
+
+                $this->transfers->transferInventories(
+                    postId: $actionPost->id,
+                    sender: TransferParticipant::character($sender->id),
+                    recipient: TransferParticipant::character($recipient->id),
+                    source: new InventoryOwner(PermissionEntityType::CHARACTER, $sender->id),
+                    target: new InventoryOwner(PermissionEntityType::CHARACTER, $recipient->id),
+                    items: $selectedItems,
+                );
+
+                $thread->last_post_id = $actionPost->id;
+                $thread->last_post_at = $time;
+                $thread->save();
+
+                $counters->refreshThread($thread);
+                $counters->refreshBoard($thread->board);
+                $counters->refreshUser($sender->user_id);
+                $counters->refreshCharacter($sender->id);
+
+                return $actionPost;
+            });
+        } catch (InvalidArgumentException) {
             return redirect()->route('thread.view', ['thread' => $thread->id])
                 ->withErrors(['inventory' => 'Keine übertragbaren Gegenstände ausgewählt.']);
         }
 
-        $counters = app(ForumCounters::class);
-        $post = DB::transaction(function () use ($request, $thread, $sender, $recipient, $selectedInventoryIds, $inventories, $data, $counters) {
-            $time = now()->timestamp;
-            $actionPost = Post::create([
-                'thread_id' => $thread->id,
-                'board_id' => $thread->board_id,
-                'user_id' => 2,
-                'character_id' => 3,
-                'time' => $time,
-                'message' => '',
-                'smilies' => 0,
-                'signature' => 0,
-                'ip' => $request->ip(),
-            ]);
-
-            $transfer = Transfer::create([
-                'post_id' => $actionPost->id,
-                'sender_type' => PermissionEntityType::CHARACTER->value,
-                'sender_id' => $sender->id,
-                'recipient_type' => PermissionEntityType::CHARACTER->value,
-                'recipient_id' => $recipient->id,
-            ]);
-
-            foreach ($selectedInventoryIds as $inventoryId) {
-                $inventory = $inventories->get($inventoryId);
-
-                if (! $inventory || ! $inventory->item) {
-                    continue;
-                }
-
-                [$itemId, $stack] = $this->inventory->moveInventory($inventory, PermissionEntityType::CHARACTER, $recipient->id, 0, $data['inventorystack'][$inventoryId] ?? null);
-
-                TransferItem::create([
-                    'transfer_id' => $transfer->id,
-                    'item_id' => $itemId,
-                    'stack' => $stack,
-                ]);
-            }
-
-            $thread->last_post_id = $actionPost->id;
-            $thread->last_post_at = $time;
-            $thread->save();
-
-            $counters->refreshThread($thread);
-            $counters->refreshBoard($thread->board);
-            $counters->refreshUser(2);
-            $counters->refreshCharacter(3);
-
-            return $actionPost;
-        });
 
         return redirect(route('thread.view', ['thread' => $thread->id, 'page' => 'last']) . '#post' . $post->id);
     }

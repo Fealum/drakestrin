@@ -12,6 +12,8 @@ class CreateThreadData
         public readonly bool $important,
         public readonly bool $smilies,
         public readonly bool $signature,
+        public readonly ?int $sceneLocationId = null,
+        public readonly ?int $sceneStoryStartedAt = null,
     ) {
     }
 
@@ -25,6 +27,8 @@ class CreateThreadData
             important: (bool) ($data['important'] ?? false),
             smilies: (bool) ($data['smilies'] ?? false),
             signature: (bool) ($data['signature'] ?? false),
+            sceneLocationId: filled($data['scene_location'] ?? null) ? (int) $data['scene_location'] : null,
+            sceneStoryStartedAt: filled($data['scene_story_started_at'] ?? null) ? (int) $data['scene_story_started_at'] : null,
         );
     }
 }

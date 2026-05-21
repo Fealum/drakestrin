@@ -6,6 +6,7 @@ use App\Models\Concerns\HasSpatialGeometry;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Settlement extends Model
 {
@@ -27,5 +28,12 @@ class Settlement extends Model
     public function territories(): HasMany
     {
         return $this->hasMany(Territory::class, 'capital_id');
+    }
+
+    public function locations(): MorphMany
+    {
+        return $this->morphMany(Location::class, 'parent')
+            ->orderBy('priority')
+            ->orderByRaw('LOWER(name)');
     }
 }

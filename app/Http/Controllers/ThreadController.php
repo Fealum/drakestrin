@@ -8,6 +8,7 @@ use App\Http\Requests\Board\UpdateThreadRequest;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
+use App\Models\Territory\Location;
 use App\Services\Board\ThreadWriter;
 use App\Services\PermissionService;
 use Illuminate\Http\RedirectResponse;
@@ -43,6 +44,8 @@ class ThreadController extends Controller
             'boards' => $this->threadBoardOptions(),
             'characters' => auth()->user()->characters()->orderBy('name')->get(),
             'canMarkAsImportant' => auth()->user()->can('markAsImportant', new ForumThread(['board_id' => $board?->id ?? 0])),
+            'canSetScene' => auth()->user()->can('setScene', new ForumThread(['board_id' => $board?->id ?? 0])),
+            'locations' => Location::query()->orderBy('priority')->orderByRaw('LOWER(name)')->get(),
             'selectedBoard' => $board,
         ]);
     }
@@ -54,20 +57,24 @@ class ThreadController extends Controller
 
         $thread->load([
             'board.parent',
+            'currentScene.location',
             'posts.author',
             'posts.character',
             'posts.transfers.items.item',
             'posts.transfers.recipient',
             'posts.transfers.sender',
+            'scenes.location',
         ]);
         $thread->increment('views');
         $thread->refresh()->load([
             'board.parent',
+            'currentScene.location',
             'posts.author',
             'posts.character',
             'posts.transfers.items.item',
             'posts.transfers.recipient',
             'posts.transfers.sender',
+            'scenes.location',
         ]);
 
         $this->setLocation($thread);
@@ -92,11 +99,14 @@ class ThreadController extends Controller
             'canCreateCharacter' => auth()->check() && $this->permissionService->allows('createcharacter', $thread, auth()->user()),
             'canDeleteThread' => auth()->check() && auth()->user()->can('delete', $thread),
             'canEditThread' => auth()->check() && auth()->user()->can('update', $thread),
+            'canEndScene' => auth()->check() && auth()->user()->can('endScene', $thread),
+            'canSetScene' => auth()->check() && auth()->user()->can('setScene', $thread),
             'canTransfer' => auth()->check() && $this->permissionService->allows('transfer', $thread, auth()->user()),
             'characters' => auth()->check() ? auth()->user()->characters()->with('inventory.item')->orderBy('name')->get() : collect(),
             'posts' => $posts,
             'quotedMessage' => $quotedPost ? $this->quoteText($quotedPost) : '',
             'thread' => $thread,
+            'timelineEntries' => $this->timelineEntries($posts->getCollection(), $thread->scenes),
             'viewedThreads' => $viewedThreads,
         ]);
 
@@ -152,6 +162,58 @@ class ThreadController extends Controller
         $author = str_replace(']', ')', $author);
 
         return '[q=' . $author . ']' . trim($post->message) . '[/q]' . PHP_EOL;
+    }
+
+    private function timelineEntries(Collection $posts, Collection $scenes): Collection
+    {
+        $entries = collect();
+
+        foreach ($scenes as $scene) {
+            if ($scene->starts_at_post_id === null) {
+                $entries->push([
+                    'type' => 'scene_start',
+                    'scene' => $scene,
+                    'post' => null,
+                    'sort_post_id' => 0,
+                    'sort' => 0,
+                ]);
+            }
+        }
+
+        foreach ($posts as $postNumber => $post) {
+            $entries->push([
+                'type' => 'post',
+                'post' => $post,
+                'scene' => null,
+                'post_number' => $postNumber + 1,
+                'sort_post_id' => $post->id,
+                'sort' => 1,
+            ]);
+
+            foreach ($scenes->where('ends_at_post_id', $post->id) as $scene) {
+                $entries->push([
+                    'type' => 'scene_end',
+                    'scene' => $scene,
+                    'post' => $post,
+                    'sort_post_id' => $post->id,
+                    'sort' => 2,
+                ]);
+            }
+
+            foreach ($scenes->where('starts_at_post_id', $post->id) as $scene) {
+                $entries->push([
+                    'type' => 'scene_start',
+                    'scene' => $scene,
+                    'post' => $post,
+                    'sort_post_id' => $post->id,
+                    'sort' => 3,
+                ]);
+            }
+        }
+
+        return $entries
+            ->sortBy(fn (array $entry) => [$entry['sort_post_id'], $entry['sort'], $entry['scene']?->id ?? $entry['post']?->id ?? 0])
+            ->values();
     }
 
     private function threadBoardOptions(): Collection

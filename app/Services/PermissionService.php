@@ -7,6 +7,7 @@ use App\Models\Board\Post;
 use App\Models\Board\Thread;
 use App\Models\Access\Permit;
 use App\Models\User;
+use App\Models\Territory\Location;
 use App\Support\PermissionEntityType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -94,6 +95,7 @@ class PermissionService
             $object instanceof Post => $object->thread,
             $object instanceof Thread => $object->board,
             $object instanceof Board => $object->parent_id ? $object->parent : null,
+            $object instanceof Location => $object->parent,
             default => null,
         };
     }

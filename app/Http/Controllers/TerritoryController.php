@@ -20,6 +20,7 @@ class TerritoryController extends Controller
             'children.capital',
             'children.children',
             'children.ruler',
+            'locations.children',
             'parent',
             'ruler',
         ]);
