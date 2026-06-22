@@ -11,6 +11,7 @@ use App\Http\Controllers\GroupController;
 use App\Http\Controllers\IndexController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LogController;
+use App\Http\Controllers\MarkdownExportController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RegisterController;
@@ -39,6 +40,7 @@ Route::controller(IndexController::class)->group(function () {
 });
 
 Route::get('/calendar', [CalendarController::class, 'view'])->name('calendar');
+Route::get('/export/markdown', MarkdownExportController::class)->name('export.markdown');
 
 Route::controller(BoardController::class)->group(function () {
     Route::get('/board', 'index')->name('board');

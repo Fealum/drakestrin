@@ -9,6 +9,7 @@ use App\Models\Territory\Location;
 use App\Models\Territory\Territory;
 use App\Models\User\Character;
 use App\Models\User;
+use App\Services\MarkdownArchiveExporter;
 use App\Services\PermissionService;
 use App\Support\PermissionEntityType;
 use Carbon\CarbonImmutable;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
+use ZipArchive;
 
 class ForumModelTest extends TestCase
 {
@@ -32,6 +34,9 @@ class ForumModelTest extends TestCase
     private int $locationId;
     private int $originalSetThreadSceneStandard;
     private int $originalEndThreadSceneStandard;
+    private int $exportMarkdownPermitId;
+    private ?int $originalExportMarkdownPermitStandard;
+    private ?int $originalExportMarkdownAdminPermissionValue;
 
     protected function setUp(): void
     {
@@ -41,6 +46,7 @@ class ForumModelTest extends TestCase
         $this->postTime = now()->subHour()->timestamp;
         $this->originalSetThreadSceneStandard = (int) DB::table('permits')->where('name', 'setthreadscene')->value('standard');
         $this->originalEndThreadSceneStandard = (int) DB::table('permits')->where('name', 'endthreadscene')->value('standard');
+        $this->rememberAndGrantMarkdownExportPermit();
 
         $user = User::factory()->create([
             'name' => $this->prefix . '_user',
@@ -193,6 +199,10 @@ class ForumModelTest extends TestCase
             ->where('name', 'like', $this->prefix . '%')
             ->delete();
 
+        DB::table('pages')
+            ->where('name', 'like', $this->prefix . '%')
+            ->delete();
+
         DB::table('boards')
             ->where('name', 'like', $this->prefix . '%')
             ->delete();
@@ -224,6 +234,7 @@ class ForumModelTest extends TestCase
 
         DB::table('permits')->where('name', 'setthreadscene')->update(['standard' => $this->originalSetThreadSceneStandard]);
         DB::table('permits')->where('name', 'endthreadscene')->update(['standard' => $this->originalEndThreadSceneStandard]);
+        $this->restoreMarkdownExportPermit();
         Cache::forget('user_permits:' . $this->userId);
         Cache::forget('user_permissions:' . $this->userId);
         app()->forgetInstance(PermissionService::class);
@@ -340,6 +351,119 @@ class ForumModelTest extends TestCase
         $this->assertStringContainsString('## Thema ' . $this->threadId . ': ' . $this->prefix . '_thread', $markdown);
         $this->assertStringContainsString('### Beitrag von ' . $this->prefix . '_character', $markdown);
         $this->assertStringContainsString($this->prefix . '_message', $markdown);
+    }
+
+    public function test_markdown_export_endpoint_downloads_zip(): void
+    {
+        $this->actingAs(User::findOrFail($this->userId));
+
+        $this->mock(MarkdownArchiveExporter::class, function ($mock) {
+            $mock->shouldReceive('exportTo')
+                ->once()
+                ->withArgs(function (string $path) {
+                    $zip = new ZipArchive();
+                    $this->assertTrue($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE));
+                    $this->assertTrue($zip->addFromString('board/.keep', ''));
+                    $this->assertTrue($zip->close());
+
+                    return true;
+                });
+        });
+
+        $response = $this->get('/export/markdown');
+
+        $response->assertOk();
+        $response->assertDownload('drakestrin-markdown-export.zip');
+    }
+
+    public function test_markdown_export_endpoint_requires_export_permission(): void
+    {
+        $user = User::factory()->create([
+            'name' => $this->prefix . '_no_export_user',
+            'email' => $this->prefix . '_no_export@example.test',
+            'regemail' => $this->prefix . '_no_export@example.test',
+            'regdate' => $this->postTime,
+            'lastvisit' => $this->postTime,
+            'lastactivity' => $this->postTime,
+            'interests' => '',
+            'location' => '',
+            'work' => '',
+            'usertext' => '',
+            'wohnort' => '',
+        ]);
+
+        $this->mock(MarkdownArchiveExporter::class, function ($mock) {
+            $mock->shouldNotReceive('exportTo');
+        });
+
+        $response = $this->actingAs($user)->get('/export/markdown');
+
+        $response->assertForbidden();
+    }
+
+    public function test_markdown_exporter_writes_board_and_encyclopedia_zip(): void
+    {
+        $this->actingAs(User::findOrFail($this->userId));
+
+        $pageId = DB::table('pages')->insertGetId([
+            'sort' => 1,
+            'name' => $this->prefix . '_page',
+            'title' => $this->prefix . '_page_title',
+            'slug' => $this->prefix . '_page',
+            'page_id' => 0,
+            'text' => $this->prefix . '_page_text',
+            'user_id' => $this->userId,
+            'created_at' => $this->postTime,
+            'activated' => 1,
+        ]);
+        $childPageId = DB::table('pages')->insertGetId([
+            'sort' => 1,
+            'name' => $this->prefix . '_child_page',
+            'title' => $this->prefix . '_child_page_title',
+            'slug' => $this->prefix . '_child_page',
+            'page_id' => $pageId,
+            'text' => $this->prefix . '_child_page_text',
+            'user_id' => $this->userId,
+            'created_at' => $this->postTime,
+            'activated' => 1,
+        ]);
+
+        $path = sys_get_temp_dir() . '/' . $this->prefix . '_markdown_export.zip';
+        app(MarkdownArchiveExporter::class)->exportTo($path, [$this->parentBoardId], [$pageId]);
+
+        $zip = new ZipArchive();
+        $this->assertTrue($zip->open($path));
+
+        $threadPath = 'board/'
+            . str_pad((string) $this->parentBoardId, 4, '0', STR_PAD_LEFT) . ' ' . $this->prefix . '_parent/'
+            . str_pad((string) $this->childBoardId, 4, '0', STR_PAD_LEFT) . ' ' . $this->prefix . '_child/'
+            . str_pad((string) $this->threadId, 4, '0', STR_PAD_LEFT) . ' ' . $this->prefix . '_thread.md';
+        $pagePath = 'encyclopedia/'
+            . str_pad((string) $pageId, 4, '0', STR_PAD_LEFT) . ' ' . $this->prefix . '_page.md';
+        $childPagePath = 'encyclopedia/'
+            . str_pad((string) $pageId, 4, '0', STR_PAD_LEFT) . ' ' . $this->prefix . '_page/'
+            . str_pad((string) $childPageId, 4, '0', STR_PAD_LEFT) . ' ' . $this->prefix . '_child_page.md';
+
+        $this->assertNotFalse($zip->locateName($threadPath));
+        $this->assertNotFalse($zip->locateName($pagePath));
+        $this->assertNotFalse($zip->locateName($childPagePath));
+
+        $threadMarkdown = $zip->getFromName($threadPath);
+        $pageMarkdown = $zip->getFromName($pagePath);
+        $childPageMarkdown = $zip->getFromName($childPagePath);
+        $zip->close();
+        File::delete($path);
+
+        $this->assertStringContainsString('# Thema: ' . $this->prefix . '_thread (ID: ' . $this->threadId . ')', $threadMarkdown);
+        $this->assertStringContainsString('Board: ' . $this->prefix . '_child (ID: ' . $this->childBoardId . ')', $threadMarkdown);
+        $this->assertStringContainsString('Erstellt: ' . CarbonImmutable::createFromTimestamp($this->postTime, config('app.timezone'))->toIso8601String(), $threadMarkdown);
+        $this->assertStringContainsString('## Beitrag 1', $threadMarkdown);
+        $this->assertStringContainsString('Charakter: ' . $this->prefix . '_character (ID: ' . $this->characterId . ')', $threadMarkdown);
+        $this->assertStringContainsString($this->prefix . '_message', $threadMarkdown);
+        $this->assertStringContainsString('# ' . $this->prefix . '_page_title (ID: ' . $pageId . ')', $pageMarkdown);
+        $this->assertStringContainsString($this->prefix . '_page_text', $pageMarkdown);
+        $this->assertStringContainsString('# ' . $this->prefix . '_child_page_title (ID: ' . $childPageId . ')', $childPageMarkdown);
+        $this->assertStringContainsString($this->prefix . '_child_page_text', $childPageMarkdown);
     }
 
     public function test_forum_read_routes_render_board_filter_board_detail_and_thread(): void
@@ -1362,5 +1486,71 @@ class ForumModelTest extends TestCase
         Cache::forget('user_permits:' . $this->userId);
         Cache::forget('user_permissions:' . $this->userId);
         app()->forgetInstance(PermissionService::class);
+    }
+
+    private function rememberAndGrantMarkdownExportPermit(): void
+    {
+        $permit = DB::table('permits')->where('name', 'exportmarkdown')->first();
+        $this->originalExportMarkdownPermitStandard = $permit ? (int) $permit->standard : null;
+
+        DB::table('permits')->updateOrInsert(
+            ['name' => 'exportmarkdown'],
+            ['standard' => 0],
+        );
+
+        $this->exportMarkdownPermitId = (int) DB::table('permits')->where('name', 'exportmarkdown')->value('id');
+
+        $permission = DB::table('permissions')
+            ->where('recipient_type', PermissionEntityType::GROUP->value)
+            ->where('recipient_id', 2)
+            ->where('subject_type', 0)
+            ->where('subject_id', 0)
+            ->where('permit_id', $this->exportMarkdownPermitId)
+            ->first();
+        $this->originalExportMarkdownAdminPermissionValue = $permission ? (int) $permission->value : null;
+
+        DB::table('permissions')->updateOrInsert(
+            [
+                'recipient_type' => PermissionEntityType::GROUP->value,
+                'recipient_id' => 2,
+                'subject_type' => 0,
+                'subject_id' => 0,
+                'permit_id' => $this->exportMarkdownPermitId,
+            ],
+            ['value' => 2],
+        );
+
+        Cache::flush();
+    }
+
+    private function restoreMarkdownExportPermit(): void
+    {
+        if ($this->originalExportMarkdownAdminPermissionValue === null) {
+            DB::table('permissions')
+                ->where('recipient_type', PermissionEntityType::GROUP->value)
+                ->where('recipient_id', 2)
+                ->where('subject_type', 0)
+                ->where('subject_id', 0)
+                ->where('permit_id', $this->exportMarkdownPermitId)
+                ->delete();
+        } else {
+            DB::table('permissions')
+                ->where('recipient_type', PermissionEntityType::GROUP->value)
+                ->where('recipient_id', 2)
+                ->where('subject_type', 0)
+                ->where('subject_id', 0)
+                ->where('permit_id', $this->exportMarkdownPermitId)
+                ->update(['value' => $this->originalExportMarkdownAdminPermissionValue]);
+        }
+
+        if ($this->originalExportMarkdownPermitStandard === null) {
+            DB::table('permits')->where('id', $this->exportMarkdownPermitId)->delete();
+        } else {
+            DB::table('permits')
+                ->where('id', $this->exportMarkdownPermitId)
+                ->update(['standard' => $this->originalExportMarkdownPermitStandard]);
+        }
+
+        Cache::flush();
     }
 }
