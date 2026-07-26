@@ -2,9 +2,9 @@
 
 namespace App\Models\Board;
 
-use App\Models\User\Character;
 use App\Models\Economy\Transfer;
 use App\Models\User;
+use App\Models\User\Character;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -62,7 +62,7 @@ class Post extends Model
 
     public function transfers(): HasMany
     {
-        return $this->hasMany(Transfer::class);
+        return $this->hasMany(Transfer::class)->orderBy('id');
     }
 
     public function pageInThread(int $perPage): int

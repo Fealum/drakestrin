@@ -1,7 +1,7 @@
 <li>
     <img src="{{ asset('images/company-worker/'.$worker->type.'.png') }}" alt="">
     <a href="{{ route('company.worker', $worker->id) }}">{{ $worker->name }}</a>
-    @if ($canManage)
+    @if ($canManage && $worker->activeLabours->isEmpty())
     (<a href="{{ route('company.fire', $worker->id) }}">entlassen</a>)
     @endif
     <p>
@@ -19,7 +19,14 @@
         @foreach ($worker->activeLabours as $activeLabour)
         @php($labour = $activeLabour->labour)
         @if ($labour)
-        <p>Arbeit: {{ $labour->name }} (<x-datetime :time="$activeLabour->since" /> &mdash; <x-datetime :time="$activeLabour->until" />)</p>
+        <p>
+            Arbeit: {{ $labour->name }}
+            @if ($activeLabour->pause_reason === \App\Support\ProductionPauseReason::STRIKE)
+            (wegen Streik pausiert)
+            @else
+            (<x-datetime :time="$activeLabour->since" /> &mdash; <x-datetime :time="$activeLabour->until" />)
+            @endif
+        </p>
         @endif
         @endforeach
     @endif

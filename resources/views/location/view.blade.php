@@ -51,6 +51,17 @@
     </ol>
     @endif
 
+    @if ($location->inventory->isNotEmpty())
+    <h3>Gegenstände</h3>
+    <ul class="location-inventory">
+        @foreach ($location->inventory as $inventory)
+        @if ($inventory->item)
+        <li>{{ $inventory->item->name }} ({{ $inventory->makeunitary() }})</li>
+        @endif
+        @endforeach
+    </ul>
+    @endif
+
     @if ($location->threadScenes->isNotEmpty())
     <h3>Szenen</h3>
     <ol>
@@ -66,4 +77,21 @@
         @endforeach
     </ol>
     @endif
+
+    @if ($location->companySites->isNotEmpty())
+    <h3>Betriebe</h3>
+    <ol>
+        @foreach ($location->companySites as $site)
+        @if ($site->company)
+        <li>
+            <a href="{{ route('company.view', ['company' => $site->company->id]) }}">{{ $site->company->name }}</a>
+            @if ($site->is_headquarters)(Hauptsitz)@endif
+            @if ($site->is_storefront)(Ladenlokal)@endif
+        </li>
+        @endif
+        @endforeach
+    </ol>
+    @endif
+
+    @include('transfer._ledger', ['transfers' => $transfers])
 </x-main-layout>

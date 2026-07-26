@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Data\Economy\InventoryOwner;
+use App\Data\Economy\TransferContext;
 use App\Data\Economy\TransferInventoryItem;
 use App\Data\Economy\TransferParticipant;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
+use App\Models\Economy\Transfer;
 use App\Models\User\Character;
 use App\Services\Board\ForumCounters;
+use App\Services\Economy\TransferReversalService;
 use App\Services\Economy\TransferService;
 use App\Services\PermissionService;
 use App\Support\PermissionEntityType;
@@ -19,8 +22,11 @@ use InvalidArgumentException;
 
 class TransferController extends Controller
 {
-    public function __construct(PermissionService $permissionService, private TransferService $transfers)
-    {
+    public function __construct(
+        PermissionService $permissionService,
+        private TransferService $transfers,
+        private TransferReversalService $reversals,
+    ) {
         parent::__construct($permissionService);
     }
 
@@ -28,7 +34,8 @@ class TransferController extends Controller
     {
         abort_unless(auth()->check(), 403);
         abort_unless($this->permissionService->allows('transfer', $thread, $request->user()), 403);
-        abort_unless($thread->currentScene()->exists(), 403);
+        $scene = $thread->currentScene()->first();
+        abort_unless($scene?->story_started_at !== null, 403);
 
         $data = $request->validate([
             'character' => ['required', 'integer', 'exists:characters,id'],
@@ -64,7 +71,8 @@ class TransferController extends Controller
         $counters = app(ForumCounters::class);
 
         try {
-            $post = DB::transaction(function () use ($request, $thread, $sender, $recipient, $selectedItems, $counters) {
+            $post = DB::transaction(function () use ($request, $thread, $scene, $sender, $recipient, $selectedItems, $counters) {
+                $thread = ForumThread::query()->whereKey($thread->id)->lockForUpdate()->firstOrFail();
                 $time = now()->timestamp;
                 $actionPost = Post::create([
                     'thread_id' => $thread->id,
@@ -85,6 +93,12 @@ class TransferController extends Controller
                     source: new InventoryOwner(PermissionEntityType::CHARACTER, $sender->id),
                     target: new InventoryOwner(PermissionEntityType::CHARACTER, $recipient->id),
                     items: $selectedItems,
+                    context: new TransferContext(
+                        threadSceneId: $scene->id,
+                        storyAt: $scene->story_started_at,
+                        createdByUserId: $request->user()->id,
+                        actedByCharacterId: $sender->id,
+                    ),
                 );
 
                 $thread->last_post_id = $actionPost->id;
@@ -103,7 +117,16 @@ class TransferController extends Controller
                 ->withErrors(['inventory' => 'Keine übertragbaren Gegenstände ausgewählt.']);
         }
 
+        return redirect(route('thread.view', ['thread' => $thread->id, 'page' => 'last']).'#post'.$post->id);
+    }
 
-        return redirect(route('thread.view', ['thread' => $thread->id, 'page' => 'last']) . '#post' . $post->id);
+    public function reverse(Request $request, Transfer $transfer): RedirectResponse
+    {
+        abort_unless($request->user(), 403);
+        $reversal = $this->reversals->reverse($transfer, $request->user());
+        $post = $reversal->post()->firstOrFail();
+
+        return redirect(route('post.view', ['post' => $post->id]))
+            ->with('status', 'Die Handlung wurde rückgängig gemacht.');
     }
 }

@@ -1,9 +1,10 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\BoardController;
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\CompanyInventoryController;
+use App\Http\Controllers\CompanyManagementController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DictionaryController;
 use App\Http\Controllers\EncyclopediaController;
@@ -12,8 +13,8 @@ use App\Http\Controllers\IndexController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\MarkdownExportController;
-use App\Http\Controllers\PostController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\PostController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\StaticPageController;
 use App\Http\Controllers\TerritoryController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\ThreadSceneController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
 /*
@@ -40,12 +42,18 @@ Route::controller(IndexController::class)->group(function () {
 });
 
 Route::get('/calendar', [CalendarController::class, 'view'])->name('calendar');
-Route::get('/export/markdown', MarkdownExportController::class)->name('export.markdown');
+
+Route::controller(MarkdownExportController::class)->group(function () {
+    Route::get('/export/markdown', 'index')->name('export.markdown');
+    Route::post('/export/markdown', 'store')->name('export.markdown.store');
+    Route::get('/export/markdown/{filename}', 'download')->name('export.markdown.download');
+    Route::delete('/export/markdown/{filename}', 'destroy')->name('export.markdown.destroy');
+});
 
 Route::controller(BoardController::class)->group(function () {
     Route::get('/board', 'index')->name('board');
     Route::get('/board/view/{board}/{page?}', function (int|string $board, int|string|null $page = null) {
-        return redirect('/board/filter/board:' . $board . ($page && (int) $page > 1 ? '/' . $page : ''), 301);
+        return redirect('/board/filter/board:'.$board.($page && (int) $page > 1 ? '/'.$page : ''), 301);
     })->name('board.view.legacy');
     Route::get('/board/permissions/{board}', 'permissions')->name('board.permissions');
     Route::get('/board/filter/board:{board}/{page?}', 'filterBoard')->name('board.view');
@@ -86,29 +94,30 @@ Route::controller(PostController::class)->group(function () {
 });
 
 Route::post('/transfer/transfer/{thread}', [TransferController::class, 'transfer'])->name('transfer.transfer');
+Route::post('/transfer/{transfer}/reverse', [TransferController::class, 'reverse'])->name('transfer.reverse');
 
 Route::get('/img/avatarCharacter.id/thumb/{path}.jpg', function (string $path) {
-    return redirect(Storage::disk('public')->url('character-avatars/thumb/' . $path . '.jpg'), 301);
+    return redirect(Storage::disk('public')->url('character-avatars/thumb/'.$path.'.jpg'), 301);
 })->where('path', '.*')->name('avatarCharacter.legacy_thumb');
 
 Route::get('/img/avatarCharacter.id/{path}.jpg', function (string $path) {
-    return redirect(Storage::disk('public')->url('character-avatars/' . $path . '.jpg'), 301);
+    return redirect(Storage::disk('public')->url('character-avatars/'.$path.'.jpg'), 301);
 })->where('path', '.*')->name('avatarCharacter.legacy_full');
 
 Route::get('/img/emoticon/{file}', function (string $file) {
-    return redirect(asset('images/emoticon/' . $file), 301);
+    return redirect(asset('images/emoticon/'.$file), 301);
 })->where('file', '[0-9]+\.gif');
 
 Route::get('/img/territory.id/{file}', function (string $file) {
-    return redirect(asset('images/territory/' . $file), 301);
+    return redirect(asset('images/territory/'.$file), 301);
 })->where('file', '[0-9]+\.png')->name('territory.legacy_coat_of_arms');
 
 Route::get('/img/company_worker.type/{file}', function (string $file) {
-    return redirect(asset('images/company-worker/' . $file), 301);
+    return redirect(asset('images/company-worker/'.$file), 301);
 })->where('file', '[0-9]+\.png')->name('company.legacy_worker_type');
 
 Route::get('/img/item.img/{file}', function (string $file) {
-    return redirect(asset('images/item/' . $file), 301);
+    return redirect(asset('images/item/'.$file), 301);
 })->where('file', '[0-9]+\.png')->name('item.legacy_image');
 
 Route::controller(ConversationController::class)->group(function () {
@@ -142,10 +151,23 @@ Route::controller(CompanyController::class)->group(function () {
     Route::get('/company/view/{company}', 'view')->name('company.view');
     Route::get('/company/worker/{worker}', 'worker')->name('company.worker');
     Route::post('/company/worker/{worker}', 'assignLabour')->name('company.assign_labour');
+    Route::post('/company/labour/{activeLabour}/stop', 'stopLabour')->name('company.stop_labour');
     Route::get('/company/hire/{company}/{type?}', 'hire')->name('company.hire');
     Route::get('/company/fire/{worker}', 'fire')->name('company.fire');
     Route::get('/company/pay/{company}', 'pay')->name('company.pay');
 });
+
+Route::controller(CompanyManagementController::class)->group(function () {
+    Route::get('/company/create', 'create')->name('company.create');
+    Route::post('/company', 'store')->name('company.store');
+    Route::get('/company/edit/{company}', 'edit')->name('company.edit');
+    Route::put('/company/edit/{company}', 'update')->name('company.update');
+    Route::post('/company/{company}/representatives', 'storeRepresentative')->name('company.representative.store');
+    Route::delete('/company/{company}/representatives/{representative}', 'destroyRepresentative')->name('company.representative.destroy');
+});
+
+Route::put('/company/{company}/inventory/{inventory}', [CompanyInventoryController::class, 'update'])
+    ->name('company.inventory.update');
 
 Route::controller(EncyclopediaController::class)->group(function () {
     Route::get('/encyclopedia', 'index')->name('encyclopedia');

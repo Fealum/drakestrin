@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Territory\Location;
 use App\Models\Territory\Settlement;
 use App\Models\Territory\Territory;
+use App\Repositories\Economy\TransferRepository;
+use App\Services\PermissionService;
 use App\Support\PermissionEntityType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
@@ -14,13 +16,22 @@ use Illuminate\View\View;
 
 class LocationController extends Controller
 {
+    public function __construct(
+        PermissionService $permissionService,
+        private TransferRepository $transfers,
+    ) {
+        parent::__construct($permissionService);
+    }
+
     public function view(Location $location): View
     {
         $location->load([
             'children',
             'creator',
+            'inventory.item',
             'parent',
             'threadScenes.thread',
+            'companySites.company.character',
         ]);
 
         $this->setLocation($location);
@@ -30,6 +41,7 @@ class LocationController extends Controller
             'canDelete' => auth()->check() && auth()->user()->can('delete', $location),
             'canEdit' => auth()->check() && auth()->user()->can('update', $location),
             'location' => $location,
+            'transfers' => $this->transfers->paginateForParticipant(PermissionEntityType::LOCATION, $location->id),
         ]);
     }
 
@@ -159,9 +171,9 @@ class LocationController extends Controller
     private function parentKey(?Model $parent): ?string
     {
         return match (true) {
-            $parent instanceof Territory => 'territory:' . $parent->id,
-            $parent instanceof Settlement => 'settlement:' . $parent->id,
-            $parent instanceof Location => 'location:' . $parent->id,
+            $parent instanceof Territory => 'territory:'.$parent->id,
+            $parent instanceof Settlement => 'settlement:'.$parent->id,
+            $parent instanceof Location => 'location:'.$parent->id,
             default => null,
         };
     }
@@ -174,8 +186,8 @@ class LocationController extends Controller
             ->orderByRaw('LOWER(name)')
             ->get()
             ->map(fn (Territory $territory) => [
-                'key' => 'territory:' . $territory->id,
-                'label' => 'Gebiet: ' . $territory->displayName(),
+                'key' => 'territory:'.$territory->id,
+                'label' => 'Gebiet: '.$territory->displayName(),
             ]);
 
         $settlements = Settlement::query()
@@ -183,8 +195,8 @@ class LocationController extends Controller
             ->orderByRaw('LOWER(name)')
             ->get()
             ->map(fn (Settlement $settlement) => [
-                'key' => 'settlement:' . $settlement->id,
-                'label' => 'Siedlung: ' . $settlement->name,
+                'key' => 'settlement:'.$settlement->id,
+                'label' => 'Siedlung: '.$settlement->name,
             ]);
 
         $locations = Location::query()
@@ -193,8 +205,8 @@ class LocationController extends Controller
             ->get()
             ->reject(fn (Location $location) => $editedLocation && $this->wouldCreateCycle($editedLocation, $location))
             ->map(fn (Location $location) => [
-                'key' => 'location:' . $location->id,
-                'label' => 'Ort: ' . $location->name,
+                'key' => 'location:'.$location->id,
+                'label' => 'Ort: '.$location->name,
             ]);
 
         return $territories->merge($settlements)->merge($locations)->values();

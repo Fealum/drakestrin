@@ -4,7 +4,9 @@ namespace App\Http\Requests\Board;
 
 use App\Data\Board\CreatePostData;
 use App\Models\Board\Post;
+use App\Support\PostTransferAction;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StorePostRequest extends FormRequest
 {
@@ -21,11 +23,29 @@ class StorePostRequest extends FormRequest
             'newcharname' => ['nullable', 'string', 'max:85'],
             'smilies' => ['nullable', 'boolean'],
             'signature' => ['nullable', 'boolean'],
-            'inventory' => ['nullable', 'array'],
+            'transfer_action' => ['nullable', Rule::enum(PostTransferAction::class), 'required_with:inventory'],
+            'inventory' => ['nullable', 'array', 'min:1', 'required_with:transfer_action'],
             'inventory.*' => ['integer', 'exists:inventories,id'],
             'inventorystack' => ['nullable', 'array'],
             'inventorystack.*' => ['nullable', 'string', 'max:40'],
-            'recipient' => ['nullable', 'integer', 'exists:characters,id', 'required_with:inventory'],
+            'recipient' => [
+                'nullable',
+                'integer',
+                'exists:characters,id',
+                Rule::requiredIf(in_array($this->input('transfer_action'), [
+                    PostTransferAction::GIVE->value,
+                    PostTransferAction::COMPANY_WITHDRAWAL->value,
+                ], true)),
+            ],
+            'company' => [
+                'nullable',
+                'integer',
+                'exists:companies,id',
+                Rule::requiredIf(in_array($this->input('transfer_action'), [
+                    PostTransferAction::COMPANY_DEPOSIT->value,
+                    PostTransferAction::COMPANY_WITHDRAWAL->value,
+                ], true)),
+            ],
         ];
     }
 

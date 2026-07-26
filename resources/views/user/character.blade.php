@@ -81,4 +81,6 @@
         @endforeach
     </ol>
     @endif
+
+    @include('transfer._ledger', ['transfers' => $transfers])
 </x-main-layout>

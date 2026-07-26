@@ -53,7 +53,7 @@ class PostController extends Controller
     public function delete(Post $post): View
     {
         $this->authorize('delete', $post);
-        $post->load(['character', 'thread.board', 'author']);
+        $post->load(['character', 'thread.board', 'author', 'transfers']);
 
         return view('post.delete', [
             'deletesThread' => $post->thread->posts()->count() === 1,

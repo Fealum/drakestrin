@@ -2,9 +2,13 @@
 
 namespace App\Models\Economy;
 
+use App\Support\InventoryStockState;
+use App\Support\PermissionEntityType;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Inventory extends Model
@@ -40,6 +44,18 @@ class Inventory extends Model
         return $this->morphTo();
     }
 
+    public function mutations(): HasMany
+    {
+        return $this->hasMany(InventoryMutation::class)->orderBy('id');
+    }
+
+    public function scopeOwnedBy(Builder $query, PermissionEntityType $ownerType, int $ownerId): Builder
+    {
+        return $query
+            ->where('owner_type', $ownerType->value)
+            ->where('owner_id', $ownerId);
+    }
+
     public function makeunitary(): int|string
     {
         return $this->item?->makeunitary($this->stack) ?? $this->stack;
@@ -48,5 +64,15 @@ class Inventory extends Model
     public function undounitary(int|string|null $stack): int
     {
         return $this->item?->undounitary($stack) ?? (int) $stack;
+    }
+
+    public function stockState(): ?InventoryStockState
+    {
+        return InventoryStockState::tryFrom((int) $this->wear);
+    }
+
+    public function isForSale(): bool
+    {
+        return (int) $this->wear >= 0;
     }
 }

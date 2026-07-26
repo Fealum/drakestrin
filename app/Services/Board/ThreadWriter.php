@@ -8,15 +8,14 @@ use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
 use App\Models\Board\ThreadScene;
-use App\Models\User\Character;
 use App\Models\User;
+use App\Models\User\Character;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 class ThreadWriter
 {
-    public function __construct(private ForumCounters $counters)
-    {
-    }
+    public function __construct(private ForumCounters $counters) {}
 
     public function create(Board $board, User $user, CreateThreadData $data, bool $canMarkAsImportant, string $ip): ForumThread
     {
@@ -94,6 +93,10 @@ class ThreadWriter
 
     public function delete(ForumThread $thread): void
     {
+        if ($thread->posts()->whereHas('transfers')->exists()) {
+            throw new InvalidArgumentException('Threads containing transfers cannot be deleted.');
+        }
+
         $board = $thread->board;
         $userIds = $thread->posts()->pluck('user_id');
         $characterIds = $thread->posts()->pluck('character_id');

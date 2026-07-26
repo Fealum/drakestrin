@@ -5,6 +5,53 @@
     'placeholder' => 'Charakter suchen ...',
 ])
 
+@once
+<script defer src="{{ asset('js/alpine.min.js') }}"></script>
+<script>
+    window.singleCharacterSelector = function ({ endpoint, name }) {
+        return {
+            endpoint,
+            enhanced: false,
+            idText: '',
+            loading: false,
+            name,
+            query: '',
+            results: [],
+            selected: null,
+            init() {
+                this.enhanced = true;
+            },
+            clear() {
+                this.selected = null;
+                this.idText = '';
+                this.query = '';
+                this.results = [];
+            },
+            select(character) {
+                this.selected = character;
+                this.idText = character.id;
+                this.query = '';
+                this.results = [];
+            },
+            search() {
+                if (this.query.trim().length < 1) {
+                    this.results = [];
+                    this.loading = false;
+                    return;
+                }
+
+                this.loading = true;
+                fetch(this.endpoint + '?q=' + encodeURIComponent(this.query))
+                    .then((response) => response.json())
+                    .then((results) => this.results = results)
+                    .catch(() => this.results = [])
+                    .finally(() => this.loading = false);
+            },
+        };
+    };
+</script>
+@endonce
+
 <div
     class="character-selector"
     x-data="singleCharacterSelector({

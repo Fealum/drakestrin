@@ -8,9 +8,7 @@ use App\Services\PermissionService;
 
 class ThreadPolicy
 {
-    public function __construct(private PermissionService $permissions)
-    {
-    }
+    public function __construct(private PermissionService $permissions) {}
 
     public function view(?User $user, Thread $thread): bool
     {
@@ -29,7 +27,8 @@ class ThreadPolicy
 
     public function delete(User $user, Thread $thread): bool
     {
-        return $this->permissions->allowsOwn('deletethread', $thread, $thread->firstPost?->user_id, $user);
+        return ! $thread->posts()->whereHas('transfers')->exists()
+            && $this->permissions->allowsOwn('deletethread', $thread, $thread->firstPost?->user_id, $user);
     }
 
     public function markAsImportant(User $user, Thread $thread): bool

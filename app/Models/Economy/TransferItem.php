@@ -12,12 +12,16 @@ class TransferItem extends Model
     protected $fillable = [
         'transfer_id',
         'item_id',
+        'inventory_id',
+        'inventory_state',
         'stack',
     ];
 
     protected $casts = [
         'transfer_id' => 'integer',
         'item_id' => 'integer',
+        'inventory_id' => 'integer',
+        'inventory_state' => 'array',
         'stack' => 'integer',
     ];
 

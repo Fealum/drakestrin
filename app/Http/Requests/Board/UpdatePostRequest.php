@@ -4,6 +4,7 @@ namespace App\Http\Requests\Board;
 
 use App\Data\Board\UpdatePostData;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdatePostRequest extends FormRequest
 {
@@ -14,9 +15,15 @@ class UpdatePostRequest extends FormRequest
 
     public function rules(): array
     {
+        $post = $this->route('post');
+
         return [
             'character' => ['required', 'integer'],
-            'message' => ['required', 'string'],
+            'message' => [
+                'nullable',
+                'string',
+                Rule::requiredIf(! $post?->transfers()->exists()),
+            ],
         ];
     }
 

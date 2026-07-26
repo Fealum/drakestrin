@@ -1,10 +1,14 @@
 @inject('forumFormatter', 'App\Services\Board\ForumFormatter')
 
-<x-main-layout :title="'Beitrag im Thema »'.$post->thread->name.'« löschen'" alt-title="Beitrag löschen" css="thread">
+<x-main-layout :title="'Beitrag im Thema »'.$post->thread->name.'« löschen'" :alt-title="$post->transfers->isNotEmpty() ? 'Beitragsinhalt löschen' : 'Beitrag löschen'" css="thread">
     <h3>Sicher?</h3>
+    @if ($post->transfers->isNotEmpty())
+    <p>Dieser Beitrag enthält eine Handlung und bleibt deshalb erhalten. Möchtest Du seinen geschriebenen Inhalt löschen?</p>
+    @else
     <p>Bist Du Dir sicher, dass Du diesen Beitrag löschen möchtest?</p>
     @if ($deletesThread)
     <p class="notice notice_warning">Dies ist der letzte Beitrag in diesem Thema. Wenn Du ihn löschst, wird auch das Thema gelöscht.</p>
+    @endif
     @endif
 
     <div class="post">
@@ -27,6 +31,6 @@
     <form name="deletepost" action="{{ route('post.destroy', ['post' => $post->id]) }}" method="post">
         @csrf
         <input type="hidden" name="delete" value="1">
-        <p><input type="submit" value="Beitrag löschen" name="submit"></p>
+        <p><input type="submit" value="{{ $post->transfers->isNotEmpty() ? 'Inhalt löschen' : 'Beitrag löschen' }}" name="submit"></p>
     </form>
 </x-main-layout>

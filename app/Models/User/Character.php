@@ -4,9 +4,10 @@ namespace App\Models\User;
 
 use App\Models\Board\Post;
 use App\Models\Economy\Company;
+use App\Models\Economy\CompanyRepresentative;
 use App\Models\Economy\Inventory;
-use App\Models\User as Account;
 use App\Models\Territory\Territory;
+use App\Models\User as Account;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -85,6 +86,11 @@ class Character extends Model
             ->orderByRaw('LOWER(name)');
     }
 
+    public function companyRepresentations(): HasMany
+    {
+        return $this->hasMany(CompanyRepresentative::class);
+    }
+
     public function avatarThumbPath(): string
     {
         if ($this->avatar) {
@@ -93,17 +99,17 @@ class Character extends Model
 
         $firstCharacter = mb_substr($this->name, 0, 1);
 
-        return ctype_alpha($firstCharacter) ? 'i/' . mb_strtolower($firstCharacter) : 'i/_';
+        return ctype_alpha($firstCharacter) ? 'i/'.mb_strtolower($firstCharacter) : 'i/_';
     }
 
     public function avatarThumbUrl(): string
     {
-        return Storage::disk('public')->url('character-avatars/thumb/' . $this->avatarThumbPath() . '.jpg');
+        return Storage::disk('public')->url('character-avatars/thumb/'.$this->avatarThumbPath().'.jpg');
     }
 
     public function avatarUrl(): string
     {
-        return Storage::disk('public')->url('character-avatars/' . ($this->avatar ? $this->id : $this->avatarThumbPath()) . '.jpg');
+        return Storage::disk('public')->url('character-avatars/'.($this->avatar ? $this->id : $this->avatarThumbPath()).'.jpg');
     }
 
     public function postsPerDay(): float

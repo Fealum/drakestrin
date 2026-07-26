@@ -11,6 +11,10 @@ class CompanyWorker extends Model
 {
     use HasFactory;
 
+    public const SALARY_PERIOD_SECONDS = 2592000;
+
+    public const STRIKE_AFTER_PERIODS = 3;
+
     protected $dateFormat = 'U';
 
     protected $fillable = [
@@ -38,19 +42,51 @@ class CompanyWorker extends Model
     public function activeLabours(): HasMany
     {
         return $this->hasMany(LabourActive::class)
+            ->whereNull('ended_at')
             ->with('labour.components.item')
             ->orderBy('since');
     }
 
-    public function salaryStatus(): ?string
+    public function productionRuns(): HasMany
     {
-        $months = (int) floor((now()->timestamp - ($this->paid?->timestamp ?? now()->timestamp)) / 2592000);
+        return $this->hasMany(ProductionRun::class)
+            ->whereNotNull('completed_at')
+            ->orderByDesc('completed_at')
+            ->orderByDesc('id');
+    }
+
+    public function isOnStrikeAt(?int $timestamp = null): bool
+    {
+        $timestamp ??= now()->timestamp;
+
+        return ! $this->paid
+            || $this->paid->timestamp <= $timestamp - (self::STRIKE_AFTER_PERIODS * self::SALARY_PERIOD_SECONDS);
+    }
+
+    public function strikeStartedAt(): ?int
+    {
+        if (! $this->paid) {
+            return null;
+        }
+
+        return $this->paid->timestamp + (self::STRIKE_AFTER_PERIODS * self::SALARY_PERIOD_SECONDS);
+    }
+
+    public function salaryStatus(?int $timestamp = null): ?string
+    {
+        $timestamp ??= now()->timestamp;
+
+        if (! $this->paid) {
+            return 'im Streik';
+        }
+
+        $months = (int) floor(($timestamp - $this->paid->timestamp) / self::SALARY_PERIOD_SECONDS);
 
         return match (true) {
-            $months > 4 => $months . ' Monate ohne Gehalt',
-            $months > 3 => 'im Streik',
-            $months > 2 => 'überfällig',
-            $months > 1 => 'fällig',
+            $months > 4 => 'im Streik ('.$months.' Monate ohne Gehalt)',
+            $this->isOnStrikeAt($timestamp) => 'im Streik',
+            $months >= 2 => 'überfällig',
+            $months >= 1 => 'fällig',
             default => null,
         };
     }

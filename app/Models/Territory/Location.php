@@ -2,13 +2,15 @@
 
 namespace App\Models\Territory;
 
-use App\Models\Concerns\HasSpatialGeometry;
 use App\Models\Board\ThreadScene;
+use App\Models\Concerns\HasSpatialGeometry;
+use App\Models\Economy\CompanySite;
 use App\Models\Economy\Inventory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
@@ -61,5 +63,13 @@ class Location extends Model
         return $this->hasMany(ThreadScene::class)
             ->with('thread')
             ->orderByDesc('created_at');
+    }
+
+    public function companySites(): HasMany
+    {
+        return $this->hasMany(CompanySite::class)
+            ->with('company.character')
+            ->orderByDesc('is_headquarters')
+            ->orderByDesc('is_storefront');
     }
 }

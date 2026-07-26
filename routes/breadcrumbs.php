@@ -1,28 +1,30 @@
-<?php // routes/breadcrumbs.php
+<?php
+
+// routes/breadcrumbs.php
 
 // Note: Laravel will automatically resolve `Breadcrumbs::` without
 // this import. This is nice for IDE syntax and refactoring.
 
-use App\Models\Encyclopedia\Page;
-use App\Models\Access\Permission;
-use App\Models\User;
-use App\Models\User\Character;
-use App\Models\Economy\Company;
-use App\Models\Economy\CompanyWorker;
 use App\Models\Access\Group;
+use App\Models\Access\Permission;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\Thread;
 use App\Models\Dictionary\Key;
 use App\Models\Dictionary\Word;
+use App\Models\Economy\Company;
+use App\Models\Economy\CompanyWorker;
+use App\Models\Encyclopedia\Page;
 use App\Models\Territory\Location;
 use App\Models\Territory\Settlement;
 use App\Models\Territory\Territory;
+use App\Models\User;
+use App\Models\User\Character;
+use App\Models\User\UserContact;
 use App\Support\PermissionEntityType;
-use Diglactic\Breadcrumbs\Breadcrumbs;
-
 // This import is also not required, and you could replace `BreadcrumbTrail $trail`
 //  with `$trail`. This is nice for IDE type checking and completion.
+use Diglactic\Breadcrumbs\Breadcrumbs;
 use Diglactic\Breadcrumbs\Generator as BreadcrumbTrail;
 
 // Index
@@ -42,7 +44,7 @@ Breadcrumbs::for('conversation', function (BreadcrumbTrail $trail) {
 
 Breadcrumbs::for('conversation.view', function (BreadcrumbTrail $trail, User $user) {
     $trail->parent('conversation');
-    $trail->push('Konversation mit ' . $user->name, route('conversation.view', $user));
+    $trail->push('Konversation mit '.$user->name, route('conversation.view', $user));
 });
 
 Breadcrumbs::for('user', function (BreadcrumbTrail $trail) {
@@ -89,7 +91,7 @@ Breadcrumbs::for('user.create_contact', function (BreadcrumbTrail $trail, User $
     $trail->push('Neue Kontaktmöglichkeit erstellen', route('user.create_contact', $user->id));
 });
 
-Breadcrumbs::for('user.edit_contact', function (BreadcrumbTrail $trail, \App\Models\User\UserContact $contact) {
+Breadcrumbs::for('user.edit_contact', function (BreadcrumbTrail $trail, UserContact $contact) {
     if ($contact->user) {
         $trail->parent('user.view', $contact->user);
     } else {
@@ -99,7 +101,7 @@ Breadcrumbs::for('user.edit_contact', function (BreadcrumbTrail $trail, \App\Mod
     $trail->push('Kontaktmöglichkeit bearbeiten', route('user.edit_contact', $contact->id));
 });
 
-Breadcrumbs::for('user.delete_contact', function (BreadcrumbTrail $trail, \App\Models\User\UserContact $contact) {
+Breadcrumbs::for('user.delete_contact', function (BreadcrumbTrail $trail, UserContact $contact) {
     if ($contact->user) {
         $trail->parent('user.view', $contact->user);
     } else {
@@ -128,9 +130,19 @@ Breadcrumbs::for('company.viewall', function (BreadcrumbTrail $trail) {
     $trail->parent('company');
 });
 
+Breadcrumbs::for('company.create', function (BreadcrumbTrail $trail) {
+    $trail->parent('company');
+    $trail->push('Betrieb gründen', route('company.create'));
+});
+
 Breadcrumbs::for('company.view', function (BreadcrumbTrail $trail, Company $company) {
     $trail->parent('company');
     $trail->push($company->name, route('company.view', $company->id));
+});
+
+Breadcrumbs::for('company.edit', function (BreadcrumbTrail $trail, Company $company) {
+    $trail->parent('company.view', $company);
+    $trail->push('Betrieb bearbeiten', route('company.edit', $company->id));
 });
 
 Breadcrumbs::for('company.worker', function (BreadcrumbTrail $trail, CompanyWorker $worker) {

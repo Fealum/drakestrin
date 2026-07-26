@@ -2,23 +2,33 @@
 
 namespace App\Http\Controllers;
 
+use App\Data\Economy\InventoryMutationContext;
+use App\Http\Requests\Economy\AssignLabourRequest;
 use App\Models\Economy\Company;
 use App\Models\Economy\CompanyWorker;
 use App\Models\Economy\Labour;
 use App\Models\Economy\LabourActive;
+use App\Repositories\Economy\TransferRepository;
+use App\Services\Economy\ProductionService;
 use App\Services\InventoryService;
 use App\Services\PermissionService;
+use App\Support\InventoryMutationClock;
+use App\Support\InventoryMutationKind;
+use App\Support\InventoryStockState;
 use App\Support\PermissionEntityType;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class CompanyController extends Controller
 {
-    public function __construct(PermissionService $permissionService, private InventoryService $inventory)
-    {
+    public function __construct(
+        PermissionService $permissionService,
+        private InventoryService $inventory,
+        private ProductionService $production,
+        private TransferRepository $transfers,
+    ) {
         parent::__construct($permissionService);
     }
 
@@ -30,6 +40,7 @@ class CompanyController extends Controller
     public function viewAll(): View
     {
         return view('company.viewall', [
+            'canCreate' => auth()->check() && auth()->user()->can('create', Company::class),
             'companies' => Company::query()
                 ->with('character')
                 ->orderByRaw('LOWER(name)')
@@ -46,6 +57,9 @@ class CompanyController extends Controller
             'inventory.item',
             'territory',
             'workers.activeLabours.labour.components.item',
+            'productionRuns' => fn ($query) => $query->limit(10),
+            'sites.location',
+            'representatives.character.user',
         ]);
 
         $this->setLocation($company);
@@ -55,6 +69,9 @@ class CompanyController extends Controller
             'canPay' => Gate::allows('pay', $company),
             'company' => $company,
             'canManage' => Gate::allows('manage', $company),
+            'canEdit' => Gate::allows('update', $company),
+            'canManageRepresentatives' => Gate::allows('manageRepresentatives', $company),
+            'transfers' => $this->transfers->paginateForParticipant(PermissionEntityType::COMPANY, $company->id),
         ]);
     }
 
@@ -64,14 +81,16 @@ class CompanyController extends Controller
 
         $worker->load([
             'activeLabours.labour.components.item',
+            'activeLabours.currentRun',
             'company.character.user',
+            'productionRuns' => fn ($query) => $query->limit(10),
         ]);
 
         $this->setLocation($worker);
 
         return view('company.worker', [
             'canAssignLabour' => Gate::allows('assignLabour', $worker),
-            'canFire' => Gate::allows('fire', $worker),
+            'canFire' => Gate::allows('fire', $worker) && $worker->activeLabours->isEmpty(),
             'labours' => Gate::allows('assignLabour', $worker) && $this->workload($worker) < 1 ? $this->possibleLabours($worker) : collect(),
             'worker' => $worker,
             'workload' => $this->workload($worker),
@@ -106,25 +125,16 @@ class CompanyController extends Controller
         return redirect()->route('company.view', ['company' => $company->id]);
     }
 
-    public function assignLabour(Request $request, CompanyWorker $worker): RedirectResponse
+    public function assignLabour(AssignLabourRequest $request, CompanyWorker $worker): RedirectResponse
     {
         Gate::authorize('assignLabour', $worker);
         $worker->loadMissing('activeLabours.labour', 'company');
         $company = $worker->company;
         abort_unless($company, 404);
 
-        $data = $request->validate([
-            'labour' => ['required', 'integer', 'exists:labours,id'],
-            'quantity' => ['required', 'integer', 'in:-1,0'],
-            'quantity_count' => ['nullable', 'integer', 'min:1', 'max:9999'],
-            'instances' => ['required', 'integer', 'min:1', 'max:9999'],
-            'prodas' => ['required', 'integer'],
-            'prodas_value' => ['nullable', 'integer', 'min:0'],
-        ]);
-
         $labour = Labour::query()
             ->with('components.item')
-            ->whereKey((int) $data['labour'])
+            ->whereKey((int) $request->validated('labour'))
             ->firstOrFail();
 
         if ((int) $labour->type > (int) $worker->type || ! $this->labourFitsCapacity($worker, $labour)) {
@@ -133,36 +143,12 @@ class CompanyController extends Controller
             return redirect()->route('company.worker', ['worker' => $worker->id]);
         }
 
-        $created = DB::transaction(function () use ($data, $worker, $company, $labour) {
-            $worker->refresh()->load('activeLabours.labour');
-
-            if (! $this->labourFitsCapacity($worker, $labour) || ! $this->componentsAvailable($labour, $company)) {
-                return false;
-            }
-
-            foreach ($labour->components->where('type', '!=', 2) as $component) {
-                if ((int) $component->type === 1) {
-                    $this->inventory->take((int) $component->item_id, (int) $component->quantity, PermissionEntityType::COMPANY, $company->id, -2, -3);
-                } else {
-                    $this->inventory->take((int) $component->item_id, (int) $component->quantity, PermissionEntityType::COMPANY, $company->id, -2);
-                }
-            }
-
-            $instances = min((int) $data['instances'], $this->maxInstances($worker, $labour));
-
-            LabourActive::create([
-                'company_worker_id' => $worker->id,
-                'labour_id' => $labour->id,
-                'since' => now()->timestamp,
-                'until' => now()->timestamp + (int) $labour->duration,
-                'prodas' => (int) $data['prodas'] === 0 ? (int) ($data['prodas_value'] ?? 0) : (int) $data['prodas'],
-                'quantity' => (int) $data['quantity'] === 0 ? (int) ($data['quantity_count'] ?? 1) : -1,
-                'instances' => max(1, $instances),
-                'nextinsta' => 0,
-            ]);
-
-            return true;
-        });
+        $created = $this->production->start(
+            $worker,
+            $labour,
+            $request->productionData(),
+            $this->maxInstances($worker, $labour),
+        );
 
         if (! $created) {
             $this->flashMessage('error', 'company.assign_labour_no_resources');
@@ -175,6 +161,19 @@ class CompanyController extends Controller
         return redirect()->route('company.worker', ['worker' => $worker->id]);
     }
 
+    public function stopLabour(LabourActive $activeLabour): RedirectResponse
+    {
+        $activeLabour->loadMissing('companyWorker');
+        $worker = $activeLabour->companyWorker;
+        abort_unless($worker, 404);
+        Gate::authorize('stopLabour', $worker);
+
+        $status = $this->production->requestStop($activeLabour);
+        $this->flashMessage('info', 'company.'.($status === 'stopping' ? 'labour_stopping' : 'labour_stopped'));
+
+        return redirect()->route('company.worker', ['worker' => $worker->id]);
+    }
+
     public function fire(CompanyWorker $worker): RedirectResponse
     {
         Gate::authorize('fire', $worker);
@@ -183,10 +182,15 @@ class CompanyController extends Controller
         $company = $worker->company;
         abort_unless($company, 404);
 
+        if ($worker->activeLabours()->exists()) {
+            $this->flashMessage('error', 'company.fire_busy');
+
+            return redirect()->route('company.worker', ['worker' => $worker->id]);
+        }
+
         $settlement = DB::transaction(function () use ($worker, $company) {
             $settlement = $this->settleWorkerSalary($worker, $company);
 
-            $worker->activeLabours()->delete();
             $worker->delete();
 
             return $settlement;
@@ -202,7 +206,13 @@ class CompanyController extends Controller
         Gate::authorize('pay', $company);
 
         $paid = DB::transaction(function () use ($company) {
-            $balance = $this->inventory->available(1, PermissionEntityType::COMPANY, $company->id, -1);
+            $company = Company::query()->whereKey($company->id)->lockForUpdate()->firstOrFail();
+            $balance = $this->inventory->available(
+                1,
+                PermissionEntityType::COMPANY,
+                $company->id,
+                InventoryStockState::RESERVED->value,
+            );
 
             if ($balance <= 0) {
                 return null;
@@ -212,6 +222,7 @@ class CompanyController extends Controller
                 'paid' => 0,
                 'sumpaid' => 0,
                 'unpaid' => 0,
+                'months' => 0,
             ];
 
             $workers = $company->workers()
@@ -219,24 +230,77 @@ class CompanyController extends Controller
                 ->lockForUpdate()
                 ->get();
 
-            foreach ($workers as $worker) {
-                ['months' => $months, 'owed' => $owed] = $this->owedSalaryDetails($worker);
+            $payroll = [];
 
-                if ($owed === 0) {
+            foreach ($workers as $worker) {
+                ['months' => $months] = $this->owedSalaryDetails($worker);
+
+                if ($months === 0) {
                     continue;
                 }
 
-                if ($balance - $paid['sumpaid'] >= $owed) {
-                    $paid['sumpaid'] += $owed;
+                $payroll[$worker->id] = [
+                    'worker' => $worker,
+                    'paid_at' => $worker->paid?->timestamp ?? now()->timestamp,
+                    'monthly_salary' => $this->monthlySalary($worker),
+                    'months_remaining' => $months,
+                    'months_paid' => 0,
+                ];
+            }
+
+            $remainingBalance = $balance;
+
+            while (true) {
+                $nextWorkerId = null;
+
+                foreach ($payroll as $workerId => $entry) {
+                    if ($entry['months_remaining'] < 1 || $entry['monthly_salary'] > $remainingBalance) {
+                        continue;
+                    }
+
+                    if ($nextWorkerId === null
+                        || $entry['paid_at'] < $payroll[$nextWorkerId]['paid_at']
+                        || ($entry['paid_at'] === $payroll[$nextWorkerId]['paid_at'] && $workerId < $nextWorkerId)
+                    ) {
+                        $nextWorkerId = $workerId;
+                    }
+                }
+
+                if ($nextWorkerId === null) {
+                    break;
+                }
+
+                $monthlySalary = $payroll[$nextWorkerId]['monthly_salary'];
+                $payroll[$nextWorkerId]['paid_at'] += CompanyWorker::SALARY_PERIOD_SECONDS;
+                $payroll[$nextWorkerId]['months_remaining']--;
+                $payroll[$nextWorkerId]['months_paid']++;
+                $remainingBalance -= $monthlySalary;
+                $paid['sumpaid'] += $monthlySalary;
+                $paid['months']++;
+            }
+
+            foreach ($payroll as $entry) {
+                if ($entry['months_paid'] > 0) {
+                    $entry['worker']->update(['paid' => $entry['paid_at']]);
                     $paid['paid']++;
-                    $worker->update(['paid' => ($worker->paid?->timestamp ?? now()->timestamp) + ($months * 2592000)]);
-                } else {
+                }
+
+                if ($entry['months_remaining'] > 0) {
                     $paid['unpaid']++;
                 }
             }
 
             if ($paid['sumpaid'] > 0) {
-                $this->inventory->debitStack(1, $paid['sumpaid'], PermissionEntityType::COMPANY, $company->id, -1);
+                $debited = $this->inventory->debitStack(
+                    1,
+                    $paid['sumpaid'],
+                    PermissionEntityType::COMPANY,
+                    $company->id,
+                    InventoryStockState::RESERVED->value,
+                    $this->simulationContext(InventoryMutationKind::CONSUMPTION, 'company', $company->id),
+                );
+
+                throw_unless($debited === $paid['sumpaid'], \RuntimeException::class, 'The payroll balance changed during payment.');
             }
 
             return $paid;
@@ -269,7 +333,9 @@ class CompanyController extends Controller
             ->where('type', '<=', (int) $worker->type)
             ->orderByRaw('LOWER(name)')
             ->get()
-            ->filter(fn (Labour $labour) => $this->labourFitsCapacity($worker, $labour) && $this->componentsAvailable($labour, $worker->company))
+            ->filter(fn (Labour $labour) => $this->labourFitsCapacity($worker, $labour)
+                && $worker->company
+                && $this->production->maxInstancesByResources($worker->company, $labour) > 0)
             ->values();
     }
 
@@ -287,27 +353,12 @@ class CompanyController extends Controller
         return (int) floor(max(0, 1 - $this->workload($worker)) * (int) $labour->workload);
     }
 
-    private function componentsAvailable(Labour $labour, ?Company $company): bool
-    {
-        if (! $company) {
-            return false;
-        }
-
-        foreach ($labour->components->where('type', '!=', 2) as $component) {
-            if ($this->inventory->available((int) $component->item_id, PermissionEntityType::COMPANY, $company->id, -2) < (int) $component->quantity) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     private function randomWorkerName(): string
     {
         $firstNames = ['Verion', 'Limnas', 'Kartrim', 'Parnyas', 'Hirion', 'Malnaetos', 'Wayront', 'Emmant', 'Piritugd', 'Lywin', 'Kamren'];
         $lastNames = ['Syrwantal', 'Karimtelmar', 'Vincis', 'Aralyis', 'Ewentem', 'Ionaer', 'Sayarmel'];
 
-        return $firstNames[array_rand($firstNames)] . ' ' . $lastNames[array_rand($lastNames)];
+        return $firstNames[array_rand($firstNames)].' '.$lastNames[array_rand($lastNames)];
     }
 
     /**
@@ -319,7 +370,14 @@ class CompanyController extends Controller
         $paid = 0;
 
         if ($owed > 0) {
-            $paid = $this->inventory->debitStack(1, $owed, PermissionEntityType::COMPANY, $company->id, -1);
+            $paid = $this->inventory->debitStack(
+                1,
+                $owed,
+                PermissionEntityType::COMPANY,
+                $company->id,
+                InventoryStockState::RESERVED->value,
+                $this->simulationContext(InventoryMutationKind::CONSUMPTION, 'company_worker', $worker->id),
+            );
         }
 
         return [
@@ -335,6 +393,17 @@ class CompanyController extends Controller
         return $this->owedSalaryDetails($worker)['owed'];
     }
 
+    private function simulationContext(InventoryMutationKind $kind, string $sourceType, int $sourceId): InventoryMutationContext
+    {
+        return new InventoryMutationContext(
+            $kind,
+            InventoryMutationClock::SIMULATION,
+            now()->timestamp,
+            $sourceType,
+            $sourceId,
+        );
+    }
+
     /**
      * @return array{months:int,owed:int}
      */
@@ -347,8 +416,13 @@ class CompanyController extends Controller
             return ['months' => 0, 'owed' => 0];
         }
 
-        $monthlySalary = (int) $worker->type === 1 ? 3 : (int) $worker->type + 1;
+        return ['months' => $months, 'owed' => $months * $this->monthlySalary($worker)];
+    }
 
-        return ['months' => $months, 'owed' => 10000 * $months * $monthlySalary];
+    private function monthlySalary(CompanyWorker $worker): int
+    {
+        $salary = (int) $worker->type === 1 ? 3 : (int) $worker->type + 1;
+
+        return 10000 * $salary;
     }
 }

@@ -16,10 +16,10 @@ class ProcessLabour extends Command
         $stats = $processor->processDue();
 
         $this->info(sprintf(
-            'Processed: %d, finished: %d, skipped unpaid: %d, skipped resources: %d',
+            'Processed: %d, finished: %d, paused: %d, skipped resources: %d',
             $stats['processed'],
             $stats['finished'],
-            $stats['skipped_unpaid'],
+            $stats['paused'],
             $stats['skipped_resources'],
         ));
 

@@ -2,8 +2,11 @@
 
 namespace App\Models\Economy;
 
+use App\Support\ProductionPauseReason;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class LabourActive extends Model
 {
@@ -18,6 +21,13 @@ class LabourActive extends Model
         'quantity',
         'instances',
         'nextinsta',
+        'stop_requested_at',
+        'paused_at',
+        'pause_reason',
+        'ended_at',
+        'input_items',
+        'output_items',
+        'tool_items',
     ];
 
     public $timestamps = false;
@@ -31,6 +41,13 @@ class LabourActive extends Model
         'quantity' => 'integer',
         'instances' => 'integer',
         'nextinsta' => 'integer',
+        'stop_requested_at' => 'datetime',
+        'paused_at' => 'datetime',
+        'pause_reason' => ProductionPauseReason::class,
+        'ended_at' => 'datetime',
+        'input_items' => 'array',
+        'output_items' => 'array',
+        'tool_items' => 'array',
     ];
 
     public function companyWorker(): BelongsTo
@@ -41,5 +58,17 @@ class LabourActive extends Model
     public function labour(): BelongsTo
     {
         return $this->belongsTo(Labour::class);
+    }
+
+    public function runs(): HasMany
+    {
+        return $this->hasMany(ProductionRun::class)->orderByDesc('id');
+    }
+
+    public function currentRun(): HasOne
+    {
+        return $this->hasOne(ProductionRun::class)
+            ->whereNull('completed_at')
+            ->latestOfMany();
     }
 }

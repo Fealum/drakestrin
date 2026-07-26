@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\User\Character;
 use App\Models\User\Protocol;
-use App\Models\User;
 use App\Models\User\UserContact;
+use App\Repositories\Economy\TransferRepository;
+use App\Services\PermissionService;
+use App\Support\PermissionEntityType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,6 +23,13 @@ use Throwable;
 class UserController extends Controller
 {
     private const PAGE_ENTRIES = 20;
+
+    public function __construct(
+        PermissionService $permissionService,
+        private TransferRepository $transfers,
+    ) {
+        parent::__construct($permissionService);
+    }
 
     public function index(): View
     {
@@ -47,7 +57,7 @@ class UserController extends Controller
             'users' => $this->paginateCollection(
                 $users,
                 (int) $page,
-                url('/user/viewall/' . $order)
+                url('/user/viewall/'.$order)
             ),
         ]);
     }
@@ -220,6 +230,7 @@ class UserController extends Controller
         return view('user.character', [
             'canEdit' => $canEdit,
             'character' => $character,
+            'transfers' => $this->transfers->paginateForParticipant(PermissionEntityType::CHARACTER, $character->id),
         ]);
     }
 
@@ -290,7 +301,7 @@ class UserController extends Controller
             }
 
             $direction = $direction === 'd' ? 'desc' : 'asc';
-            $query->orderByRaw($fields[$field] . ' ' . $direction);
+            $query->orderByRaw($fields[$field].' '.$direction);
         }
     }
 
@@ -327,8 +338,8 @@ class UserController extends Controller
         $disk->makeDirectory('character-avatars/thumb');
 
         if (! function_exists('imagecreatetruecolor')) {
-            $file->storeAs('character-avatars', $character->id . '.jpg', 'public');
-            $file->storeAs('character-avatars/thumb', $character->id . '.jpg', 'public');
+            $file->storeAs('character-avatars', $character->id.'.jpg', 'public');
+            $file->storeAs('character-avatars/thumb', $character->id.'.jpg', 'public');
 
             return;
         }
@@ -338,13 +349,13 @@ class UserController extends Controller
             $source = $file->getRealPath();
 
             $disk->put(
-                'character-avatars/' . $character->id . '.jpg',
+                'character-avatars/'.$character->id.'.jpg',
                 (string) $manager->read($source)
                     ->scaleDown(width: 200, height: 200)
                     ->toJpeg(90)
             );
             $disk->put(
-                'character-avatars/thumb/' . $character->id . '.jpg',
+                'character-avatars/thumb/'.$character->id.'.jpg',
                 (string) $manager->read($source)
                     ->cover(width: 60, height: 60)
                     ->toJpeg(90)

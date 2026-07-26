@@ -179,6 +179,8 @@
 		Kontor, Löhne auszahlen
 		@elseif ($value->route === 'company.assign_labour')
 		Kontor, Arbeit zuweisen
+		@elseif ($value->route === 'company.stop_labour')
+		Kontor, Arbeit beenden
 		@elseif ($value->route === 'encyclopedia')
 		<a href="{{ route($value->route) }}">Kompendium</a>
 		@elseif ($value->route === 'encyclopedia.view')

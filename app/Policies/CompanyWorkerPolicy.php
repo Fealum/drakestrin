@@ -27,6 +27,11 @@ class CompanyWorkerPolicy
         return $this->manage($user, $worker);
     }
 
+    public function stopLabour(User $user, CompanyWorker $worker): bool
+    {
+        return $this->manage($user, $worker);
+    }
+
     private function owns(User $user, CompanyWorker $worker): bool
     {
         $worker->loadMissing('company.character');

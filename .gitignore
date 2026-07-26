@@ -19,3 +19,4 @@ yarn-error.log
 /.vscode
 deploy.php
 /public/img
+/old_wbboard

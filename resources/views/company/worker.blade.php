@@ -24,7 +24,11 @@
             <li>
                 <b>@if ($activeLabour->instances > 1){{ $activeLabour->instances }} mal @endif{{ $labour->name }}@if ($activeLabour->nextinsta != 0) (danach {{ $activeLabour->nextinsta }} Instanzen)@endif</b><br>
                 Seit: <x-datetime :time="$activeLabour->since" />.<br>
+                @if ($activeLabour->pause_reason === \App\Support\ProductionPauseReason::STRIKE)
+                Pausiert seit: <x-datetime :time="$activeLabour->paused_at" />.<br>
+                @else
                 Bis: <x-datetime :time="$activeLabour->until" />.<br>
+                @endif
                 Anzahl:
                 @if ($activeLabour->quantity === -1)
                 &infin;
@@ -33,21 +37,46 @@
                 @endif
                 <br>
                 Zuweisung:
-                @if ($activeLabour->prodas === -2)
+                @if ($activeLabour->prodas === \App\Support\InventoryStockState::PRODUCTION->value)
                 Produktionsgut
-                @elseif ($activeLabour->prodas === -1)
+                @elseif ($activeLabour->prodas === \App\Support\InventoryStockState::RESERVED->value)
                 Vorbehaltsgut
                 @else
                 Verkaufsgut zum Preis von {{ $activeLabour->prodas }} Ten
                 @endif.
+                @if ($activeLabour->pause_reason === \App\Support\ProductionPauseReason::STRIKE)
+                <br>Wegen Streik pausiert. Die Arbeit wird nach der Lohnauszahlung fortgesetzt.
+                @elseif ($activeLabour->stop_requested_at)
+                <br>Wird nach diesem Durchgang beendet.
+                @elseif (!$activeLabour->currentRun)
+                <br>Wartet auf Rohstoffe.
+                @endif
+                @if ($canAssignLabour && !$activeLabour->stop_requested_at)
+                <form action="{{ route('company.stop_labour', $activeLabour->id) }}" method="post">
+                    @csrf
+                    <button type="submit">Arbeit beenden</button>
+                </form>
+                @endif
             </li>
             @endif
             @endforeach
         @endif
     </ol>
 
+    @include('company._production-history', ['runs' => $worker->productionRuns])
+
     @if ($canAssignLabour && $workload < 1)
     <h3>Arbeit zuweisen</h3>
+    @if ($errors->any())
+    <div class="notice notice_error">
+        <p>Die Arbeit konnte nicht zugewiesen werden:</p>
+        <ul>
+            @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
     @if ($labours->isNotEmpty())
     <form name="assignlabour" action="{{ route('company.assign_labour', $worker->id) }}" method="post">
         @csrf
@@ -90,8 +119,8 @@
             <input type="text" name="instances" value="1"> Instanzen.
         </p>
         <p>Als was soll das Produkt erschaffen werden?<br>
-            <label><input type="radio" name="prodas" value="-2" checked> Produktionsgut.</label><br>
-            <label><input type="radio" name="prodas" value="-1"> Vorbehaltsgut.</label><br>
+            <label><input type="radio" name="prodas" value="{{ \App\Support\InventoryStockState::PRODUCTION->value }}" checked> Produktionsgut.</label><br>
+            <label><input type="radio" name="prodas" value="{{ \App\Support\InventoryStockState::RESERVED->value }}"> Vorbehaltsgut.</label><br>
             <label><input type="radio" name="prodas" value="0"> Verkaufsgut zum Preis von <input type="text" name="prodas_value" value=""> Tuk.</label>
         </p>
         <input type="hidden" name="assignlabour" value="1">

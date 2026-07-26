@@ -3,16 +3,24 @@
 namespace App\Services\Board;
 
 use App\Data\Board\CreatePostData;
-use App\Data\Economy\InventoryOwner;
-use App\Data\Economy\TransferParticipant;
 use App\Data\Board\UpdatePostData;
+use App\Data\Economy\InventoryOwner;
+use App\Data\Economy\TransferContext;
+use App\Data\Economy\TransferInventoryItem;
+use App\Data\Economy\TransferParticipant;
+use App\Exceptions\Economy\InventoryUnavailableAtStoryTime;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
-use App\Models\User\Character;
+use App\Models\Economy\Company;
+use App\Models\Economy\Inventory;
 use App\Models\User;
+use App\Models\User\Character;
+use App\Repositories\Territory\LocationRepository;
 use App\Services\Economy\TransferService;
 use App\Services\PermissionService;
+use App\Support\InventoryStockState;
 use App\Support\PermissionEntityType;
+use App\Support\PostTransferAction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -23,12 +31,13 @@ class PostWriter
         private ForumCounters $counters,
         private PermissionService $permissions,
         private TransferService $transfers,
-    ) {
-    }
+        private LocationRepository $locations,
+    ) {}
 
     public function create(ForumThread $thread, User $user, CreatePostData $data, string $ip): Post
     {
         return DB::transaction(function () use ($thread, $user, $data, $ip) {
+            $thread = ForumThread::query()->whereKey($thread->id)->lockForUpdate()->firstOrFail();
             $time = now()->timestamp;
             $character = $this->resolveCharacterForCreate($thread, $user, $data, $time);
 
@@ -81,6 +90,12 @@ class PostWriter
 
     public function delete(Post $post): bool
     {
+        if ($post->transfers()->exists()) {
+            $post->update(['message' => '']);
+
+            return false;
+        }
+
         $thread = $post->thread;
         $board = $post->board;
         $userId = $post->user_id;
@@ -137,29 +152,114 @@ class PostWriter
     private function attachTransfer(ForumThread $thread, User $user, Character $sender, Post $post, CreatePostData $data): void
     {
         abort_unless($this->permissions->allows('transfer', $thread, $user), 403);
-        abort_unless($thread->currentScene()->exists(), 403);
+        $scene = $thread->currentScene()->with('location')->first();
+        abort_unless($scene?->location, 403);
 
-        if ($data->transferRecipientId === null) {
+        if ($scene->story_started_at === null) {
             throw ValidationException::withMessages([
-                'recipient' => 'Bitte wähle einen Empfänger aus.',
+                'transfer_action' => 'Für eine Handlung benötigt die aktive Szene eine Spielzeit.',
             ]);
         }
 
-        if ($data->transferRecipientId === $sender->id) {
-            throw ValidationException::withMessages([
-                'recipient' => 'Sender und Empfänger müssen verschieden sein.',
-            ]);
+        $transferData = $data->transfer;
+        abort_unless($transferData, 422);
+
+        $characterOwner = new InventoryOwner(PermissionEntityType::CHARACTER, $sender->id);
+        $locationOwner = new InventoryOwner(PermissionEntityType::LOCATION, $scene->location->id);
+
+        if ($transferData->action === PostTransferAction::GIVE) {
+            if ($transferData->recipientCharacterId === null) {
+                throw ValidationException::withMessages([
+                    'recipient' => 'Bitte wähle einen Empfänger aus.',
+                ]);
+            }
+
+            if ($transferData->recipientCharacterId === $sender->id) {
+                throw ValidationException::withMessages([
+                    'recipient' => 'Sender und Empfänger müssen verschieden sein.',
+                ]);
+            }
+
+            $source = $characterOwner;
+            $target = new InventoryOwner(PermissionEntityType::CHARACTER, $transferData->recipientCharacterId);
+            $transferSender = TransferParticipant::character($sender->id);
+            $transferRecipient = TransferParticipant::character($transferData->recipientCharacterId);
+        } elseif ($transferData->action === PostTransferAction::DROP) {
+            $source = $characterOwner;
+            $target = $locationOwner;
+            $transferSender = TransferParticipant::character($sender->id);
+            $transferRecipient = TransferParticipant::location($scene->location->id);
+        } elseif ($transferData->action === PostTransferAction::PICKUP) {
+            $source = $locationOwner;
+            $target = $characterOwner;
+            $transferSender = TransferParticipant::location($scene->location->id);
+            $transferRecipient = TransferParticipant::character($sender->id);
+        } else {
+            if ($transferData->companyId === null) {
+                throw ValidationException::withMessages(['company' => 'Bitte wähle einen Betrieb aus.']);
+            }
+
+            $company = Company::query()
+                ->whereKey($transferData->companyId)
+                ->whereHas('sites', fn ($query) => $query->whereIn(
+                    'location_id',
+                    $this->locations->ancestorLocationIds($scene->location),
+                ))
+                ->firstOrFail();
+
+            if ($transferData->action === PostTransferAction::COMPANY_DEPOSIT) {
+                $source = $characterOwner;
+                $target = new InventoryOwner(PermissionEntityType::COMPANY, $company->id, InventoryStockState::PRODUCTION->value);
+                $transferSender = TransferParticipant::character($sender->id);
+                $transferRecipient = TransferParticipant::company($company->id);
+                $inventoryItemIds = Inventory::query()
+                    ->whereIn('id', collect($transferData->items)->pluck('inventoryId'))
+                    ->ownedBy(PermissionEntityType::CHARACTER, $sender->id)
+                    ->pluck('item_id', 'id');
+                $transferDataItems = collect($transferData->items)
+                    ->map(fn ($item) => new TransferInventoryItem(
+                        inventoryId: $item->inventoryId,
+                        requestedStack: $item->requestedStack,
+                        targetWear: (int) $inventoryItemIds->get($item->inventoryId) === 1
+                            ? InventoryStockState::RESERVED->value
+                            : InventoryStockState::PRODUCTION->value,
+                    ))
+                    ->all();
+            } else {
+                if (! $user->can('represent', [$company, $sender])) {
+                    abort(403);
+                }
+
+                if ($transferData->recipientCharacterId === null) {
+                    throw ValidationException::withMessages(['recipient' => 'Bitte wähle einen Empfänger aus.']);
+                }
+
+                $source = new InventoryOwner(PermissionEntityType::COMPANY, $company->id);
+                $target = new InventoryOwner(PermissionEntityType::CHARACTER, $transferData->recipientCharacterId);
+                $transferSender = TransferParticipant::company($company->id);
+                $transferRecipient = TransferParticipant::character($transferData->recipientCharacterId);
+            }
         }
 
         try {
             $this->transfers->transferInventories(
                 postId: $post->id,
-                sender: TransferParticipant::character($sender->id),
-                recipient: TransferParticipant::character($data->transferRecipientId),
-                source: new InventoryOwner(PermissionEntityType::CHARACTER, $sender->id),
-                target: new InventoryOwner(PermissionEntityType::CHARACTER, $data->transferRecipientId),
-                items: $data->transferItems,
+                sender: $transferSender,
+                recipient: $transferRecipient,
+                source: $source,
+                target: $target,
+                items: $transferDataItems ?? $transferData->items,
+                context: new TransferContext(
+                    threadSceneId: $scene->id,
+                    storyAt: $scene->story_started_at,
+                    createdByUserId: $user->id,
+                    actedByCharacterId: $sender->id,
+                ),
             );
+        } catch (InventoryUnavailableAtStoryTime) {
+            throw ValidationException::withMessages([
+                'inventory' => 'Die gewählte Menge ist zu dieser Spielzeit nicht verfügbar oder wird für eine spätere Handlung benötigt.',
+            ]);
         } catch (InvalidArgumentException) {
             throw ValidationException::withMessages([
                 'inventory' => 'Keine übertragbaren Gegenstände ausgewählt.',

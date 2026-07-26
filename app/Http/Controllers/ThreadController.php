@@ -2,19 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Data\Economy\InventoryOwner;
 use App\Http\Requests\Board\DestroyThreadRequest;
 use App\Http\Requests\Board\StoreThreadRequest;
 use App\Http\Requests\Board\UpdateThreadRequest;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
+use App\Models\Economy\Company;
 use App\Models\Territory\Location;
+use App\Repositories\Territory\LocationRepository;
 use App\Services\Board\ThreadWriter;
+use App\Services\Economy\InventoryTimeline;
+use App\Services\Economy\TransferReversalService;
 use App\Services\PermissionService;
+use App\Support\PermissionEntityType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -22,8 +28,13 @@ class ThreadController extends Controller
 {
     private const PAGE_ENTRIES = 20;
 
-    public function __construct(PermissionService $permissionService, private ThreadWriter $threads)
-    {
+    public function __construct(
+        PermissionService $permissionService,
+        private ThreadWriter $threads,
+        private InventoryTimeline $inventoryTimeline,
+        private TransferReversalService $transferReversals,
+        private LocationRepository $locations,
+    ) {
         parent::__construct($permissionService);
     }
 
@@ -57,22 +68,28 @@ class ThreadController extends Controller
 
         $thread->load([
             'board.parent',
-            'currentScene.location',
+            'currentScene.location.inventory.item',
             'posts.author',
             'posts.character',
             'posts.transfers.items.item',
+            'posts.transfers.actor',
             'posts.transfers.recipient',
+            'posts.transfers.reversal',
+            'posts.transfers.reversalOf',
             'posts.transfers.sender',
             'scenes.location',
         ]);
         $thread->increment('views');
         $thread->refresh()->load([
             'board.parent',
-            'currentScene.location',
+            'currentScene.location.inventory.item',
             'posts.author',
             'posts.character',
             'posts.transfers.items.item',
+            'posts.transfers.actor',
             'posts.transfers.recipient',
+            'posts.transfers.reversal',
+            'posts.transfers.reversalOf',
             'posts.transfers.sender',
             'scenes.location',
         ]);
@@ -93,6 +110,60 @@ class ThreadController extends Controller
         $quotedPost = $request->filled('quote')
             ? $thread->posts->firstWhere('id', (int) $request->query('quote'))
             : null;
+        $characters = auth()->check()
+            ? auth()->user()->characters()->with('inventory.item')->orderBy('name')->get()
+            : collect();
+        $storyAt = $thread->currentScene?->story_started_at;
+
+        if ($storyAt !== null) {
+            $characters->each(function ($character) use ($storyAt) {
+                $character->setRelation('inventory', $this->inventoryTimeline->transferableInventory(
+                    new InventoryOwner(PermissionEntityType::CHARACTER, $character->id),
+                    $storyAt,
+                ));
+            });
+        }
+
+        $locationInventory = $storyAt !== null
+            ? $this->inventoryTimeline->transferableInventory(
+                new InventoryOwner(PermissionEntityType::LOCATION, $thread->currentScene->location_id),
+                $storyAt,
+            )
+            : collect();
+        $localCompanies = collect();
+
+        if ($storyAt !== null && $thread->currentScene?->location) {
+            $localCompanies = Company::query()
+                ->with(['character', 'representatives.character', 'sites.location', 'inventory.item'])
+                ->whereHas('sites', fn ($query) => $query->whereIn(
+                    'location_id',
+                    $this->locations->ancestorLocationIds($thread->currentScene->location),
+                ))
+                ->orderByRaw('LOWER(name)')
+                ->get();
+
+            $localCompanies->each(function (Company $company) use ($storyAt) {
+                $company->setRelation('inventory', $this->inventoryTimeline->transferableInventory(
+                    new InventoryOwner(PermissionEntityType::COMPANY, $company->id),
+                    $storyAt,
+                ));
+            });
+        }
+        $representedLocalCompanies = $localCompanies
+            ->filter(function (Company $company) use ($characters) {
+                $representativeIds = $company->representatives
+                    ->pluck('character_id')
+                    ->push($company->character_id);
+
+                return $representativeIds->intersect($characters->pluck('id'))->isNotEmpty();
+            })
+            ->values();
+        $reversibleTransferIds = auth()->check()
+            ? $thread->posts
+                ->flatMap->transfers
+                ->filter(fn ($transfer) => $this->transferReversals->canReverse($transfer, auth()->user()))
+                ->pluck('id')
+            : collect();
 
         $response = view('thread.view', [
             'canCreatePost' => auth()->check() && auth()->user()->can('create', [Post::class, $thread]),
@@ -102,16 +173,20 @@ class ThreadController extends Controller
             'canEndScene' => auth()->check() && auth()->user()->can('endScene', $thread),
             'canSetScene' => auth()->check() && auth()->user()->can('setScene', $thread),
             'canTransfer' => auth()->check() && $this->permissionService->allows('transfer', $thread, auth()->user()),
-            'characters' => auth()->check() ? auth()->user()->characters()->with('inventory.item')->orderBy('name')->get() : collect(),
+            'characters' => $characters,
             'posts' => $posts,
+            'locationInventory' => $locationInventory,
+            'localCompanies' => $localCompanies,
+            'representedLocalCompanies' => $representedLocalCompanies,
             'quotedMessage' => $quotedPost ? $this->quoteText($quotedPost) : '',
+            'reversibleTransferIds' => $reversibleTransferIds,
             'thread' => $thread,
             'timelineEntries' => $this->timelineEntries($posts->getCollection(), $thread->scenes),
             'viewedThreads' => $viewedThreads,
         ]);
 
         if (auth()->check()) {
-            session()->put('viewed.1.' . $thread->id, $thread->getRawOriginal('last_post_at'));
+            session()->put('viewed.1.'.$thread->id, $thread->getRawOriginal('last_post_at'));
         }
 
         return $response;
@@ -161,7 +236,7 @@ class ThreadController extends Controller
             ?? 'Unbekannter Charakter';
         $author = str_replace(']', ')', $author);
 
-        return '[q=' . $author . ']' . trim($post->message) . '[/q]' . PHP_EOL;
+        return '[q='.$author.']'.trim($post->message).'[/q]'.PHP_EOL;
     }
 
     private function timelineEntries(Collection $posts, Collection $scenes): Collection
