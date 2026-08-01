@@ -1,9 +1,12 @@
 @props([
     'endpoint',
+    'inputId' => null,
     'label',
     'name',
     'placeholder' => 'Charakter suchen ...',
 ])
+
+@php($inputId ??= $name)
 
 @once
 <script defer src="{{ asset('js/alpine.min.js') }}"></script>
@@ -59,12 +62,12 @@
         name: @js($name),
     })"
 >
-    <label for="{{ $name }}">{{ $label }}</label>
+    <label for="{{ $inputId }}">{{ $label }}</label>
 
     <input
         class="character-selector-id"
         type="number"
-        id="{{ $name }}"
+        id="{{ $inputId }}"
         name="{{ $name }}"
         placeholder="Charakter-ID"
         x-model="idText"

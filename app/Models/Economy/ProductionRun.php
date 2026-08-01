@@ -14,6 +14,7 @@ class ProductionRun extends Model
     protected $fillable = [
         'labour_active_id',
         'company_id',
+        'company_site_id',
         'company_worker_id',
         'labour_id',
         'labour_name',
@@ -30,6 +31,7 @@ class ProductionRun extends Model
     protected $casts = [
         'labour_active_id' => 'integer',
         'company_id' => 'integer',
+        'company_site_id' => 'integer',
         'company_worker_id' => 'integer',
         'labour_id' => 'integer',
         'instances' => 'integer',
@@ -49,6 +51,11 @@ class ProductionRun extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function site(): BelongsTo
+    {
+        return $this->belongsTo(CompanySite::class, 'company_site_id');
     }
 
     public function worker(): BelongsTo

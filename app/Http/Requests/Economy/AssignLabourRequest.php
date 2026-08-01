@@ -9,6 +9,23 @@ use Illuminate\Validation\Rule;
 
 class AssignLabourRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $price = $this->input('prodas_value');
+
+        if (! is_array($price)) {
+            return;
+        }
+
+        foreach (['til', 'tuk', 'ten'] as $denomination) {
+            if (($price[$denomination] ?? null) === null || $price[$denomination] === '') {
+                $price[$denomination] = 0;
+            }
+        }
+
+        $this->merge(['prodas_value' => $price]);
+    }
+
     public function rules(): array
     {
         return [
@@ -25,7 +42,10 @@ class AssignLabourRequest extends FormRequest
                     0,
                 ]),
             ],
-            'prodas_value' => ['nullable', 'integer', 'min:0'],
+            'prodas_value' => ['nullable', 'array:til,tuk,ten', 'required_if:prodas,0'],
+            'prodas_value.til' => ['required_if:prodas,0', 'integer', 'min:0', 'max:1000000000'],
+            'prodas_value.tuk' => ['required_if:prodas,0', 'integer', 'min:0', 'max:1000000000'],
+            'prodas_value.ten' => ['required_if:prodas,0', 'integer', 'min:0', 'max:1000000000'],
         ];
     }
 

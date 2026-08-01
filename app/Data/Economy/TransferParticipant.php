@@ -21,8 +21,8 @@ class TransferParticipant
         return new self(PermissionEntityType::LOCATION, $id);
     }
 
-    public static function company(int $id): self
+    public static function companySite(int $id): self
     {
-        return new self(PermissionEntityType::COMPANY, $id);
+        return new self(PermissionEntityType::COMPANY_SITE, $id);
     }
 }

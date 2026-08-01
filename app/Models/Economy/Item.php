@@ -2,6 +2,7 @@
 
 namespace App\Models\Economy;
 
+use App\Support\Currency;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -30,7 +31,7 @@ class Item extends Model
             $fix = [100000 => 'hl', 1000 => 'l', 1 => 'ml'];
             $amount = (int) $stack;
         } elseif ($unit === 't') {
-            $fix = [10000000 => 'tl', 10000 => 'tk', 1 => 'tn'];
+            $fix = [Currency::TEN_PER_TIL => 'tl', Currency::TEN_PER_TUK => 'tk', 1 => 'tn'];
             $amount = (int) $stack;
         } else {
             return $stack;
@@ -41,7 +42,7 @@ class Item extends Model
         foreach ($fix as $factor => $topUnit) {
             $lot = (int) floor($amount / $factor);
             $amount -= $lot * $factor;
-            $result .= $lot ? $lot . $topUnit : '';
+            $result .= $lot ? $lot.$topUnit : '';
         }
 
         return $result;
@@ -62,7 +63,7 @@ class Item extends Model
         } elseif ($unit === 'l') {
             $fix = [100000 => 'hl', 1000 => 'l', 1 => 'ml'];
         } elseif ($unit === 't') {
-            $fix = [10000000 => 'tl', 10000 => 'tk', 1 => 'tn'];
+            $fix = [Currency::TEN_PER_TIL => 'tl', Currency::TEN_PER_TUK => 'tk', 1 => 'tn'];
         } else {
             return (int) $stack;
         }

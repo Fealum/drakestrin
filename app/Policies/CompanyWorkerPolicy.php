@@ -34,8 +34,8 @@ class CompanyWorkerPolicy
 
     private function owns(User $user, CompanyWorker $worker): bool
     {
-        $worker->loadMissing('company.character');
+        $worker->loadMissing('site.company');
 
-        return (int) $worker->company?->character?->user_id === (int) $user->id;
+        return $worker->site ? $user->can('manageWorkers', $worker->site) : false;
     }
 }

@@ -58,15 +58,7 @@
         <li><h4>Besitz</h4>
             <ol class="inventory">
                 @foreach ($character->inventory as $inventory)
-                @php($item = $inventory->item)
-                @if ($item)
-                <li>
-                    <img src="{{ url('/img/item.img/'.$item->img.'.png') }}" title="{{ $item->name }}" alt="">
-                    @if ($inventory->stack > 0)
-                    <div>{{ $inventory->makeunitary() }}</div>
-                    @endif
-                </li>
-                @endif
+                <li><x-inventory-item :inventory="$inventory" /></li>
                 @endforeach
             </ol>
         </li>

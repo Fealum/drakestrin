@@ -5,13 +5,16 @@ namespace App\Http\Controllers;
 use App\Data\Economy\InventoryMutationContext;
 use App\Http\Requests\Economy\AssignLabourRequest;
 use App\Models\Economy\Company;
+use App\Models\Economy\CompanySite;
 use App\Models\Economy\CompanyWorker;
 use App\Models\Economy\Labour;
 use App\Models\Economy\LabourActive;
 use App\Repositories\Economy\TransferRepository;
+use App\Repositories\Territory\LocationRepository;
 use App\Services\Economy\ProductionService;
 use App\Services\InventoryService;
 use App\Services\PermissionService;
+use App\Support\Currency;
 use App\Support\InventoryMutationClock;
 use App\Support\InventoryMutationKind;
 use App\Support\InventoryStockState;
@@ -42,7 +45,6 @@ class CompanyController extends Controller
         return view('company.viewall', [
             'canCreate' => auth()->check() && auth()->user()->can('create', Company::class),
             'companies' => Company::query()
-                ->with('character')
                 ->orderByRaw('LOWER(name)')
                 ->get(),
         ]);
@@ -53,25 +55,47 @@ class CompanyController extends Controller
         Gate::authorize('view', $company);
 
         $company->load([
-            'character.user',
-            'inventory.item',
+            'owners.character.user',
             'territory',
-            'workers.activeLabours.labour.components.item',
-            'productionRuns' => fn ($query) => $query->limit(10),
-            'sites.location',
+            'sites' => fn ($query) => $query->with([
+                'inventory.item',
+                'location',
+                'productionRuns' => fn ($query) => $query->limit(10),
+                'representatives.character.user',
+                'workers.activeLabours.labour.components.item',
+            ]),
+            'representatives.site',
             'representatives.character.user',
         ]);
+
+        $company->sites->each(function (CompanySite $site) {
+            $site->setAttribute('inventory_groups', $site->inventory
+                ->where('wear', '!=', InventoryStockState::COMMITTED_TOOL->value)
+                ->groupBy(fn ($inventory) => $inventory->item?->stackable
+                    ? 'stack:'.$inventory->id
+                    : 'identity:'.hash('sha256', serialize([
+                        $inventory->item_id,
+                        $inventory->wear,
+                        $inventory->timelastvalue,
+                        $inventory->data,
+                    ])))
+                ->values());
+        });
 
         $this->setLocation($company);
 
         return view('company.view', [
-            'canHire' => Gate::allows('hire', $company),
-            'canPay' => Gate::allows('pay', $company),
             'company' => $company,
             'canManage' => Gate::allows('manage', $company),
             'canEdit' => Gate::allows('update', $company),
-            'canManageRepresentatives' => Gate::allows('manageRepresentatives', $company),
-            'transfers' => $this->transfers->paginateForParticipant(PermissionEntityType::COMPANY, $company->id),
+            'canManageManagers' => Gate::allows('manageManagers', $company),
+            'canManageOwners' => Gate::allows('manageOwners', $company),
+            'canManageSiteRepresentatives' => Gate::allows('manageSiteRepresentatives', $company),
+            'locations' => app(LocationRepository::class)->options(),
+            'transfers' => $this->transfers->paginateForParticipants(
+                PermissionEntityType::COMPANY_SITE,
+                $company->sites->pluck('id')->map(fn ($id) => (int) $id)->all(),
+            ),
         ]);
     }
 
@@ -82,7 +106,8 @@ class CompanyController extends Controller
         $worker->load([
             'activeLabours.labour.components.item',
             'activeLabours.currentRun',
-            'company.character.user',
+            'company.owners.character.user',
+            'site.location',
             'productionRuns' => fn ($query) => $query->limit(10),
         ]);
 
@@ -97,14 +122,16 @@ class CompanyController extends Controller
         ]);
     }
 
-    public function hire(Company $company, int|string $type = 1): RedirectResponse
+    public function hire(Company $company, CompanySite $site, int|string $type = 1): RedirectResponse
     {
-        Gate::authorize('hire', $company);
+        abort_unless((int) $site->company_id === (int) $company->id, 404);
+        Gate::authorize('manageWorkers', $site);
+        abort_unless($site->location_id, 422, 'Der Standort benötigt zuerst einen Ort.');
 
         $type = (int) $type;
         $type = $type > 0 && $type < 6 ? $type : 1;
 
-        if ($type === 5 && $company->workers()->where('type', 5)->exists()) {
+        if ($type === 5 && $site->workers()->where('type', 5)->exists()) {
             $this->flashMessage('error', 'company.hire_already_clerk');
 
             return redirect()->route('company.view', ['company' => $company->id]);
@@ -116,6 +143,7 @@ class CompanyController extends Controller
             'name' => $workerName,
             'type' => $type,
             'company_id' => $company->id,
+            'company_site_id' => $site->id,
             'hired' => now()->timestamp,
             'paid' => now()->timestamp,
         ]);
@@ -177,10 +205,11 @@ class CompanyController extends Controller
     public function fire(CompanyWorker $worker): RedirectResponse
     {
         Gate::authorize('fire', $worker);
-        $worker->loadMissing('company');
+        $worker->loadMissing('company', 'site');
 
         $company = $worker->company;
-        abort_unless($company, 404);
+        $site = $worker->site;
+        abort_unless($company && $site, 404);
 
         if ($worker->activeLabours()->exists()) {
             $this->flashMessage('error', 'company.fire_busy');
@@ -188,8 +217,8 @@ class CompanyController extends Controller
             return redirect()->route('company.worker', ['worker' => $worker->id]);
         }
 
-        $settlement = DB::transaction(function () use ($worker, $company) {
-            $settlement = $this->settleWorkerSalary($worker, $company);
+        $settlement = DB::transaction(function () use ($worker, $site) {
+            $settlement = $this->settleWorkerSalary($worker, $site);
 
             $worker->delete();
 
@@ -201,16 +230,17 @@ class CompanyController extends Controller
         return redirect()->route('company.view', ['company' => $company->id]);
     }
 
-    public function pay(Company $company): RedirectResponse
+    public function pay(Company $company, CompanySite $site): RedirectResponse
     {
-        Gate::authorize('pay', $company);
+        abort_unless((int) $site->company_id === (int) $company->id, 404);
+        Gate::authorize('manageWorkers', $site);
 
-        $paid = DB::transaction(function () use ($company) {
+        $paid = DB::transaction(function () use ($company, $site) {
             $company = Company::query()->whereKey($company->id)->lockForUpdate()->firstOrFail();
             $balance = $this->inventory->available(
                 1,
-                PermissionEntityType::COMPANY,
-                $company->id,
+                PermissionEntityType::COMPANY_SITE,
+                $site->id,
                 InventoryStockState::RESERVED->value,
             );
 
@@ -225,7 +255,7 @@ class CompanyController extends Controller
                 'months' => 0,
             ];
 
-            $workers = $company->workers()
+            $workers = $site->workers()
                 ->orderBy('paid')
                 ->lockForUpdate()
                 ->get();
@@ -294,10 +324,10 @@ class CompanyController extends Controller
                 $debited = $this->inventory->debitStack(
                     1,
                     $paid['sumpaid'],
-                    PermissionEntityType::COMPANY,
-                    $company->id,
+                    PermissionEntityType::COMPANY_SITE,
+                    $site->id,
                     InventoryStockState::RESERVED->value,
-                    $this->simulationContext(InventoryMutationKind::CONSUMPTION, 'company', $company->id),
+                    $this->simulationContext(InventoryMutationKind::CONSUMPTION, 'company_site', $site->id),
                 );
 
                 throw_unless($debited === $paid['sumpaid'], \RuntimeException::class, 'The payroll balance changed during payment.');
@@ -326,7 +356,7 @@ class CompanyController extends Controller
 
     private function possibleLabours(CompanyWorker $worker)
     {
-        $worker->loadMissing('company', 'activeLabours.labour');
+        $worker->loadMissing('site', 'activeLabours.labour');
 
         return Labour::query()
             ->with('components.item')
@@ -334,8 +364,8 @@ class CompanyController extends Controller
             ->orderByRaw('LOWER(name)')
             ->get()
             ->filter(fn (Labour $labour) => $this->labourFitsCapacity($worker, $labour)
-                && $worker->company
-                && $this->production->maxInstancesByResources($worker->company, $labour) > 0)
+                && $worker->site?->location_id
+                && $this->production->maxInstancesByResources($worker->site, $labour) > 0)
             ->values();
     }
 
@@ -364,7 +394,7 @@ class CompanyController extends Controller
     /**
      * @return array{workername:string, owed:int, paid:int, unpaid:int}
      */
-    private function settleWorkerSalary(CompanyWorker $worker, Company $company): array
+    private function settleWorkerSalary(CompanyWorker $worker, CompanySite $site): array
     {
         $owed = $this->owedSalary($worker);
         $paid = 0;
@@ -373,8 +403,8 @@ class CompanyController extends Controller
             $paid = $this->inventory->debitStack(
                 1,
                 $owed,
-                PermissionEntityType::COMPANY,
-                $company->id,
+                PermissionEntityType::COMPANY_SITE,
+                $site->id,
                 InventoryStockState::RESERVED->value,
                 $this->simulationContext(InventoryMutationKind::CONSUMPTION, 'company_worker', $worker->id),
             );
@@ -423,6 +453,6 @@ class CompanyController extends Controller
     {
         $salary = (int) $worker->type === 1 ? 3 : (int) $worker->type + 1;
 
-        return 10000 * $salary;
+        return Currency::TEN_PER_TUK * $salary;
     }
 }

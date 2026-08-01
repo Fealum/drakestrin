@@ -68,8 +68,7 @@ class Location extends Model
     public function companySites(): HasMany
     {
         return $this->hasMany(CompanySite::class)
-            ->with('company.character')
-            ->orderByDesc('is_headquarters')
-            ->orderByDesc('is_storefront');
+            ->with('company.owners.character')
+            ->orderBy('company_id');
     }
 }

@@ -16,6 +16,7 @@ use App\Models\User\Character;
 use App\Services\InventoryService;
 use App\Services\MarkdownArchiveExporter;
 use App\Services\PermissionService;
+use App\Support\InventoryStockState;
 use App\Support\PermissionEntityType;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
@@ -215,23 +216,27 @@ class ForumModelTest extends TestCase
         $companyIds = DB::table('companies')
             ->where('name', 'like', $this->prefix.'%')
             ->pluck('id');
+        $companySiteIds = DB::table('company_sites')->whereIn('company_id', $companyIds)->pluck('id');
         DB::table('company_representatives')->whereIn('company_id', $companyIds)->delete();
+        DB::table('company_role_events')->whereIn('company_id', $companyIds)->delete();
+        DB::table('company_owners')->whereIn('company_id', $companyIds)->delete();
+        DB::table('companies')->whereIn('id', $companyIds)->update(['headquarters_site_id' => null]);
         DB::table('company_sites')->whereIn('company_id', $companyIds)->delete();
 
         $itemIds = DB::table('items')->where('name', 'like', $this->prefix.'%')->pluck('id');
         DB::table('inventory_mutations')->whereIn('item_id', $itemIds)->delete();
 
         DB::table('inventories')
-            ->where(function ($query) use ($companyIds) {
+            ->where(function ($query) use ($companySiteIds) {
                 $query->where(function ($query) {
                     $query->whereIn('owner_id', [$this->characterId, $this->secondCharacterId])
                         ->where('owner_type', PermissionEntityType::CHARACTER->value);
                 })->orWhere(function ($query) {
                     $query->where('owner_id', $this->locationId)
                         ->where('owner_type', PermissionEntityType::LOCATION->value);
-                })->orWhere(function ($query) use ($companyIds) {
-                    $query->whereIn('owner_id', $companyIds)
-                        ->where('owner_type', PermissionEntityType::COMPANY->value);
+                })->orWhere(function ($query) use ($companySiteIds) {
+                    $query->whereIn('owner_id', $companySiteIds)
+                        ->where('owner_type', PermissionEntityType::COMPANY_SITE->value);
                 });
             })
             ->delete();
@@ -304,22 +309,26 @@ class ForumModelTest extends TestCase
         $companyId = DB::table('companies')->insertGetId([
             'name' => $this->prefix.'_scene_company',
             'type' => 3,
-            'character_id' => $this->characterId,
             'description' => '',
-            'text' => '',
             'territory_id' => $territoryId,
             'thread_id' => 0,
-            'url' => '',
             'volksgeld' => 0,
         ]);
-        DB::table('company_sites')->insert([
+        DB::table('company_owners')->insert([
             'company_id' => $companyId,
-            'location_id' => $this->locationId,
-            'is_headquarters' => 1,
-            'is_storefront' => 1,
+            'character_id' => $this->characterId,
+            'added_by_user_id' => $this->userId,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+        $companySiteId = DB::table('company_sites')->insertGetId([
+            'company_id' => $companyId,
+            'location_id' => $this->locationId,
+            'name' => 'Hauptstandort',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('companies')->where('id', $companyId)->update(['headquarters_site_id' => $companySiteId]);
         $itemId = $this->createStackableItem($this->prefix.'_company_scene_item');
         $characterInventoryId = DB::table('inventories')->insertGetId([
             'item_id' => $itemId,
@@ -335,8 +344,8 @@ class ForumModelTest extends TestCase
             'item_id' => $futureItemId,
             'stack' => 1,
             'wear' => -2,
-            'owner_id' => $companyId,
-            'owner_type' => PermissionEntityType::COMPANY->value,
+            'owner_id' => $companySiteId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
             'timelastvalue' => 0,
             'data' => '',
         ]);
@@ -353,8 +362,8 @@ class ForumModelTest extends TestCase
                 'item_id' => $futureItemId,
                 'stack' => 1,
                 'wear' => -2,
-                'owner_type' => PermissionEntityType::COMPANY->value,
-                'owner_id' => $companyId,
+                'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+                'owner_id' => $companySiteId,
                 'timelastvalue' => 0,
                 'data' => '',
             ], JSON_THROW_ON_ERROR),
@@ -371,7 +380,7 @@ class ForumModelTest extends TestCase
             'character' => $this->characterId,
             'message' => $this->prefix.'_premature_company_withdrawal',
             'transfer_action' => 'company_withdrawal',
-            'company' => $companyId,
+            'company_site' => $companySiteId,
             'recipient' => $this->secondCharacterId,
             'inventory' => [$futureInventoryId => $futureInventoryId],
             'inventorystack' => [$futureInventoryId => '1'],
@@ -382,7 +391,7 @@ class ForumModelTest extends TestCase
             'character' => $this->characterId,
             'message' => $this->prefix.'_company_deposit',
             'transfer_action' => 'company_deposit',
-            'company' => $companyId,
+            'company_site' => $companySiteId,
             'inventory' => [$characterInventoryId => $characterInventoryId],
             'inventorystack' => [$characterInventoryId => '2'],
         ]);
@@ -394,23 +403,46 @@ class ForumModelTest extends TestCase
             'thread_scene_id' => $sceneId,
             'sender_type' => PermissionEntityType::CHARACTER->value,
             'sender_id' => $this->characterId,
-            'recipient_type' => PermissionEntityType::COMPANY->value,
-            'recipient_id' => $companyId,
+            'recipient_type' => PermissionEntityType::COMPANY_SITE->value,
+            'recipient_id' => $companySiteId,
             'acted_by_character_id' => $this->characterId,
         ]);
         $companyInventoryId = (int) DB::table('inventories')
-            ->where('owner_type', PermissionEntityType::COMPANY->value)
-            ->where('owner_id', $companyId)
+            ->where('owner_type', PermissionEntityType::COMPANY_SITE->value)
+            ->where('owner_id', $companySiteId)
             ->where('item_id', $itemId)
             ->where('wear', -2)
             ->value('id');
         $this->assertGreaterThan(0, $companyInventoryId);
 
+        $this->get('/thread/view/'.$this->threadId)
+            ->assertOk()
+            ->assertDontSee('value="'.$companyInventoryId.'"', false);
+
+        $this->post('/post/create/'.$this->threadId, [
+            'character' => $this->characterId,
+            'message' => $this->prefix.'_production_company_withdrawal',
+            'transfer_action' => 'company_withdrawal',
+            'company_site' => $companySiteId,
+            'recipient' => $this->secondCharacterId,
+            'inventory' => [$companyInventoryId => $companyInventoryId],
+            'inventorystack' => [$companyInventoryId => '1'],
+        ])->assertSessionHasErrors('inventory');
+        $this->assertDatabaseMissing('posts', ['message' => $this->prefix.'_production_company_withdrawal']);
+
+        DB::table('inventories')->where('id', $companyInventoryId)->update([
+            'wear' => InventoryStockState::RESERVED->value,
+        ]);
+
+        $this->get('/thread/view/'.$this->threadId)
+            ->assertOk()
+            ->assertSee('value="'.$companyInventoryId.'"', false);
+
         $withdrawal = $this->post('/post/create/'.$this->threadId, [
             'character' => $this->characterId,
             'message' => $this->prefix.'_company_withdrawal',
             'transfer_action' => 'company_withdrawal',
-            'company' => $companyId,
+            'company_site' => $companySiteId,
             'recipient' => $this->secondCharacterId,
             'inventory' => [$companyInventoryId => $companyInventoryId],
             'inventorystack' => [$companyInventoryId => '1'],
@@ -420,8 +452,8 @@ class ForumModelTest extends TestCase
         $withdrawal->assertRedirect('/thread/view/'.$this->threadId.'/last#post'.$withdrawalPost->id);
         $this->assertDatabaseHas('transfers', [
             'post_id' => $withdrawalPost->id,
-            'sender_type' => PermissionEntityType::COMPANY->value,
-            'sender_id' => $companyId,
+            'sender_type' => PermissionEntityType::COMPANY_SITE->value,
+            'sender_id' => $companySiteId,
             'recipient_type' => PermissionEntityType::CHARACTER->value,
             'recipient_id' => $this->secondCharacterId,
             'acted_by_character_id' => $this->characterId,
@@ -432,6 +464,11 @@ class ForumModelTest extends TestCase
             'owner_id' => $this->secondCharacterId,
             'stack' => 1,
         ]);
+
+        $this->get('/thread/view/'.$this->threadId)
+            ->assertOk()
+            ->assertSee('>'.$this->prefix.'_scene_company</a>', false)
+            ->assertDontSee('>Hauptstandort</a>', false);
     }
 
     public function test_board_thread_and_post_relationships_match_legacy_foreign_keys(): void

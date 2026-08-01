@@ -12,6 +12,7 @@ class CompanyRepresentative extends Model
 {
     protected $fillable = [
         'company_id',
+        'company_site_id',
         'character_id',
         'role',
         'appointed_by_user_id',
@@ -19,6 +20,7 @@ class CompanyRepresentative extends Model
 
     protected $casts = [
         'company_id' => 'integer',
+        'company_site_id' => 'integer',
         'character_id' => 'integer',
         'role' => CompanyRepresentativeRole::class,
         'appointed_by_user_id' => 'integer',
@@ -32,6 +34,11 @@ class CompanyRepresentative extends Model
     public function character(): BelongsTo
     {
         return $this->belongsTo(Character::class);
+    }
+
+    public function site(): BelongsTo
+    {
+        return $this->belongsTo(CompanySite::class, 'company_site_id');
     }
 
     public function appointedBy(): BelongsTo

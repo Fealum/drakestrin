@@ -85,8 +85,7 @@
         @if ($site->company)
         <li>
             <a href="{{ route('company.view', ['company' => $site->company->id]) }}">{{ $site->company->name }}</a>
-            @if ($site->is_headquarters)(Hauptsitz)@endif
-            @if ($site->is_storefront)(Ladenlokal)@endif
+            @if ((int) $site->company?->headquarters_site_id === (int) $site->id)(Hauptsitz)@endif
         </li>
         @endif
         @endforeach

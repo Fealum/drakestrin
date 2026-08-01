@@ -6,6 +6,7 @@ use App\Data\Economy\InventoryMutationContext;
 use App\Data\Economy\StartProductionData;
 use App\Exceptions\Economy\InsufficientProductionResources;
 use App\Models\Economy\Company;
+use App\Models\Economy\CompanySite;
 use App\Models\Economy\CompanyWorker;
 use App\Models\Economy\Labour;
 use App\Models\Economy\LabourActive;
@@ -36,13 +37,19 @@ class ProductionService
         try {
             return DB::transaction(function () use ($worker, $labour, $data, $capacity, $now) {
                 $worker = CompanyWorker::query()->whereKey($worker->id)->lockForUpdate()->firstOrFail();
+                $worker->loadMissing('site');
+                $site = $worker->site;
+
+                if (! $site?->location_id) {
+                    return null;
+                }
                 $company = Company::query()->whereKey($worker->company_id)->lockForUpdate()->firstOrFail();
                 $labour->loadMissing('components.item');
                 $instances = min(
                     $data->instances,
                     max(0, $capacity),
                     $this->availableCapacity($worker, $labour),
-                    $this->maxInstancesByResources($company, $labour),
+                    $this->maxInstancesByResources($site, $labour),
                 );
 
                 if ($instances < 1) {
@@ -65,17 +72,17 @@ class ProductionService
                     'output_items' => $outputs,
                     'tool_items' => $tools,
                 ]);
-                $run = $this->createRun($activeLabour, $company, $worker, $labour, $inputs, $outputs, $now);
+                $run = $this->createRun($activeLabour, $company, $site, $worker, $labour, $inputs, $outputs, $now);
 
                 $this->moveItems(
-                    $company,
+                    $site,
                     $tools,
                     InventoryStockState::PRODUCTION->value,
                     InventoryStockState::COMMITTED_TOOL->value,
                     $this->context($run, InventoryMutationKind::STATE_CHANGE, $now),
                 );
                 $this->moveItems(
-                    $company,
+                    $site,
                     $inputs,
                     InventoryStockState::PRODUCTION->value,
                     null,
@@ -102,12 +109,13 @@ class ProductionService
                 return 'skipped_resources';
             }
 
-            $activeLabour->load(['companyWorker.company', 'labour.components.item', 'currentRun']);
+            $activeLabour->load(['companyWorker.site.company', 'labour.components.item', 'currentRun']);
             $worker = $activeLabour->companyWorker;
-            $company = $worker?->company;
+            $site = $worker?->site;
+            $company = $site?->company;
             $labour = $activeLabour->labour;
 
-            if (! $worker || ! $company || ! $labour) {
+            if (! $worker || ! $site || ! $company || ! $labour || ! $site->location_id) {
                 return 'skipped_resources';
             }
 
@@ -115,7 +123,7 @@ class ProductionService
             $run = $activeLabour->currentRun;
 
             if (! $run && $activeLabour->runs()->doesntExist()) {
-                $run = $this->bootstrapLegacyRun($activeLabour, $company, $worker, $labour);
+                $run = $this->bootstrapLegacyRun($activeLabour, $company, $site, $worker, $labour);
             }
 
             if ($worker->isOnStrikeAt($now)) {
@@ -126,10 +134,10 @@ class ProductionService
                         $activeLabour,
                         $run,
                         $company,
+                        $site,
                         $worker,
                         $labour,
                         $now,
-                        $strikeStartedAt,
                     );
                 }
 
@@ -148,12 +156,12 @@ class ProductionService
 
             if (! $run) {
                 if ($activeLabour->stop_requested_at) {
-                    $this->finish($activeLabour, $company, $now);
+                    $this->finish($activeLabour, $site, $now);
 
                     return 'finished';
                 }
 
-                if ($this->startNextRun($activeLabour, $company, $worker, $labour, $now)) {
+                if ($this->startNextRun($activeLabour, $company, $site, $worker, $labour, $now)) {
                     return 'processed';
                 }
 
@@ -166,7 +174,7 @@ class ProductionService
                 return 'processed';
             }
 
-            return $this->completeRun($activeLabour, $run, $company, $worker, $labour, $now);
+            return $this->completeRun($activeLabour, $run, $company, $site, $worker, $labour, $now);
         });
     }
 
@@ -174,31 +182,26 @@ class ProductionService
         LabourActive $activeLabour,
         ProductionRun $run,
         Company $company,
+        CompanySite $site,
         CompanyWorker $worker,
         Labour $labour,
         int $now,
-        ?int $pauseAt = null,
     ): string {
-        $this->createOutputs($run, $company, $now);
-        $run->update(['completed_at' => $now]);
+        $completedAt = min($now, $run->due_at?->timestamp ?? $now);
+        $this->createOutputs($run, $site, $completedAt);
+        $run->update(['completed_at' => $completedAt]);
         $remaining = (int) $activeLabour->quantity === -1
             ? -1
             : max(0, (int) $activeLabour->quantity - 1);
         $activeLabour->update(['quantity' => $remaining]);
 
         if ($activeLabour->stop_requested_at || $remaining === 0) {
-            $this->finish($activeLabour, $company, $now);
+            $this->finish($activeLabour, $site, $completedAt);
 
             return 'finished';
         }
 
-        if ($pauseAt !== null) {
-            $this->pauseForStrike($activeLabour, $pauseAt);
-
-            return 'paused';
-        }
-
-        if (! $this->startNextRun($activeLabour, $company, $worker, $labour, $now)) {
+        if (! $this->startNextRun($activeLabour, $company, $site, $worker, $labour, $completedAt)) {
             $activeLabour->update(['until' => $now + self::RESOURCE_RETRY_SECONDS]);
         }
 
@@ -243,10 +246,11 @@ class ProductionService
                 ->whereNull('ended_at')
                 ->lockForUpdate()
                 ->firstOrFail();
-            $activeLabour->load(['companyWorker.company', 'currentRun']);
-            $company = $activeLabour->companyWorker?->company;
+            $activeLabour->load(['companyWorker.site.company', 'currentRun']);
+            $site = $activeLabour->companyWorker?->site;
+            $company = $site?->company;
 
-            if (! $company) {
+            if (! $company || ! $site) {
                 abort(404);
             }
 
@@ -258,13 +262,13 @@ class ProductionService
                 return 'stopping';
             }
 
-            $this->finish($activeLabour, $company, $now);
+            $this->finish($activeLabour, $site, $now);
 
             return 'stopped';
         });
     }
 
-    public function maxInstancesByResources(Company $company, Labour $labour): int
+    public function maxInstancesByResources(CompanySite $site, Labour $labour): int
     {
         $maximum = PHP_INT_MAX;
         $requirements = collect([
@@ -276,8 +280,8 @@ class ProductionService
             $required = max(1, $items->sum('quantity'));
             $available = $this->inventory->available(
                 (int) $itemId,
-                PermissionEntityType::COMPANY,
-                $company->id,
+                PermissionEntityType::COMPANY_SITE,
+                $site->id,
                 InventoryStockState::PRODUCTION->value,
             );
             $maximum = min($maximum, (int) floor($available / $required));
@@ -289,6 +293,7 @@ class ProductionService
     private function startNextRun(
         LabourActive $activeLabour,
         Company $company,
+        CompanySite $site,
         CompanyWorker $worker,
         Labour $labour,
         int $now,
@@ -296,13 +301,14 @@ class ProductionService
         $this->ensureSnapshots($activeLabour, $labour);
         $inputs = $activeLabour->input_items ?? [];
 
-        if (! $this->itemsAvailable($company, $inputs, InventoryStockState::PRODUCTION->value)) {
+        if (! $this->itemsAvailable($site, $inputs, InventoryStockState::PRODUCTION->value)) {
             return false;
         }
 
         $run = $this->createRun(
             $activeLabour,
             $company,
+            $site,
             $worker,
             $labour,
             $inputs,
@@ -310,7 +316,7 @@ class ProductionService
             $now,
         );
         $this->moveItems(
-            $company,
+            $site,
             $inputs,
             InventoryStockState::PRODUCTION->value,
             null,
@@ -323,6 +329,7 @@ class ProductionService
     private function bootstrapLegacyRun(
         LabourActive $activeLabour,
         Company $company,
+        CompanySite $site,
         CompanyWorker $worker,
         Labour $labour,
     ): ProductionRun {
@@ -331,6 +338,7 @@ class ProductionService
         return ProductionRun::create([
             'labour_active_id' => $activeLabour->id,
             'company_id' => $company->id,
+            'company_site_id' => $site->id,
             'company_worker_id' => $worker->id,
             'labour_id' => $labour->id,
             'labour_name' => $labour->name,
@@ -347,6 +355,7 @@ class ProductionService
     private function createRun(
         LabourActive $activeLabour,
         Company $company,
+        CompanySite $site,
         CompanyWorker $worker,
         Labour $labour,
         array $inputs,
@@ -359,6 +368,7 @@ class ProductionService
         return ProductionRun::create([
             'labour_active_id' => $activeLabour->id,
             'company_id' => $company->id,
+            'company_site_id' => $site->id,
             'company_worker_id' => $worker->id,
             'labour_id' => $labour->id,
             'labour_name' => $labour->name,
@@ -372,14 +382,14 @@ class ProductionService
         ]);
     }
 
-    private function createOutputs(ProductionRun $run, Company $company, int $now): void
+    private function createOutputs(ProductionRun $run, CompanySite $site, int $now): void
     {
         foreach ($run->outputs as $output) {
             $created = $this->inventory->add(
                 (int) $output['item_id'],
                 (int) $output['quantity'],
-                PermissionEntityType::COMPANY,
-                $company->id,
+                PermissionEntityType::COMPANY_SITE,
+                $site->id,
                 $run->output_state,
                 $this->context($run, InventoryMutationKind::PRODUCTION, $now),
             );
@@ -390,14 +400,14 @@ class ProductionService
         }
     }
 
-    private function finish(LabourActive $activeLabour, Company $company, int $now): void
+    private function finish(LabourActive $activeLabour, CompanySite $site, int $now): void
     {
         foreach ($activeLabour->tool_items ?? [] as $tool) {
             $this->inventory->take(
                 (int) $tool['item_id'],
                 (int) $tool['quantity'],
-                PermissionEntityType::COMPANY,
-                $company->id,
+                PermissionEntityType::COMPANY_SITE,
+                $site->id,
                 InventoryStockState::COMMITTED_TOOL->value,
                 InventoryStockState::PRODUCTION->value,
                 new InventoryMutationContext(
@@ -418,7 +428,7 @@ class ProductionService
     }
 
     private function moveItems(
-        Company $company,
+        CompanySite $site,
         array $items,
         int $fromState,
         ?int $toState,
@@ -429,8 +439,8 @@ class ProductionService
             $moved = $this->inventory->take(
                 (int) $item['item_id'],
                 $quantity,
-                PermissionEntityType::COMPANY,
-                $company->id,
+                PermissionEntityType::COMPANY_SITE,
+                $site->id,
                 $fromState,
                 $toState,
                 $context,
@@ -442,13 +452,13 @@ class ProductionService
         }
     }
 
-    private function itemsAvailable(Company $company, array $items, int $state): bool
+    private function itemsAvailable(CompanySite $site, array $items, int $state): bool
     {
         foreach ($items as $item) {
             if ($this->inventory->available(
                 (int) $item['item_id'],
-                PermissionEntityType::COMPANY,
-                $company->id,
+                PermissionEntityType::COMPANY_SITE,
+                $site->id,
                 $state,
             ) < (int) $item['quantity']) {
                 return false;

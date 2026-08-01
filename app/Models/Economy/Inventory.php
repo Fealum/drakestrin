@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use LogicException;
 
 class Inventory extends Model
 {
@@ -33,6 +34,25 @@ class Inventory extends Model
         'timelastvalue',
         'data',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (Inventory $inventory): void {
+            $stackable = Item::query()->whereKey($inventory->item_id)->value('stackable');
+
+            if ($stackable === null) {
+                throw new LogicException('An inventory row must reference an existing item.');
+            }
+
+            if ((bool) $stackable && (int) $inventory->stack <= 0) {
+                throw new LogicException('A stackable inventory row must have a positive quantity.');
+            }
+
+            if (! (bool) $stackable && (int) $inventory->stack !== 0) {
+                throw new LogicException('A non-stackable inventory row must represent exactly one item instance.');
+            }
+        });
+    }
 
     public function item(): BelongsTo
     {

@@ -5,6 +5,7 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyInventoryController;
 use App\Http\Controllers\CompanyManagementController;
+use App\Http\Controllers\CompanySiteController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\DictionaryController;
 use App\Http\Controllers\EncyclopediaController;
@@ -152,9 +153,9 @@ Route::controller(CompanyController::class)->group(function () {
     Route::get('/company/worker/{worker}', 'worker')->name('company.worker');
     Route::post('/company/worker/{worker}', 'assignLabour')->name('company.assign_labour');
     Route::post('/company/labour/{activeLabour}/stop', 'stopLabour')->name('company.stop_labour');
-    Route::get('/company/hire/{company}/{type?}', 'hire')->name('company.hire');
+    Route::get('/company/{company}/sites/{site}/hire/{type?}', 'hire')->name('company.hire');
     Route::get('/company/fire/{worker}', 'fire')->name('company.fire');
-    Route::get('/company/pay/{company}', 'pay')->name('company.pay');
+    Route::get('/company/{company}/sites/{site}/pay', 'pay')->name('company.pay');
 });
 
 Route::controller(CompanyManagementController::class)->group(function () {
@@ -164,10 +165,19 @@ Route::controller(CompanyManagementController::class)->group(function () {
     Route::put('/company/edit/{company}', 'update')->name('company.update');
     Route::post('/company/{company}/representatives', 'storeRepresentative')->name('company.representative.store');
     Route::delete('/company/{company}/representatives/{representative}', 'destroyRepresentative')->name('company.representative.destroy');
+    Route::post('/company/{company}/owners', 'storeOwner')->name('company.owner.store');
+    Route::post('/company/{company}/owners/{owner}/transfer', 'transferOwner')->name('company.owner.transfer');
 });
 
-Route::put('/company/{company}/inventory/{inventory}', [CompanyInventoryController::class, 'update'])
+Route::put('/company/{company}/sites/{site}/inventory', [CompanyInventoryController::class, 'update'])
     ->name('company.inventory.update');
+
+Route::controller(CompanySiteController::class)->group(function () {
+    Route::post('/company/{company}/sites', 'store')->name('company.site.store');
+    Route::put('/company/{company}/sites/{site}', 'update')->name('company.site.update');
+    Route::patch('/company/{company}/sites/{site}/headquarters', 'headquarters')->name('company.site.headquarters');
+    Route::delete('/company/{company}/sites/{site}', 'destroy')->name('company.site.destroy');
+});
 
 Route::controller(EncyclopediaController::class)->group(function () {
     Route::get('/encyclopedia', 'index')->name('encyclopedia');

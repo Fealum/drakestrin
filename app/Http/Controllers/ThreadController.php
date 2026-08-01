@@ -9,13 +9,15 @@ use App\Http\Requests\Board\UpdateThreadRequest;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
-use App\Models\Economy\Company;
+use App\Models\Economy\CompanySite;
 use App\Models\Territory\Location;
 use App\Repositories\Territory\LocationRepository;
 use App\Services\Board\ThreadWriter;
 use App\Services\Economy\InventoryTimeline;
 use App\Services\Economy\TransferReversalService;
 use App\Services\PermissionService;
+use App\Support\CompanyRepresentativeRole;
+use App\Support\InventoryStockState;
 use App\Support\PermissionEntityType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -130,30 +132,33 @@ class ThreadController extends Controller
                 $storyAt,
             )
             : collect();
-        $localCompanies = collect();
+        $localSites = collect();
 
         if ($storyAt !== null && $thread->currentScene?->location) {
-            $localCompanies = Company::query()
-                ->with(['character', 'representatives.character', 'sites.location', 'inventory.item'])
-                ->whereHas('sites', fn ($query) => $query->whereIn(
-                    'location_id',
-                    $this->locations->ancestorLocationIds($thread->currentScene->location),
-                ))
-                ->orderByRaw('LOWER(name)')
+            $localSites = CompanySite::query()
+                ->with(['company.owners.character', 'company.representatives.character', 'company.sites:id,company_id,name', 'representatives.character', 'location', 'inventory.item'])
+                ->whereIn('location_id', $this->locations->ancestorLocationIds($thread->currentScene->location))
+                ->orderBy('company_id')
+                ->orderBy('name')
                 ->get();
 
-            $localCompanies->each(function (Company $company) use ($storyAt) {
-                $company->setRelation('inventory', $this->inventoryTimeline->transferableInventory(
-                    new InventoryOwner(PermissionEntityType::COMPANY, $company->id),
-                    $storyAt,
-                ));
+            $localSites->each(function (CompanySite $site) use ($storyAt) {
+                $site->setRelation(
+                    'inventory',
+                    $this->inventoryTimeline->transferableInventory(
+                        new InventoryOwner(PermissionEntityType::COMPANY_SITE, $site->id),
+                        $storyAt,
+                    )->filter(fn ($inventory) => (int) $inventory->wear >= InventoryStockState::RESERVED->value)->values(),
+                );
             });
         }
-        $representedLocalCompanies = $localCompanies
-            ->filter(function (Company $company) use ($characters) {
-                $representativeIds = $company->representatives
+        $representedLocalSites = $localSites
+            ->filter(function (CompanySite $site) use ($characters) {
+                $representativeIds = $site->company->owners
                     ->pluck('character_id')
-                    ->push($company->character_id);
+                    ->concat($site->company->representatives->where('role', CompanyRepresentativeRole::MANAGER)->pluck('character_id'))
+                    ->concat($site->representatives->pluck('character_id'))
+                    ->unique();
 
                 return $representativeIds->intersect($characters->pluck('id'))->isNotEmpty();
             })
@@ -176,8 +181,8 @@ class ThreadController extends Controller
             'characters' => $characters,
             'posts' => $posts,
             'locationInventory' => $locationInventory,
-            'localCompanies' => $localCompanies,
-            'representedLocalCompanies' => $representedLocalCompanies,
+            'localSites' => $localSites,
+            'representedLocalSites' => $representedLocalSites,
             'quotedMessage' => $quotedPost ? $this->quoteText($quotedPost) : '',
             'reversibleTransferIds' => $reversibleTransferIds,
             'thread' => $thread,

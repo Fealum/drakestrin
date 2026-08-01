@@ -31,7 +31,7 @@ class LocationController extends Controller
             'inventory.item',
             'parent',
             'threadScenes.thread',
-            'companySites.company.character',
+            'companySites.company',
         ]);
 
         $this->setLocation($location);

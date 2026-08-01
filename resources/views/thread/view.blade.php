@@ -26,9 +26,6 @@
                         postForm.querySelectorAll('ul.inventory-char').forEach((list) => {
                             setInventoryEnabled(list, false);
                         });
-                        postForm.querySelectorAll('ul.inventory-company').forEach((list) => {
-                            setInventoryEnabled(list, false);
-                        });
 
                         setInventoryEnabled(locationInventory, transferAction?.value === 'pickup');
 
@@ -57,7 +54,7 @@
                                 }
 
                                 if (transferAction.value === 'company_withdrawal' && companySelect.value) {
-                                    setInventoryEnabled(document.getElementById('inventory-company-' + companySelect.value), true);
+                                    setInventoryEnabled(document.getElementById('inventory-site-' + companySelect.value), true);
                                 }
                             }
                         }
@@ -237,7 +234,7 @@
 
     @if ($canCreatePost)
     @php($inventoryCharacters = $characters->filter(fn ($character) => $character->inventory->isNotEmpty())->values())
-    @php($inventoryCompanies = $representedLocalCompanies->filter(fn ($company) => $company->inventory->isNotEmpty())->values())
+    @php($inventorySites = $representedLocalSites->filter(fn ($site) => $site->inventory->isNotEmpty())->values())
     @if ($characters->isNotEmpty() || $canCreateCharacter)
     <div id="newpost" class="post">
         <form name="newpost" action="{{ route('post.create', ['thread' => $thread->id]) }}" method="post">
@@ -267,7 +264,7 @@
             <input type="hidden" name="signature" value="1">
             <x-bbcode-textarea name="message" id="newpost-message" :value="old('message', $quotedMessage)" />
 
-            @if ($canTransfer && $thread->currentScene?->story_started_at !== null && ($inventoryCharacters->isNotEmpty() || $locationInventory->isNotEmpty() || $localCompanies->isNotEmpty()))
+            @if ($canTransfer && $thread->currentScene?->story_started_at !== null && ($inventoryCharacters->isNotEmpty() || $locationInventory->isNotEmpty() || $localSites->isNotEmpty()))
             <p>
                 <label for="transfer_action">Handlung</label>
                 <select name="transfer_action" id="transfer_action">
@@ -279,26 +276,26 @@
                     @if ($locationInventory->isNotEmpty())
                     <option value="pickup" @selected(old('transfer_action') === 'pickup')>Vom Ort aufnehmen</option>
                     @endif
-                    @if ($inventoryCharacters->isNotEmpty() && $localCompanies->isNotEmpty())
+                    @if ($inventoryCharacters->isNotEmpty() && $localSites->isNotEmpty())
                     <option value="company_deposit" @selected(old('transfer_action') === 'company_deposit')>An örtlichen Betrieb geben</option>
                     @endif
-                    @if ($inventoryCompanies->isNotEmpty())
+                    @if ($inventorySites->isNotEmpty())
                     <option value="company_withdrawal" @selected(old('transfer_action') === 'company_withdrawal')>Für örtlichen Betrieb aushändigen</option>
                     @endif
                 </select>
             </p>
 
-            @if ($localCompanies->isNotEmpty())
+            @if ($localSites->isNotEmpty())
             <p id="transfer-company">
-                <label for="company">Betrieb</label>
-                <select name="company" id="company">
-                    @foreach ($localCompanies as $company)
-                    @php($representativeIds = $company->representatives->pluck('character_id')->push($company->character_id)->unique()->implode(','))
+                <label for="company_site">Betrieb</label>
+                <select name="company_site" id="company_site">
+                    @foreach ($localSites as $site)
+                    @php($representativeIds = $site->company->owners->pluck('character_id')->concat($site->company->representatives->where('role', \App\Support\CompanyRepresentativeRole::MANAGER)->pluck('character_id'))->concat($site->representatives->pluck('character_id'))->unique()->implode(','))
                     <option
-                        value="{{ $company->id }}"
+                        value="{{ $site->id }}"
                         data-representatives="{{ $representativeIds }}"
-                        @selected((int) old('company') === (int) $company->id)
-                    >{{ $company->name }}</option>
+                        @selected((int) old('company_site') === (int) $site->id)
+                    >{{ $site->company->name }}@if($site->company->sites->count() > 1) ({{ $site->name }})@endif</option>
                     @endforeach
                 </select>
             </p>
@@ -307,17 +304,14 @@
             @foreach ($inventoryCharacters as $character)
             <ul class="inventory-char" id="inventory-char-{{ $character->id }}">
                 @foreach ($character->inventory as $inventory)
-                @php($item = $inventory->item)
                 <li>
                     <input name="inventory[{{ $inventory->id }}]" value="{{ $inventory->id }}" id="inventory-{{ $inventory->id }}" type="checkbox" @checked(array_key_exists($inventory->id, (array) old('inventory', [])))>
                     <label for="inventory-{{ $inventory->id }}">
-                        @if ($item)
-                        <img src="{{ url('/img/item.img/'.$item->img.'.png') }}" title="{{ $item->name }}" alt="{{ $item->name }}">
-                        <span>{{ $item->name }}</span>
-                        @endif
-                        @if ($item && $item->stackable && $inventory->stack > 1)
-                        <input name="inventorystack[{{ $inventory->id }}]" value="{{ old('inventorystack.'.$inventory->id, $inventory->makeunitary()) }}" type="text">
-                        @endif
+                        <x-inventory-item
+                            :inventory="$inventory"
+                            :quantity-name="'inventorystack['.$inventory->id.']'"
+                            :quantity-value="old('inventorystack.'.$inventory->id, $inventory->makeunitary())"
+                        />
                     </label>
                 </li>
                 @endforeach
@@ -327,37 +321,31 @@
             @if ($locationInventory->isNotEmpty())
             <ul class="inventory-location" id="inventory-location">
                 @foreach ($locationInventory as $inventory)
-                @php($item = $inventory->item)
                 <li>
                     <input name="inventory[{{ $inventory->id }}]" value="{{ $inventory->id }}" id="inventory-{{ $inventory->id }}" type="checkbox" @checked(array_key_exists($inventory->id, (array) old('inventory', [])))>
                     <label for="inventory-{{ $inventory->id }}">
-                        @if ($item)
-                        <img src="{{ url('/img/item.img/'.$item->img.'.png') }}" title="{{ $item->name }}" alt="{{ $item->name }}">
-                        <span>{{ $item->name }}</span>
-                        @endif
-                        @if ($item && $item->stackable && $inventory->stack > 1)
-                        <input name="inventorystack[{{ $inventory->id }}]" value="{{ old('inventorystack.'.$inventory->id, $inventory->makeunitary()) }}" type="text">
-                        @endif
+                        <x-inventory-item
+                            :inventory="$inventory"
+                            :quantity-name="'inventorystack['.$inventory->id.']'"
+                            :quantity-value="old('inventorystack.'.$inventory->id, $inventory->makeunitary())"
+                        />
                     </label>
                 </li>
                 @endforeach
             </ul>
             @endif
 
-            @foreach ($inventoryCompanies as $company)
-            <ul class="inventory-company" id="inventory-company-{{ $company->id }}">
-                @foreach ($company->inventory as $inventory)
-                @php($item = $inventory->item)
+            @foreach ($inventorySites as $site)
+            <ul class="inventory-char" id="inventory-site-{{ $site->id }}">
+                @foreach ($site->inventory as $inventory)
                 <li>
                     <input name="inventory[{{ $inventory->id }}]" value="{{ $inventory->id }}" id="inventory-{{ $inventory->id }}" type="checkbox" @checked(array_key_exists($inventory->id, (array) old('inventory', [])))>
                     <label for="inventory-{{ $inventory->id }}">
-                        @if ($item)
-                        <img src="{{ url('/img/item.img/'.$item->img.'.png') }}" title="{{ $item->name }}" alt="{{ $item->name }}">
-                        <span>{{ $item->name }}</span>
-                        @endif
-                        @if ($item && $item->stackable && $inventory->stack > 1)
-                        <input name="inventorystack[{{ $inventory->id }}]" value="{{ old('inventorystack.'.$inventory->id, $inventory->makeunitary()) }}" type="text">
-                        @endif
+                        <x-inventory-item
+                            :inventory="$inventory"
+                            :quantity-name="'inventorystack['.$inventory->id.']'"
+                            :quantity-value="old('inventorystack.'.$inventory->id, $inventory->makeunitary())"
+                        />
                     </label>
                 </li>
                 @endforeach

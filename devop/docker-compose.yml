@@ -21,6 +21,19 @@ services:
       - ../:/var/www/html
     depends_on:
       - db
+  browser-sync:
+    image: node:22-alpine
+    working_dir: /var/www/html
+    command: sh -c "test -d node_modules/browser-sync || npm ci; npm run watch"
+    environment:
+      BROWSERSYNC_PROXY: http://app
+    volumes:
+      - ../:/var/www/html
+      - node_modules:/var/www/html/node_modules
+    ports:
+      - 3000:3000
+    depends_on:
+      - app
   db:
     container_name: drakestrin_db
     image: mysql:latest
@@ -41,6 +54,7 @@ services:
 
 volumes:
   mysql_data:
+  node_modules:
 
 secrets:
   ssh_key:

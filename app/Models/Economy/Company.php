@@ -5,12 +5,11 @@ namespace App\Models\Economy;
 use App\Models\Board\Thread;
 use App\Models\Territory\Territory;
 use App\Models\User\Character;
+use App\Support\CompanyRepresentativeRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Company extends Model
 {
@@ -19,28 +18,21 @@ class Company extends Model
     protected $fillable = [
         'name',
         'type',
-        'character_id',
         'created_by_user_id',
+        'headquarters_site_id',
         'description',
-        'text',
         'territory_id',
         'thread_id',
-        'url',
         'volksgeld',
     ];
 
     protected $casts = [
         'type' => 'integer',
-        'character_id' => 'integer',
         'created_by_user_id' => 'integer',
+        'headquarters_site_id' => 'integer',
         'territory_id' => 'integer',
         'thread_id' => 'integer',
     ];
-
-    public function character(): BelongsTo
-    {
-        return $this->belongsTo(Character::class);
-    }
 
     public function territory(): BelongsTo
     {
@@ -64,14 +56,19 @@ class Company extends Model
     {
         return $this->hasMany(CompanySite::class)
             ->with('location')
-            ->orderByDesc('is_headquarters')
-            ->orderByDesc('is_storefront')
             ->orderBy('id');
     }
 
-    public function headquarters(): HasOne
+    public function headquarters(): BelongsTo
     {
-        return $this->hasOne(CompanySite::class)->where('is_headquarters', true);
+        return $this->belongsTo(CompanySite::class, 'headquarters_site_id');
+    }
+
+    public function owners(): HasMany
+    {
+        return $this->hasMany(CompanyOwner::class)
+            ->with('character.user')
+            ->orderBy('id');
     }
 
     public function representatives(): HasMany
@@ -84,16 +81,23 @@ class Company extends Model
 
     public function isRepresentedBy(Character $character): bool
     {
-        return (int) $this->character_id === (int) $character->id
+        return $this->owners()->where('character_id', $character->id)->exists()
             || $this->representatives()->where('character_id', $character->id)->exists();
     }
 
-    public function inventory(): MorphMany
+    public function isOwnedByUserId(int $userId): bool
     {
-        return $this->morphMany(Inventory::class, 'owner')
-            ->with('item')
-            ->orderBy('wear')
-            ->orderBy('id');
+        return $this->owners()
+            ->whereHas('character', fn ($query) => $query->where('user_id', $userId))
+            ->exists();
+    }
+
+    public function isManagedByUserId(int $userId): bool
+    {
+        return $this->isOwnedByUserId($userId) || $this->representatives()
+            ->where('role', CompanyRepresentativeRole::MANAGER->value)
+            ->whereHas('character', fn ($query) => $query->where('user_id', $userId))
+            ->exists();
     }
 
     public function productionRuns(): HasMany
@@ -102,5 +106,11 @@ class Company extends Model
             ->whereNotNull('completed_at')
             ->orderByDesc('completed_at')
             ->orderByDesc('id');
+    }
+
+    public function canChangeSector(): bool
+    {
+        return ! $this->workers()->exists()
+            && ! ProductionRun::query()->where('company_id', $this->id)->exists();
     }
 }

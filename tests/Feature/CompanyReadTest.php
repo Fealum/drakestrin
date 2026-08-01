@@ -3,8 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Economy\CompanyWorker;
+use App\Models\Economy\Inventory;
 use App\Models\User;
 use App\Services\Economy\LabourProcessor;
+use App\Support\Currency;
+use App\Support\PermissionEntityType;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -20,6 +24,8 @@ class CompanyReadTest extends TestCase
 
     private int $companyId;
 
+    private int $companySiteId;
+
     private int $workerId;
 
     private int $itemId;
@@ -29,6 +35,8 @@ class CompanyReadTest extends TestCase
     private int $outputItemId;
 
     private int $labourId;
+
+    private int $locationId;
 
     private int $timestamp;
 
@@ -84,22 +92,49 @@ class CompanyReadTest extends TestCase
 
         $territoryId = (int) DB::table('territories')->value('id');
 
+        $this->locationId = DB::table('locations')->insertGetId([
+            'parent_type' => PermissionEntityType::TERRITORY->value,
+            'parent_id' => $territoryId,
+            'created_by_user_id' => $this->userId,
+            'name' => $this->prefix.'_location',
+            'description' => '',
+            'priority' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $this->companyId = DB::table('companies')->insertGetId([
             'name' => $this->prefix.'_company',
             'type' => 2,
-            'character_id' => $this->characterId,
             'description' => $this->prefix.'_description',
-            'text' => '',
             'territory_id' => $territoryId,
             'thread_id' => 0,
-            'url' => '',
             'volksgeld' => 0,
+        ]);
+
+        DB::table('company_owners')->insert([
+            'company_id' => $this->companyId,
+            'character_id' => $this->characterId,
+            'added_by_user_id' => $this->userId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->companySiteId = DB::table('company_sites')->insertGetId([
+            'company_id' => $this->companyId,
+            'location_id' => $this->locationId,
+            'name' => 'Hauptstandort',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('companies')->where('id', $this->companyId)->update([
+            'headquarters_site_id' => $this->companySiteId,
         ]);
 
         $this->workerId = DB::table('company_workers')->insertGetId([
             'name' => $this->prefix.'_worker',
             'type' => 3,
             'company_id' => $this->companyId,
+            'company_site_id' => $this->companySiteId,
             'hired' => $this->timestamp,
             'paid' => $this->timestamp,
         ]);
@@ -135,8 +170,8 @@ class CompanyReadTest extends TestCase
             'item_id' => $this->itemId,
             'stack' => 3,
             'wear' => -2,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
             'timelastvalue' => $this->timestamp,
             'data' => '',
         ]);
@@ -170,7 +205,11 @@ class CompanyReadTest extends TestCase
             ->pluck('id');
 
         DB::table('company_representatives')->whereIn('company_id', $companyIds)->delete();
+        DB::table('company_role_events')->whereIn('company_id', $companyIds)->delete();
+        DB::table('company_owners')->whereIn('company_id', $companyIds)->delete();
+        DB::table('companies')->whereIn('id', $companyIds)->update(['headquarters_site_id' => null]);
         DB::table('company_sites')->whereIn('company_id', $companyIds)->delete();
+        DB::table('locations')->where('name', 'like', $this->prefix.'%')->delete();
         DB::table('inventory_mutations')->whereIn('item_id', [$this->itemId, $this->toolItemId, $this->outputItemId])->delete();
         DB::table('production_runs')->where('company_id', $this->companyId)->delete();
         DB::table('labour_actives')->where('company_worker_id', $this->workerId)->delete();
@@ -179,21 +218,22 @@ class CompanyReadTest extends TestCase
             ->orWhereIn('item_id', [$this->itemId, $this->toolItemId, $this->outputItemId])
             ->delete();
         DB::table('labours')->where('id', $this->labourId)->delete();
-        DB::table('inventories')->whereIn('owner_id', $companyIds)->where('owner_type', 2)->delete();
+        DB::table('inventories')->where('owner_id', $this->companySiteId)->where('owner_type', PermissionEntityType::COMPANY_SITE->value)->delete();
         DB::table('items')->whereIn('id', [$this->itemId, $this->toolItemId, $this->outputItemId])->delete();
         DB::table('company_workers')->where('company_id', $this->companyId)->delete();
         DB::table('companies')->whereIn('id', $companyIds)->delete();
+        DB::table('permissions')->where('recipient_type', PermissionEntityType::USER->value)->where('recipient_id', $this->userId)->delete();
         DB::table('characters')->where('name', 'like', $this->prefix.'%')->delete();
         DB::table('onlines')->whereIn('user_id', [$this->userId, $this->otherUserId])->delete();
         DB::table('users')->whereIn('id', [$this->userId, $this->otherUserId])->delete();
+        Cache::forget('user_permits:'.$this->userId);
+        Cache::forget('user_permissions:'.$this->userId);
 
         parent::tearDown();
     }
 
     public function test_owner_can_create_and_edit_company_at_location(): void
     {
-        $locationId = (int) DB::table('locations')->value('id');
-        $this->assertGreaterThan(0, $locationId);
 
         $this->actingAs(User::findOrFail($this->userId))
             ->get('/company/create')
@@ -204,11 +244,9 @@ class CompanyReadTest extends TestCase
             'name' => $this->prefix.'_new_company',
             'sector' => 3,
             'owner_character_id' => $this->characterId,
-            'location_id' => $locationId,
-            'description' => 'Kurz',
-            'text' => 'Lang',
-            'url' => 'https://example.test/company',
-            'is_storefront' => 1,
+            'location_mode' => 'existing',
+            'location_id' => $this->locationId,
+            'description' => "Kurz\n\nLang",
         ])
             ->assertRedirect();
 
@@ -218,10 +256,13 @@ class CompanyReadTest extends TestCase
 
         $this->assertDatabaseHas('company_sites', [
             'company_id' => $companyId,
-            'location_id' => $locationId,
-            'is_headquarters' => 1,
-            'is_storefront' => 1,
+            'location_id' => $this->locationId,
+            'name' => 'Hauptstandort',
         ]);
+        $this->assertSame(
+            (int) DB::table('company_sites')->where('company_id', $companyId)->value('id'),
+            (int) DB::table('companies')->where('id', $companyId)->value('headquarters_site_id'),
+        );
 
         $this->get('/company/edit/'.$companyId)
             ->assertOk()
@@ -230,18 +271,232 @@ class CompanyReadTest extends TestCase
         $this->put('/company/edit/'.$companyId, [
             'name' => $this->prefix.'_renamed_company',
             'sector' => 4,
-            'owner_character_id' => $this->characterId,
-            'location_id' => $locationId,
-            'description' => 'Neu',
-            'text' => 'Neuer Text',
-            'url' => '',
-            'is_storefront' => 0,
+            'description' => "Neu\n\nNeuer Text",
         ])->assertRedirect('/company/view/'.$companyId);
 
         $this->assertDatabaseHas('companies', [
             'id' => $companyId,
             'name' => $this->prefix.'_renamed_company',
             'type' => 4,
+        ]);
+    }
+
+    public function test_company_can_create_its_world_location_and_headquarters_atomically(): void
+    {
+        $fautheiId = (int) DB::table('territories')->where('type', 5)->value('id');
+        $permitId = (int) DB::table('permits')->where('name', 'createlocation')->value('id');
+        DB::table('permissions')->insert([
+            'recipient_type' => PermissionEntityType::USER->value,
+            'recipient_id' => $this->userId,
+            'subject_type' => 0,
+            'subject_id' => 0,
+            'permit_id' => $permitId,
+            'value' => 2,
+        ]);
+        Cache::forget('user_permits:'.$this->userId);
+        Cache::forget('user_permissions:'.$this->userId);
+
+        $this->actingAs(User::findOrFail($this->userId));
+        $name = $this->prefix.'_new_place_company';
+        $this->post('/company', [
+            'name' => $name,
+            'sector' => 3,
+            'owner_character_id' => $this->characterId,
+            'location_mode' => 'new',
+            'fauthei_id' => $fautheiId,
+            'description' => '',
+        ])->assertRedirect();
+
+        $company = DB::table('companies')->where('name', $name)->first();
+        $location = DB::table('locations')->where('name', $name)->first();
+        $site = DB::table('company_sites')->where('company_id', $company->id)->first();
+
+        $this->assertNotNull($location);
+        $this->assertSame($fautheiId, (int) $location->parent_id);
+        $this->assertSame(PermissionEntityType::TERRITORY->value, (int) $location->parent_type);
+        $this->assertSame('Hauptstandort', $site->name);
+        $this->assertSame((int) $site->id, (int) $company->headquarters_site_id);
+        $this->assertDatabaseHas('company_owners', [
+            'company_id' => $company->id,
+            'character_id' => $this->characterId,
+        ]);
+    }
+
+    public function test_sites_use_tabs_and_headquarters_changes_do_not_move_inventory(): void
+    {
+        $secondLocationId = DB::table('locations')->insertGetId([
+            'parent_type' => PermissionEntityType::TERRITORY->value,
+            'parent_id' => (int) DB::table('territories')->where('type', 5)->value('id'),
+            'created_by_user_id' => $this->userId,
+            'name' => $this->prefix.'_second_location',
+            'description' => '',
+            'priority' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->actingAs(User::findOrFail($this->userId));
+
+        $this->post('/company/'.$this->companyId.'/sites', [
+            'name' => 'Sägewerk',
+            'location_id' => $secondLocationId,
+        ])->assertRedirect('/company/view/'.$this->companyId);
+        $secondSiteId = (int) DB::table('company_sites')
+            ->where('company_id', $this->companyId)
+            ->where('location_id', $secondLocationId)
+            ->value('id');
+
+        $this->get('/company/view/'.$this->companyId)
+            ->assertOk()
+            ->assertSee('aria-label="Standorte"', false)
+            ->assertSee('id="site-'.$this->companySiteId.'"', false)
+            ->assertSee('id="site-'.$secondSiteId.'"', false)
+            ->assertSee('id="site-'.$this->companySiteId.'-representatives-heading">Standortvertretung', false)
+            ->assertSee('id="site-'.$secondSiteId.'-representatives-heading">Standortvertretung', false)
+            ->assertSee('name="company_site_id" value="'.$this->companySiteId.'"', false)
+            ->assertSee('name="company_site_id" value="'.$secondSiteId.'"', false)
+            ->assertDontSee('<select name="company_site_id">', false);
+
+        $this->assertStringContainsString(
+            '.company-site-panel:first-child:not(:target)',
+            file_get_contents(public_path('css/company_view.css')),
+        );
+
+        $this->patch('/company/'.$this->companyId.'/sites/'.$secondSiteId.'/headquarters')
+            ->assertRedirect('/company/view/'.$this->companyId);
+        $this->assertDatabaseHas('companies', [
+            'id' => $this->companyId,
+            'headquarters_site_id' => $secondSiteId,
+        ]);
+        $this->assertDatabaseHas('inventories', [
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
+            'item_id' => $this->itemId,
+        ]);
+
+        $this->delete('/company/'.$this->companyId.'/sites/'.$this->companySiteId)
+            ->assertSessionHasErrors('site');
+    }
+
+    public function test_owners_are_equal_and_can_only_transfer_their_own_membership(): void
+    {
+        $otherCharacterId = $this->createCharacter($this->otherUserId, '_co_owner');
+        $this->actingAs(User::findOrFail($this->userId));
+
+        $this->post('/company/'.$this->companyId.'/owners', ['character_id' => $otherCharacterId])
+            ->assertRedirect('/company/view/'.$this->companyId);
+        $otherOwnerId = (int) DB::table('company_owners')
+            ->where('company_id', $this->companyId)
+            ->where('character_id', $otherCharacterId)
+            ->value('id');
+        $ownOwnerId = (int) DB::table('company_owners')
+            ->where('company_id', $this->companyId)
+            ->where('character_id', $this->characterId)
+            ->value('id');
+
+        $this->post('/company/'.$this->companyId.'/owners/'.$otherOwnerId.'/transfer', [
+            'target_owner_id' => $ownOwnerId,
+        ])->assertForbidden();
+
+        $this->post('/company/'.$this->companyId.'/owners/'.$ownOwnerId.'/transfer', [
+            'target_owner_id' => $otherOwnerId,
+        ])->assertRedirect('/company/view/'.$this->companyId);
+        $this->assertDatabaseMissing('company_owners', ['id' => $ownOwnerId]);
+        $this->assertDatabaseHas('company_owners', ['id' => $otherOwnerId]);
+    }
+
+    public function test_manager_appointment_hierarchy_and_site_roles_are_enforced(): void
+    {
+        $managerCharacterId = $this->createCharacter($this->otherUserId, '_hierarchy_manager');
+        $foremanCharacterId = $this->createCharacter($this->userId, '_hierarchy_foreman');
+        $secondManagerCharacterId = $this->createCharacter($this->userId, '_second_manager');
+
+        $this->actingAs(User::findOrFail($this->userId))
+            ->post('/company/'.$this->companyId.'/representatives', [
+                'character_id' => $managerCharacterId,
+                'role' => 'manager',
+            ])->assertRedirect('/company/view/'.$this->companyId);
+
+        $this->actingAs(User::findOrFail($this->otherUserId))
+            ->post('/company/'.$this->companyId.'/representatives', [
+                'character_id' => $secondManagerCharacterId,
+                'role' => 'manager',
+            ])->assertForbidden();
+
+        $this->post('/company/'.$this->companyId.'/representatives', [
+            'character_id' => $foremanCharacterId,
+            'role' => 'foreman',
+            'company_site_id' => $this->companySiteId,
+        ])->assertRedirect('/company/view/'.$this->companyId);
+        $this->assertDatabaseHas('company_representatives', [
+            'company_id' => $this->companyId,
+            'company_site_id' => $this->companySiteId,
+            'character_id' => $foremanCharacterId,
+            'role' => 'foreman',
+        ]);
+    }
+
+    public function test_foreman_manages_only_their_site_operations(): void
+    {
+        $foremanCharacterId = $this->createCharacter($this->otherUserId, '_foreman');
+        $this->actingAs(User::findOrFail($this->userId))
+            ->post('/company/'.$this->companyId.'/representatives', [
+                'character_id' => $foremanCharacterId,
+                'role' => 'foreman',
+                'company_site_id' => $this->companySiteId,
+            ])->assertRedirect('/company/view/'.$this->companyId);
+
+        $this->actingAs(User::findOrFail($this->otherUserId));
+        $this->get('/company/view/'.$this->companyId)
+            ->assertOk()
+            ->assertSee('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/hire/3', false)
+            ->assertSee('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/inventory', false)
+            ->assertDontSee('/company/edit/'.$this->companyId, false);
+        $this->post('/company/'.$this->companyId.'/sites', [
+            'name' => 'Unzulässig',
+            'location_id' => $this->locationId,
+        ])->assertForbidden();
+    }
+
+    public function test_clerk_can_see_but_not_reclassify_site_stock(): void
+    {
+        $clerkCharacterId = $this->createCharacter($this->otherUserId, '_clerk_role');
+        $this->actingAs(User::findOrFail($this->userId))
+            ->post('/company/'.$this->companyId.'/representatives', [
+                'character_id' => $clerkCharacterId,
+                'role' => 'clerk',
+                'company_site_id' => $this->companySiteId,
+            ])->assertRedirect('/company/view/'.$this->companyId);
+
+        $this->actingAs(User::findOrFail($this->otherUserId))
+            ->get('/company/view/'.$this->companyId)
+            ->assertOk()
+            ->assertSee('images/item/1.png', false)
+            ->assertDontSee('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/inventory', false)
+            ->assertDontSee('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/hire', false);
+    }
+
+    public function test_company_sector_is_locked_after_operations_begin(): void
+    {
+
+        $this->actingAs(User::findOrFail($this->userId))
+            ->get('/company/edit/'.$this->companyId)
+            ->assertOk()
+            ->assertSee('name="sector" value="2"', false)
+            ->assertSee('<select id="sector"', false)
+            ->assertSee('disabled', false)
+            ->assertSee('Der Wirtschaftszweig ist nach Einstellung von Beschäftigten oder Beginn der Produktion festgelegt.');
+
+        $this->put('/company/edit/'.$this->companyId, [
+            'name' => $this->prefix.'_company',
+            'sector' => 3,
+            'description' => $this->prefix.'_description',
+        ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('sector');
+
+        $this->assertDatabaseHas('companies', [
+            'id' => $this->companyId,
+            'type' => 2,
         ]);
     }
 
@@ -276,36 +531,185 @@ class CompanyReadTest extends TestCase
         $this->actingAs(User::findOrFail($this->otherUserId))
             ->get('/company/view/'.$this->companyId)
             ->assertOk()
-            ->assertSee('Neuen Handwerker einstellen');
+            ->assertSee('Neuen Beschäftigten einstellen');
     }
 
-    public function test_manager_can_reclassify_part_of_company_stock_for_sale(): void
+    public function test_manager_can_save_multiple_company_inventory_changes_at_once(): void
     {
         $inventoryId = (int) DB::table('inventories')
-            ->where('owner_type', 2)
-            ->where('owner_id', $this->companyId)
+            ->where('owner_type', PermissionEntityType::COMPANY_SITE->value)
+            ->where('owner_id', $this->companySiteId)
             ->where('item_id', $this->itemId)
             ->value('id');
 
+        $reservedInventoryId = DB::table('inventories')->insertGetId([
+            'item_id' => $this->outputItemId,
+            'stack' => 2,
+            'wear' => -1,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
+            'timelastvalue' => $this->timestamp,
+            'data' => '',
+        ]);
+
         $this->actingAs(User::findOrFail($this->userId))
-            ->put('/company/'.$this->companyId.'/inventory/'.$inventoryId, [
-                'state' => 'sale',
-                'price' => '2,5',
-                'quantity' => '1',
+            ->put('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/inventory', [
+                'inventory' => [
+                    $inventoryId => [
+                        'state' => 'sale',
+                        'price' => [
+                            'til' => '',
+                            'tuk' => 2,
+                            'ten' => 5000,
+                        ],
+                        'quantity' => '1',
+                    ],
+                    $reservedInventoryId => [
+                        'state' => 'production',
+                        'price' => [
+                            'til' => '',
+                            'tuk' => '',
+                            'ten' => '',
+                        ],
+                        'quantity' => '2',
+                    ],
+                ],
             ])
             ->assertRedirect('/company/view/'.$this->companyId);
 
         $this->assertDatabaseHas('inventories', [
             'item_id' => $this->itemId,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
-            'wear' => 25000,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
+            'wear' => Currency::toTen(0, 2, 5000),
             'stack' => 1,
         ]);
         $this->assertDatabaseHas('inventories', [
             'id' => $inventoryId,
             'wear' => -2,
             'stack' => 2,
+        ]);
+        $this->assertDatabaseHas('inventories', [
+            'id' => $reservedInventoryId,
+            'wear' => -2,
+            'stack' => 2,
+        ]);
+
+        $page = $this->get('/company/view/'.$this->companyId);
+
+        $page->assertSee('name="inventory['.$inventoryId.'][price][til]"', false);
+        $page->assertSee('name="inventory['.$inventoryId.'][price][tuk]"', false);
+        $page->assertSee('name="inventory['.$inventoryId.'][price][ten]"', false);
+        $page->assertSee('Produktionsgüter');
+        $page->assertSee('Vorbehaltsgüter');
+        $page->assertSee('Verkaufsgüter');
+        $page->assertSee('placeholder="0"', false);
+        $page->assertSee('class="inventory-item-quantity"', false);
+        $page->assertOk()->assertSee('Inventar speichern');
+        $this->assertSame(1, substr_count($page->getContent(), '/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/inventory'));
+        $this->assertSame(1, substr_count($page->getContent(), 'Inventar speichern'));
+        $page->assertDontSee('>Ändern<', false);
+    }
+
+    public function test_company_inventory_normalizes_overflowing_denominations(): void
+    {
+        $inventoryId = (int) DB::table('inventories')
+            ->where('owner_type', PermissionEntityType::COMPANY_SITE->value)
+            ->where('owner_id', $this->companySiteId)
+            ->where('item_id', $this->itemId)
+            ->value('id');
+
+        $this->actingAs(User::findOrFail($this->userId))
+            ->from('/company/view/'.$this->companyId)
+            ->put('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/inventory', [
+                'inventory' => [
+                    $inventoryId => [
+                        'state' => 'sale',
+                        'price' => ['til' => 0, 'tuk' => Currency::TUK_PER_TIL, 'ten' => Currency::TEN_PER_TUK + 1],
+                        'quantity' => '1',
+                    ],
+                ],
+            ])
+            ->assertRedirect('/company/view/'.$this->companyId)
+            ->assertSessionDoesntHaveErrors();
+
+        $normalizedPrice = Currency::toTen(0, Currency::TUK_PER_TIL, Currency::TEN_PER_TUK + 1);
+        $this->assertDatabaseHas('inventories', [
+            'item_id' => $this->itemId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
+            'wear' => $normalizedPrice,
+            'stack' => 1,
+        ]);
+        $saleInventoryId = (int) DB::table('inventories')
+            ->where('owner_type', PermissionEntityType::COMPANY_SITE->value)
+            ->where('owner_id', $this->companySiteId)
+            ->where('item_id', $this->itemId)
+            ->where('wear', $normalizedPrice)
+            ->value('id');
+
+        $page = $this->get('/company/view/'.$this->companyId)->assertOk()->getContent();
+        foreach (['til', 'tuk', 'ten'] as $denomination) {
+            $name = preg_quote('inventory['.$saleInventoryId.'][price]['.$denomination.']', '/');
+            $this->assertMatchesRegularExpression('/name="'.$name.'"[^>]*value="1"/', $page);
+        }
+    }
+
+    public function test_identical_item_identities_are_grouped_and_can_be_partly_reclassified(): void
+    {
+        $inventoryIds = collect(range(1, 3))->map(fn () => DB::table('inventories')->insertGetId([
+            'item_id' => $this->toolItemId,
+            'stack' => 0,
+            'wear' => -2,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
+            'timelastvalue' => 0,
+            'data' => '',
+        ]));
+        $representativeId = (int) $inventoryIds->first();
+
+        $page = $this->actingAs(User::findOrFail($this->userId))
+            ->get('/company/view/'.$this->companyId)
+            ->assertOk();
+
+        $this->assertSame(3, substr_count(
+            $page->getContent(),
+            'name="inventory['.$representativeId.'][members][]"',
+        ));
+
+        $this->put('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/inventory', [
+            'inventory' => [
+                $representativeId => [
+                    'state' => 'sale',
+                    'price' => ['til' => 1, 'tuk' => 2, 'ten' => 3],
+                    'quantity' => '2',
+                    'members' => $inventoryIds->all(),
+                ],
+            ],
+        ])->assertRedirect('/company/view/'.$this->companyId);
+
+        $this->assertSame(2, DB::table('inventories')
+            ->whereIn('id', $inventoryIds)
+            ->where('wear', Currency::toTen(1, 2, 3))
+            ->count());
+        $this->assertSame(1, DB::table('inventories')
+            ->whereIn('id', $inventoryIds)
+            ->where('wear', -2)
+            ->count());
+    }
+
+    public function test_inventory_model_rejects_stacked_item_identities(): void
+    {
+        $this->expectException(\LogicException::class);
+
+        Inventory::create([
+            'item_id' => $this->toolItemId,
+            'stack' => 2,
+            'wear' => -2,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
+            'timelastvalue' => 0,
+            'data' => '',
         ]);
     }
 
@@ -325,9 +729,14 @@ class CompanyReadTest extends TestCase
         $detail->assertSee($this->prefix.'_character');
         $detail->assertSee($this->prefix.'_worker');
         $detail->assertSee($this->prefix.'_labour');
-        $detail->assertSee('Produktionsgut');
         $detail->assertSee('images/company-worker/3.png', false);
-        $detail->assertSee('images/item/1.png', false);
+        $detail->assertDontSee('images/item/1.png', false);
+
+        $this->actingAs(User::findOrFail($this->userId))
+            ->get('/company/view/'.$this->companyId)
+            ->assertOk()
+            ->assertSee('Produktionsgut')
+            ->assertSee('images/item/1.png', false);
     }
 
     public function test_company_worker_page_renders_read_only_labour_information(): void
@@ -347,19 +756,19 @@ class CompanyReadTest extends TestCase
         $guest = $this->get('/company/view/'.$this->companyId);
         $guest->assertOk();
         $guest->assertDontSee('/company/fire/'.$this->workerId, false);
-        $guest->assertDontSee('/company/hire/'.$this->companyId, false);
+        $guest->assertDontSee('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/hire', false);
 
         $this->actingAs(User::findOrFail($this->otherUserId));
         $visitor = $this->get('/company/view/'.$this->companyId);
         $visitor->assertOk();
         $visitor->assertDontSee('/company/fire/'.$this->workerId, false);
-        $visitor->assertDontSee('/company/hire/'.$this->companyId, false);
+        $visitor->assertDontSee('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/hire', false);
 
         $this->actingAs(User::findOrFail($this->userId));
         $owner = $this->get('/company/view/'.$this->companyId);
         $owner->assertOk();
         $owner->assertDontSee('/company/fire/'.$this->workerId, false);
-        $owner->assertSee('/company/hire/'.$this->companyId.'/3', false);
+        $owner->assertSee('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/hire/3', false);
     }
 
     public function test_company_worker_management_links_are_visible_only_to_owner(): void
@@ -379,7 +788,7 @@ class CompanyReadTest extends TestCase
     {
         $this->actingAs(User::findOrFail($this->userId));
 
-        $response = $this->get('/company/hire/'.$this->companyId.'/4');
+        $response = $this->get('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/hire/4');
 
         $response->assertRedirect('/company/view/'.$this->companyId);
         $this->assertDatabaseHas('company_workers', [
@@ -396,7 +805,7 @@ class CompanyReadTest extends TestCase
     {
         $this->actingAs(User::findOrFail($this->otherUserId));
 
-        $response = $this->get('/company/hire/'.$this->companyId.'/4');
+        $response = $this->get('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/hire/4');
 
         $response->assertForbidden();
         $this->assertSame(1, DB::table('company_workers')->where('company_id', $this->companyId)->count());
@@ -410,11 +819,12 @@ class CompanyReadTest extends TestCase
             'name' => $this->prefix.'_clerk',
             'type' => 5,
             'company_id' => $this->companyId,
+            'company_site_id' => $this->companySiteId,
             'hired' => $this->timestamp,
             'paid' => $this->timestamp,
         ]);
 
-        $response = $this->get('/company/hire/'.$this->companyId.'/5');
+        $response = $this->get('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/hire/5');
 
         $response->assertRedirect('/company/view/'.$this->companyId);
         $this->assertSame(1, DB::table('company_workers')->where('company_id', $this->companyId)->where('type', 5)->count());
@@ -435,10 +845,10 @@ class CompanyReadTest extends TestCase
 
         DB::table('inventories')->insert([
             'item_id' => 1,
-            'stack' => 50000,
+            'stack' => 5 * Currency::TEN_PER_TUK,
             'wear' => -1,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
             'timelastvalue' => $this->timestamp,
             'data' => '',
         ]);
@@ -450,16 +860,16 @@ class CompanyReadTest extends TestCase
         $this->assertDatabaseMissing('inventories', [
             'item_id' => 1,
             'wear' => -1,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
         ]);
 
         $detail = $this->followingRedirects()->get('/company/view/'.$this->companyId);
         $detail->assertOk();
         $detail->assertSee('Arbeiter');
         $detail->assertSee('erfolgreich entlassen');
-        $detail->assertSee('5,00 Tuk ausbezahlt');
-        $detail->assertSee('7,00 Tuk konnten nicht mehr ausbezahlt');
+        $detail->assertSee('5 tk ausbezahlt');
+        $detail->assertSee('7 tk konnten nicht mehr ausbezahlt');
     }
 
     public function test_non_owner_cannot_fire_worker(): void
@@ -503,28 +913,29 @@ class CompanyReadTest extends TestCase
             'name' => $this->prefix.'_second_worker',
             'type' => 1,
             'company_id' => $this->companyId,
+            'company_site_id' => $this->companySiteId,
             'hired' => $this->timestamp,
             'paid' => $secondPaidAt,
         ]);
 
         DB::table('inventories')->insert([
             'item_id' => 1,
-            'stack' => 170000,
+            'stack' => 17 * Currency::TEN_PER_TUK,
             'wear' => -1,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
             'timelastvalue' => $this->timestamp,
             'data' => '',
         ]);
 
-        $response = $this->get('/company/pay/'.$this->companyId);
+        $response = $this->get('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/pay');
 
         $response->assertRedirect('/company/view/'.$this->companyId);
         $this->assertDatabaseMissing('inventories', [
             'item_id' => 1,
             'wear' => -1,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
         ]);
         $this->assertDatabaseHas('company_workers', [
             'id' => $this->workerId,
@@ -537,7 +948,7 @@ class CompanyReadTest extends TestCase
 
         $detail = $this->followingRedirects()->get('/company/view/'.$this->companyId);
         $detail->assertOk();
-        $detail->assertSee('2 Arbeiter mit insgesamt 17,00 Tuk ausgezahlt');
+        $detail->assertSee('2 Arbeiter mit insgesamt 17 tk ausgezahlt');
     }
 
     public function test_company_pay_distributes_limited_money_by_oldest_salary_month(): void
@@ -555,29 +966,30 @@ class CompanyReadTest extends TestCase
             'name' => $this->prefix.'_unpaid_worker',
             'type' => 1,
             'company_id' => $this->companyId,
+            'company_site_id' => $this->companySiteId,
             'hired' => $this->timestamp,
             'paid' => $paidAt,
         ]);
 
         DB::table('inventories')->insert([
             'item_id' => 1,
-            'stack' => 80000,
+            'stack' => 8 * Currency::TEN_PER_TUK,
             'wear' => -1,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
             'timelastvalue' => $this->timestamp,
             'data' => '',
         ]);
 
-        $response = $this->get('/company/pay/'.$this->companyId);
+        $response = $this->get('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/pay');
 
         $response->assertRedirect('/company/view/'.$this->companyId);
         $this->assertDatabaseHas('inventories', [
             'item_id' => 1,
-            'stack' => 10000,
+            'stack' => Currency::TEN_PER_TUK,
             'wear' => -1,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
         ]);
         $this->assertDatabaseHas('company_workers', [
             'id' => $this->workerId,
@@ -590,7 +1002,7 @@ class CompanyReadTest extends TestCase
 
         $detail = $this->followingRedirects()->get('/company/view/'.$this->companyId);
         $detail->assertOk();
-        $detail->assertSee('2 Arbeiter mit insgesamt 7,00 Tuk ausgezahlt (2 Monatslöhne)');
+        $detail->assertSee('2 Arbeiter mit insgesamt 7 tk ausgezahlt (2 Monatslöhne)');
         $detail->assertSee('2 Arbeiter haben weiterhin ausstehenden Lohn');
     }
 
@@ -598,11 +1010,11 @@ class CompanyReadTest extends TestCase
     {
         $this->actingAs(User::findOrFail($this->otherUserId));
 
-        $forbidden = $this->get('/company/pay/'.$this->companyId);
+        $forbidden = $this->get('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/pay');
         $forbidden->assertForbidden();
 
         $this->actingAs(User::findOrFail($this->userId));
-        $response = $this->get('/company/pay/'.$this->companyId);
+        $response = $this->get('/company/'.$this->companyId.'/sites/'.$this->companySiteId.'/pay');
 
         $response->assertRedirect('/company/view/'.$this->companyId);
 
@@ -625,6 +1037,9 @@ class CompanyReadTest extends TestCase
         $response->assertSee($this->prefix.'_tool');
         $response->assertSee($this->prefix.'_output');
         $response->assertSee('/company/worker/'.$this->workerId, false);
+        $response->assertSee('name="prodas_value[til]"', false);
+        $response->assertSee('name="prodas_value[tuk]"', false);
+        $response->assertSee('name="prodas_value[ten]"', false);
     }
 
     public function test_owner_can_assign_labour_and_inventory_is_consumed_or_reserved(): void
@@ -634,15 +1049,15 @@ class CompanyReadTest extends TestCase
         DB::table('labour_actives')->where('company_worker_id', $this->workerId)->delete();
         DB::table('inventories')
             ->where('item_id', $this->itemId)
-            ->where('owner_id', $this->companyId)
-            ->where('owner_type', 2)
+            ->where('owner_id', $this->companySiteId)
+            ->where('owner_type', PermissionEntityType::COMPANY_SITE->value)
             ->update(['stack' => 5]);
         DB::table('inventories')->insert([
             'item_id' => $this->toolItemId,
             'stack' => 0,
             'wear' => -2,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
             'timelastvalue' => $this->timestamp,
             'data' => '',
         ]);
@@ -653,7 +1068,11 @@ class CompanyReadTest extends TestCase
             'quantity_count' => 2,
             'instances' => 99,
             'prodas' => 0,
-            'prodas_value' => 25,
+            'prodas_value' => [
+                'til' => 0,
+                'tuk' => Currency::TUK_PER_TIL,
+                'ten' => Currency::TEN_PER_TUK + 1,
+            ],
             'assignlabour' => 1,
         ]);
 
@@ -661,7 +1080,7 @@ class CompanyReadTest extends TestCase
         $this->assertDatabaseHas('labour_actives', [
             'company_worker_id' => $this->workerId,
             'labour_id' => $this->labourId,
-            'prodas' => 25,
+            'prodas' => Currency::toTen(0, Currency::TUK_PER_TIL, Currency::TEN_PER_TUK + 1),
             'quantity' => 2,
             'instances' => 2,
             'nextinsta' => 0,
@@ -670,20 +1089,20 @@ class CompanyReadTest extends TestCase
             'item_id' => $this->itemId,
             'stack' => 1,
             'wear' => -2,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
         ]);
         $this->assertSame(2, DB::table('inventories')
             ->where('item_id', $this->toolItemId)
             ->where('wear', -3)
-            ->where('owner_type', 2)
-            ->where('owner_id', $this->companyId)
+            ->where('owner_type', PermissionEntityType::COMPANY_SITE->value)
+            ->where('owner_id', $this->companySiteId)
             ->count());
         $this->assertDatabaseHas('inventories', [
             'item_id' => $this->toolItemId,
             'wear' => -3,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
         ]);
         $runId = (int) DB::table('production_runs')
             ->where('company_worker_id', $this->workerId)
@@ -737,8 +1156,8 @@ class CompanyReadTest extends TestCase
         $this->prepareAssignableLabour();
         DB::table('inventories')
             ->where('item_id', $this->itemId)
-            ->where('owner_id', $this->companyId)
-            ->where('owner_type', 2)
+            ->where('owner_id', $this->companySiteId)
+            ->where('owner_type', PermissionEntityType::COMPANY_SITE->value)
             ->update(['stack' => 1]);
 
         $response = $this->post('/company/worker/'.$this->workerId, [
@@ -762,6 +1181,7 @@ class CompanyReadTest extends TestCase
     {
         $this->prepareAssignableLabour();
         $now = now()->timestamp;
+        $completedAt = $now - 120;
 
         DB::table('company_workers')
             ->where('id', $this->workerId)
@@ -770,7 +1190,7 @@ class CompanyReadTest extends TestCase
         DB::table('labour_actives')
             ->where('company_worker_id', $this->workerId)
             ->update([
-                'until' => $now - 120,
+                'until' => $completedAt,
                 'prodas' => -2,
                 'quantity' => 1,
                 'instances' => 1,
@@ -778,14 +1198,14 @@ class CompanyReadTest extends TestCase
 
         DB::table('inventories')
             ->where('item_id', $this->itemId)
-            ->where('owner_id', $this->companyId)
-            ->where('owner_type', 2)
+            ->where('owner_id', $this->companySiteId)
+            ->where('owner_type', PermissionEntityType::COMPANY_SITE->value)
             ->update(['stack' => 1]);
 
         DB::table('inventories')
             ->where('item_id', $this->toolItemId)
-            ->where('owner_id', $this->companyId)
-            ->where('owner_type', 2)
+            ->where('owner_id', $this->companySiteId)
+            ->where('owner_type', PermissionEntityType::COMPANY_SITE->value)
             ->update(['wear' => -3]);
 
         $activeLabourId = (int) DB::table('labour_actives')->where('company_worker_id', $this->workerId)->value('id');
@@ -795,40 +1215,40 @@ class CompanyReadTest extends TestCase
         $this->assertDatabaseHas('labour_actives', [
             'id' => $activeLabourId,
             'quantity' => 0,
-            'ended_at' => $now,
+            'ended_at' => $completedAt,
         ]);
         $this->assertDatabaseHas('inventories', [
             'item_id' => $this->itemId,
             'stack' => 1,
             'wear' => -2,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
         ]);
         $this->assertDatabaseHas('inventories', [
             'item_id' => $this->toolItemId,
             'wear' => -2,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
         ]);
         $this->assertDatabaseHas('inventories', [
             'item_id' => $this->outputItemId,
             'stack' => 1,
             'wear' => -2,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
         ]);
         $runId = (int) DB::table('production_runs')->where('labour_active_id', $activeLabourId)->value('id');
         $this->assertDatabaseHas('production_runs', [
             'id' => $runId,
             'company_id' => $this->companyId,
             'company_worker_id' => $this->workerId,
-            'completed_at' => $now,
+            'completed_at' => $completedAt,
         ]);
         $this->assertDatabaseHas('inventory_mutations', [
             'item_id' => $this->outputItemId,
             'kind' => 'production',
             'clock' => 'simulation',
-            'effective_at' => $now,
+            'effective_at' => $completedAt,
             'source_type' => 'production_run',
             'source_id' => $runId,
         ]);
@@ -869,19 +1289,20 @@ class CompanyReadTest extends TestCase
             ->assertSee('im Streik (77 Monate ohne Gehalt)');
 
         $stats = app(LabourProcessor::class)->processDue($now);
+        $completedAt = $strikeStartedAt - 120;
 
         $this->assertGreaterThanOrEqual(1, $stats['finished']);
         $this->assertDatabaseHas('labour_actives', [
             'company_worker_id' => $this->workerId,
             'quantity' => 0,
-            'ended_at' => $now,
+            'ended_at' => $completedAt,
             'paused_at' => null,
         ]);
         $this->assertDatabaseHas('inventories', [
             'item_id' => $this->outputItemId,
             'stack' => 1,
-            'owner_id' => $this->companyId,
-            'owner_type' => 2,
+            'owner_id' => $this->companySiteId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
         ]);
     }
 
@@ -893,8 +1314,8 @@ class CompanyReadTest extends TestCase
         DB::table('company_workers')->where('id', $this->workerId)->update(['paid' => now()->timestamp]);
         DB::table('inventories')
             ->where('item_id', $this->itemId)
-            ->where('owner_id', $this->companyId)
-            ->where('owner_type', 2)
+            ->where('owner_id', $this->companySiteId)
+            ->where('owner_type', PermissionEntityType::COMPANY_SITE->value)
             ->update(['stack' => 5]);
 
         $this->post('/company/worker/'.$this->workerId, [
@@ -957,8 +1378,8 @@ class CompanyReadTest extends TestCase
         ]);
         $this->assertDatabaseMissing('inventories', [
             'item_id' => $this->outputItemId,
-            'owner_id' => $this->companyId,
-            'owner_type' => 2,
+            'owner_id' => $this->companySiteId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
         ]);
 
         app(LabourProcessor::class)->processDue($rescheduledDueAt);
@@ -968,8 +1389,8 @@ class CompanyReadTest extends TestCase
         $this->assertDatabaseHas('inventories', [
             'item_id' => $this->outputItemId,
             'stack' => 1,
-            'owner_id' => $this->companyId,
-            'owner_type' => 2,
+            'owner_id' => $this->companySiteId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
         ]);
         $this->assertDatabaseHas('labour_actives', ['id' => $activeLabourId, 'ended_at' => null]);
     }
@@ -982,8 +1403,8 @@ class CompanyReadTest extends TestCase
         DB::table('company_workers')->where('id', $this->workerId)->update(['paid' => now()->timestamp]);
         DB::table('inventories')
             ->where('item_id', $this->itemId)
-            ->where('owner_id', $this->companyId)
-            ->where('owner_type', 2)
+            ->where('owner_id', $this->companySiteId)
+            ->where('owner_type', PermissionEntityType::COMPANY_SITE->value)
             ->update(['stack' => 5]);
 
         $this->post('/company/worker/'.$this->workerId, [
@@ -1006,21 +1427,21 @@ class CompanyReadTest extends TestCase
 
         app(LabourProcessor::class)->processDue($firstCompletion);
 
-        $this->assertDatabaseHas('production_runs', ['id' => $firstRunId, 'completed_at' => $firstCompletion]);
+        $this->assertDatabaseHas('production_runs', ['id' => $firstRunId, 'completed_at' => $firstCompletion - 1]);
         $this->assertSame(2, DB::table('production_runs')->where('labour_active_id', $activeLabourId)->count());
         $this->assertDatabaseHas('labour_actives', ['id' => $activeLabourId, 'quantity' => 1, 'ended_at' => null]);
         $this->assertDatabaseHas('inventories', [
             'item_id' => $this->itemId,
             'stack' => 1,
             'wear' => -2,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
         ]);
         $this->assertDatabaseHas('inventories', [
             'item_id' => $this->outputItemId,
             'stack' => 1,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
         ]);
 
         $secondRunId = (int) DB::table('production_runs')
@@ -1033,18 +1454,155 @@ class CompanyReadTest extends TestCase
 
         app(LabourProcessor::class)->processDue($secondCompletion);
 
-        $this->assertDatabaseHas('labour_actives', ['id' => $activeLabourId, 'quantity' => 0, 'ended_at' => $secondCompletion]);
+        $this->assertDatabaseHas('labour_actives', ['id' => $activeLabourId, 'quantity' => 0, 'ended_at' => $secondCompletion - 1]);
         $this->assertDatabaseHas('inventories', [
             'item_id' => $this->outputItemId,
             'stack' => 2,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
         ]);
         $this->assertDatabaseHas('inventories', [
             'item_id' => $this->toolItemId,
             'wear' => -2,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
+        ]);
+    }
+
+    public function test_processor_catches_up_every_elapsed_production_run_in_chronological_order(): void
+    {
+        $this->actingAs(User::findOrFail($this->userId));
+        $this->prepareAssignableLabour();
+        DB::table('labour_actives')->where('company_worker_id', $this->workerId)->delete();
+        DB::table('company_workers')->where('id', $this->workerId)->update(['paid' => now()->timestamp]);
+        DB::table('inventories')
+            ->where('item_id', $this->itemId)
+            ->where('owner_id', $this->companySiteId)
+            ->where('owner_type', PermissionEntityType::COMPANY_SITE->value)
+            ->update(['stack' => 20]);
+
+        $this->post('/company/worker/'.$this->workerId, [
+            'labour' => $this->labourId,
+            'quantity' => 0,
+            'quantity_count' => 3,
+            'instances' => 1,
+            'prodas' => -2,
+            'assignlabour' => 1,
+        ])->assertRedirect('/company/worker/'.$this->workerId);
+
+        $now = now()->timestamp;
+        $duration = max(1, (int) DB::table('labours')->where('id', $this->labourId)->value('duration'));
+        $firstDueAt = $now - (2 * $duration);
+        $activeLabourId = (int) DB::table('labour_actives')
+            ->where('company_worker_id', $this->workerId)
+            ->whereNull('ended_at')
+            ->value('id');
+        $firstRunId = (int) DB::table('production_runs')->where('labour_active_id', $activeLabourId)->value('id');
+
+        DB::table('production_runs')->where('id', $firstRunId)->update([
+            'started_at' => $firstDueAt - $duration,
+            'due_at' => $firstDueAt,
+        ]);
+        DB::table('labour_actives')->where('id', $activeLabourId)->update([
+            'since' => $firstDueAt - $duration,
+            'until' => $firstDueAt,
+        ]);
+
+        $stats = app(LabourProcessor::class)->processDue($now);
+
+        $runs = DB::table('production_runs')
+            ->where('labour_active_id', $activeLabourId)
+            ->orderBy('id')
+            ->get();
+
+        $this->assertCount(3, $runs);
+        $this->assertSame(
+            [$firstDueAt - $duration, $firstDueAt, $firstDueAt + $duration],
+            $runs->pluck('started_at')->map(fn ($timestamp) => (int) $timestamp)->all(),
+        );
+        $this->assertSame(
+            [$firstDueAt, $firstDueAt + $duration, $now],
+            $runs->pluck('completed_at')->map(fn ($timestamp) => (int) $timestamp)->all(),
+        );
+        $this->assertSame(1, $stats['finished']);
+        $this->assertFalse($stats['limit_reached']);
+        $this->assertDatabaseHas('labour_actives', [
+            'id' => $activeLabourId,
+            'quantity' => 0,
+            'ended_at' => $now,
+        ]);
+        $this->assertDatabaseHas('inventories', [
+            'item_id' => $this->outputItemId,
+            'stack' => 3,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
+        ]);
+    }
+
+    public function test_catch_up_finishes_cycles_due_before_a_strike_and_then_pauses(): void
+    {
+        $this->actingAs(User::findOrFail($this->userId));
+        $this->prepareAssignableLabour();
+        DB::table('labour_actives')->where('company_worker_id', $this->workerId)->delete();
+        DB::table('inventories')
+            ->where('item_id', $this->itemId)
+            ->where('owner_id', $this->companySiteId)
+            ->where('owner_type', PermissionEntityType::COMPANY_SITE->value)
+            ->update(['stack' => 20]);
+
+        $this->post('/company/worker/'.$this->workerId, [
+            'labour' => $this->labourId,
+            'quantity' => -1,
+            'instances' => 1,
+            'prodas' => -2,
+            'assignlabour' => 1,
+        ])->assertRedirect('/company/worker/'.$this->workerId);
+
+        $now = now()->timestamp;
+        $duration = max(1, (int) DB::table('labours')->where('id', $this->labourId)->value('duration'));
+        $strikeStartedAt = $now - max(1, intdiv($duration, 2));
+        $firstDueAt = $strikeStartedAt - (2 * $duration);
+        $activeLabourId = (int) DB::table('labour_actives')
+            ->where('company_worker_id', $this->workerId)
+            ->whereNull('ended_at')
+            ->value('id');
+        $firstRunId = (int) DB::table('production_runs')->where('labour_active_id', $activeLabourId)->value('id');
+
+        DB::table('company_workers')->where('id', $this->workerId)->update([
+            'paid' => $strikeStartedAt - (CompanyWorker::STRIKE_AFTER_PERIODS * CompanyWorker::SALARY_PERIOD_SECONDS),
+        ]);
+        DB::table('production_runs')->where('id', $firstRunId)->update([
+            'started_at' => $firstDueAt - $duration,
+            'due_at' => $firstDueAt,
+        ]);
+        DB::table('labour_actives')->where('id', $activeLabourId)->update([
+            'since' => $firstDueAt - $duration,
+            'until' => $firstDueAt,
+        ]);
+
+        $stats = app(LabourProcessor::class)->processDue($now);
+        $runs = DB::table('production_runs')
+            ->where('labour_active_id', $activeLabourId)
+            ->orderBy('id')
+            ->get();
+
+        $this->assertCount(4, $runs);
+        $this->assertSame(
+            [$firstDueAt, $firstDueAt + $duration, $strikeStartedAt],
+            $runs->whereNotNull('completed_at')->pluck('completed_at')->map(fn ($timestamp) => (int) $timestamp)->all(),
+        );
+        $this->assertSame(1, $stats['paused']);
+        $this->assertDatabaseHas('labour_actives', [
+            'id' => $activeLabourId,
+            'paused_at' => $strikeStartedAt,
+            'pause_reason' => 'strike',
+            'ended_at' => null,
+        ]);
+        $this->assertDatabaseHas('inventories', [
+            'item_id' => $this->outputItemId,
+            'stack' => 3,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
         ]);
     }
 
@@ -1087,29 +1645,29 @@ class CompanyReadTest extends TestCase
         $stats = app(LabourProcessor::class)->processDue($now);
 
         $this->assertGreaterThanOrEqual(1, $stats['finished']);
-        $this->assertDatabaseHas('labour_actives', ['id' => $activeLabourId, 'ended_at' => $now]);
-        $this->assertDatabaseHas('production_runs', ['id' => $runId, 'completed_at' => $now]);
+        $this->assertDatabaseHas('labour_actives', ['id' => $activeLabourId, 'ended_at' => $now - 1]);
+        $this->assertDatabaseHas('production_runs', ['id' => $runId, 'completed_at' => $now - 1]);
         $this->assertDatabaseHas('inventories', [
             'item_id' => $this->toolItemId,
             'wear' => -2,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
         ]);
         $this->assertDatabaseHas('inventories', [
             'item_id' => $this->outputItemId,
             'stack' => 1,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
         ]);
         $toolInventoryId = (int) DB::table('inventories')
             ->where('item_id', $this->toolItemId)
-            ->where('owner_type', 2)
-            ->where('owner_id', $this->companyId)
+            ->where('owner_type', PermissionEntityType::COMPANY_SITE->value)
+            ->where('owner_id', $this->companySiteId)
             ->value('id');
         $outputInventoryId = (int) DB::table('inventories')
             ->where('item_id', $this->outputItemId)
-            ->where('owner_type', 2)
-            ->where('owner_id', $this->companyId)
+            ->where('owner_type', PermissionEntityType::COMPANY_SITE->value)
+            ->where('owner_id', $this->companySiteId)
             ->value('id');
         $this->artisan('economy:audit-inventory --inventory='.$toolInventoryId)
             ->expectsOutputToContain('Issues found: 0')
@@ -1160,10 +1718,26 @@ class CompanyReadTest extends TestCase
             'item_id' => $this->toolItemId,
             'stack' => 0,
             'wear' => -2,
-            'owner_type' => 2,
-            'owner_id' => $this->companyId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
+            'owner_id' => $this->companySiteId,
             'timelastvalue' => $this->timestamp,
             'data' => '',
+        ]);
+    }
+
+    private function createCharacter(int $userId, string $suffix): int
+    {
+        return DB::table('characters')->insertGetId([
+            'name' => $this->prefix.$suffix,
+            'post_count' => 0,
+            'regdate' => $this->timestamp,
+            'birthday' => 0,
+            'interests' => '',
+            'location' => '',
+            'work' => '',
+            'gender' => 0,
+            'usertext' => '',
+            'user_id' => $userId,
         ]);
     }
 }

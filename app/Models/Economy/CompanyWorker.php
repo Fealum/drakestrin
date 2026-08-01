@@ -21,6 +21,7 @@ class CompanyWorker extends Model
         'name',
         'type',
         'company_id',
+        'company_site_id',
         'hired',
         'paid',
     ];
@@ -30,6 +31,7 @@ class CompanyWorker extends Model
     protected $casts = [
         'type' => 'integer',
         'company_id' => 'integer',
+        'company_site_id' => 'integer',
         'hired' => 'datetime',
         'paid' => 'datetime',
     ];
@@ -37,6 +39,11 @@ class CompanyWorker extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function site(): BelongsTo
+    {
+        return $this->belongsTo(CompanySite::class, 'company_site_id');
     }
 
     public function activeLabours(): HasMany

@@ -1,10 +1,10 @@
 FROM php:8.5-apache
 
 # Update und Upgrade der Paketlisten sowie Installieren von Hilfswerkzeugen
-RUN apt-get update && apt-get upgrade -y && apt-get install -y zip unzip openssh-client git rsync
+RUN apt-get update && apt-get upgrade -y && apt-get install -y libzip-dev zip unzip openssh-client git rsync
 
 # Installation der PHP-Erweiterungen
-RUN docker-php-ext-install pdo pdo_mysql
+RUN docker-php-ext-install pdo pdo_mysql zip
 RUN docker-php-ext-install mysqli && docker-php-ext-enable mysqli
 
 # Aktivieren des Apache-Moduls rewrite

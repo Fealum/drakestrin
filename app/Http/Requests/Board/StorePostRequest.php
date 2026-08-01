@@ -37,10 +37,10 @@ class StorePostRequest extends FormRequest
                     PostTransferAction::COMPANY_WITHDRAWAL->value,
                 ], true)),
             ],
-            'company' => [
+            'company_site' => [
                 'nullable',
                 'integer',
-                'exists:companies,id',
+                'exists:company_sites,id',
                 Rule::requiredIf(in_array($this->input('transfer_action'), [
                     PostTransferAction::COMPANY_DEPOSIT->value,
                     PostTransferAction::COMPANY_WITHDRAWAL->value,

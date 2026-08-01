@@ -13,7 +13,7 @@ class PostTransferData
         public readonly PostTransferAction $action,
         public readonly array $items,
         public readonly ?int $recipientCharacterId = null,
-        public readonly ?int $companyId = null,
+        public readonly ?int $companySiteId = null,
     ) {}
 
     public static function fromArray(array $data): ?self
@@ -38,7 +38,7 @@ class PostTransferData
                 ))
                 ->all(),
             recipientCharacterId: filled($data['recipient'] ?? null) ? (int) $data['recipient'] : null,
-            companyId: filled($data['company'] ?? null) ? (int) $data['company'] : null,
+            companySiteId: filled($data['company_site'] ?? null) ? (int) $data['company_site'] : null,
         );
     }
 }

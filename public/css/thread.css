@@ -294,26 +294,26 @@ main > div#newpost + div#newaction {
 	display: none;
 }
 
-ul.inventory-char {
+ul:is(.inventory-char, .inventory-location) {
 	list-style-type: none;
 	padding: 0;
 	margin: 0;
 	overflow: hidden;
 }
 
-ul.inventory-char li {
+ul:is(.inventory-char, .inventory-location) li {
 	display: inline-block;
 	float: left;
 	height: 65px;
 }
 
-ul.inventory-char input[type="checkbox"] {
+ul:is(.inventory-char, .inventory-location) input[type="checkbox"] {
 	position: fixed;
 	top: -9999px;
 	left: -9999px;
 }
 
-ul.inventory-char label {
+ul:is(.inventory-char, .inventory-location) label {
 	width: 60px;
 	height: 60px;
 	padding: 1px;
@@ -326,35 +326,22 @@ ul.inventory-char label {
 	position: relative;
 }
 
-ul.inventory-char label:hover {
+ul:is(.inventory-char, .inventory-location) label:hover {
 	opacity: 1;
 }
 
-ul.inventory-char input[type="checkbox"]:checked ~ label {
+ul:is(.inventory-char, .inventory-location) input[type="checkbox"]:checked ~ label {
 	opacity: 1;
 	padding: 0;
 	border: 1px solid #aaa;
 }
 
-ul.inventory-char label img {
+ul:is(.inventory-char, .inventory-location) label img {
 	width: 60px;
 	height: 60px;
 	position: absolute;
 	top: 0;
 	left: 0;
-}
-
-ul.inventory-char input[type="text"] {
-	z-index: 2;
-	position: absolute;
-	bottom: 0;
-	right: 0;
-	font: 0.6em/1em Linux Biolinum;
-	width: 60px;
-	border: none;
-	padding: 0;
-	line-height: 1em;
-	background: none;
 }
 
 .character-selector {

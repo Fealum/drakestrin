@@ -18,9 +18,7 @@ class CompanyPolicy
 
     public function manage(User $user, Company $company): bool
     {
-        return $this->owns($user, $company) || $company->representatives()
-            ->whereHas('character', fn ($query) => $query->where('user_id', $user->id))
-            ->exists();
+        return $company->isManagedByUserId($user->id);
     }
 
     public function create(User $user): bool
@@ -30,13 +28,28 @@ class CompanyPolicy
 
     public function update(User $user, Company $company): bool
     {
-        return $this->owns($user, $company)
+        return $this->manage($user, $company)
             && $this->permissions->allows('editcompany', $company, $user);
     }
 
     public function manageRepresentatives(User $user, Company $company): bool
     {
+        return $this->manageManagers($user, $company);
+    }
+
+    public function manageOwners(User $user, Company $company): bool
+    {
         return $this->owns($user, $company);
+    }
+
+    public function manageManagers(User $user, Company $company): bool
+    {
+        return $this->owns($user, $company);
+    }
+
+    public function manageSiteRepresentatives(User $user, Company $company): bool
+    {
+        return $this->manage($user, $company);
     }
 
     public function represent(User $user, Company $company, Character $character): bool
@@ -58,8 +71,6 @@ class CompanyPolicy
 
     private function owns(User $user, Company $company): bool
     {
-        $company->loadMissing('character');
-
-        return (int) $company->character?->user_id === (int) $user->id;
+        return $company->isOwnedByUserId($user->id);
     }
 }

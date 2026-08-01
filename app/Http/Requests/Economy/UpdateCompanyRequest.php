@@ -22,12 +22,7 @@ class UpdateCompanyRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'sector' => ['required', Rule::enum(CompanySector::class)],
-            'owner_character_id' => ['required', 'integer', Rule::in([(int) $this->route('company')->character_id])],
-            'location_id' => ['required', 'integer', 'exists:locations,id'],
-            'description' => ['nullable', 'string', 'max:1000'],
-            'text' => ['nullable', 'string'],
-            'url' => ['nullable', 'url', 'max:2048'],
-            'is_storefront' => ['nullable', 'boolean'],
+            'description' => ['nullable', 'string', 'max:65535'],
         ];
     }
 

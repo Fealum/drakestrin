@@ -11,7 +11,7 @@ use App\Data\Economy\TransferParticipant;
 use App\Exceptions\Economy\InventoryUnavailableAtStoryTime;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
-use App\Models\Economy\Company;
+use App\Models\Economy\CompanySite;
 use App\Models\Economy\Inventory;
 use App\Models\User;
 use App\Models\User\Character;
@@ -195,23 +195,23 @@ class PostWriter
             $transferSender = TransferParticipant::location($scene->location->id);
             $transferRecipient = TransferParticipant::character($sender->id);
         } else {
-            if ($transferData->companyId === null) {
-                throw ValidationException::withMessages(['company' => 'Bitte wähle einen Betrieb aus.']);
+            if ($transferData->companySiteId === null) {
+                throw ValidationException::withMessages(['company_site' => 'Bitte wähle einen Betriebsstandort aus.']);
             }
 
-            $company = Company::query()
-                ->whereKey($transferData->companyId)
-                ->whereHas('sites', fn ($query) => $query->whereIn(
-                    'location_id',
-                    $this->locations->ancestorLocationIds($scene->location),
-                ))
+            $site = CompanySite::query()
+                ->with('company')
+                ->whereKey($transferData->companySiteId)
+                ->whereIn('location_id', $this->locations->ancestorLocationIds($scene->location))
                 ->firstOrFail();
+            $company = $site->company;
+            abort_unless($company, 404);
 
             if ($transferData->action === PostTransferAction::COMPANY_DEPOSIT) {
                 $source = $characterOwner;
-                $target = new InventoryOwner(PermissionEntityType::COMPANY, $company->id, InventoryStockState::PRODUCTION->value);
+                $target = new InventoryOwner(PermissionEntityType::COMPANY_SITE, $site->id, InventoryStockState::PRODUCTION->value);
                 $transferSender = TransferParticipant::character($sender->id);
-                $transferRecipient = TransferParticipant::company($company->id);
+                $transferRecipient = TransferParticipant::companySite($site->id);
                 $inventoryItemIds = Inventory::query()
                     ->whereIn('id', collect($transferData->items)->pluck('inventoryId'))
                     ->ownedBy(PermissionEntityType::CHARACTER, $sender->id)
@@ -226,17 +226,30 @@ class PostWriter
                     ))
                     ->all();
             } else {
-                if (! $user->can('represent', [$company, $sender])) {
+                if (! $user->can('transfer', [$site, $sender])) {
                     abort(403);
+                }
+
+                $selectedInventoryIds = collect($transferData->items)->pluck('inventoryId');
+                $eligibleInventoryCount = Inventory::query()
+                    ->whereIn('id', $selectedInventoryIds)
+                    ->ownedBy(PermissionEntityType::COMPANY_SITE, $site->id)
+                    ->where('wear', '>=', InventoryStockState::RESERVED->value)
+                    ->count();
+
+                if ($eligibleInventoryCount !== $selectedInventoryIds->count()) {
+                    throw ValidationException::withMessages([
+                        'inventory' => 'Ausgehändigt werden können nur Vorbehalts- und Verkaufsgüter.',
+                    ]);
                 }
 
                 if ($transferData->recipientCharacterId === null) {
                     throw ValidationException::withMessages(['recipient' => 'Bitte wähle einen Empfänger aus.']);
                 }
 
-                $source = new InventoryOwner(PermissionEntityType::COMPANY, $company->id);
+                $source = new InventoryOwner(PermissionEntityType::COMPANY_SITE, $site->id);
                 $target = new InventoryOwner(PermissionEntityType::CHARACTER, $transferData->recipientCharacterId);
-                $transferSender = TransferParticipant::company($company->id);
+                $transferSender = TransferParticipant::companySite($site->id);
                 $transferRecipient = TransferParticipant::character($transferData->recipientCharacterId);
             }
         }

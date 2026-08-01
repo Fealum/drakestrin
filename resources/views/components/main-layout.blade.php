@@ -51,6 +51,9 @@
 {{ $js ?? '' }}
 </head>
 <body>
+@if (request()->getPort() === 3000)
+<script async src="/browser-sync/browser-sync-client.js?v=3.0.4"></script>
+@endif
 	<h1><a href="{{ route('index') }}">{{ config('app.name') }}</a></h1>
 	<header>
 		<a class="nav-open" id="nav-open" href="#nav">Zur Navigation</a>

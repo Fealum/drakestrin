@@ -3,6 +3,9 @@
         @if ($worker->company)
         <li>Betrieb: <a href="{{ route('company.view', $worker->company->id) }}">{{ $worker->company->name }}</a></li>
         @endif
+        @if ($worker->site)
+        <li>Standort: {{ $worker->site->name }}</li>
+        @endif
         @if ($canFire)
         <li><a href="{{ route('company.fire', $worker->id) }}">entlassen</a></li>
         @endif
@@ -15,8 +18,8 @@
                 @endif
             </p>
         </li>
-        @if ((int) $worker->type === 5 && $worker->company)
-        <li><a href="{{ route('company.pay', $worker->company->id) }}">Löhne auszahlen</a></li>
+        @if ((int) $worker->type === 5 && $worker->company && $worker->site)
+        <li><a href="{{ route('company.pay', ['company' => $worker->company->id, 'site' => $worker->site->id]) }}">Löhne auszahlen</a></li>
         @elseif ($worker->activeLabours->isNotEmpty())
             @foreach ($worker->activeLabours as $activeLabour)
             @php($labour = $activeLabour->labour)
@@ -42,7 +45,7 @@
                 @elseif ($activeLabour->prodas === \App\Support\InventoryStockState::RESERVED->value)
                 Vorbehaltsgut
                 @else
-                Verkaufsgut zum Preis von {{ $activeLabour->prodas }} Ten
+                Verkaufsgut zum Preis von {{ \App\Support\Currency::format($activeLabour->prodas) }}
                 @endif.
                 @if ($activeLabour->pause_reason === \App\Support\ProductionPauseReason::STRIKE)
                 <br>Wegen Streik pausiert. Die Arbeit wird nach der Lohnauszahlung fortgesetzt.
@@ -121,7 +124,8 @@
         <p>Als was soll das Produkt erschaffen werden?<br>
             <label><input type="radio" name="prodas" value="{{ \App\Support\InventoryStockState::PRODUCTION->value }}" checked> Produktionsgut.</label><br>
             <label><input type="radio" name="prodas" value="{{ \App\Support\InventoryStockState::RESERVED->value }}"> Vorbehaltsgut.</label><br>
-            <label><input type="radio" name="prodas" value="0"> Verkaufsgut zum Preis von <input type="text" name="prodas_value" value=""> Tuk.</label>
+            <label for="prodas-sale"><input id="prodas-sale" type="radio" name="prodas" value="0"> Verkaufsgut zum Preis von</label>
+            <x-currency-input name="prodas_value" old-key="prodas_value" :value="0" />.
         </p>
         <input type="hidden" name="assignlabour" value="1">
         <input type="submit" value="Zuweisen">

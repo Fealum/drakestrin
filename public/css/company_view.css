@@ -3,6 +3,20 @@
 @import url('_inventory.css');
 @import url('_options.css');
 
+.company-location-choice {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.company-location-option {
+	margin: 0 0 0.75rem 1.5rem;
+}
+
+.company-location-choice:has([value="existing"]:checked) .company-location-new,
+.company-location-choice:has([value="new"]:checked) .company-location-existing {
+	display: none;
+}
+
 .owner_info img {
 	height: 1em;
 	border: 1px solid #ccc;
@@ -10,10 +24,176 @@
 	top: 0.2em;
 }
 
-
-
 .territory_info img {
 	width: 1em;
 	position: relative;
 	top: 0.2em;
+}
+
+.company-inventory-columns {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1rem;
+	align-items: start;
+}
+
+.company-inventory-column {
+	height: 100%;
+	min-width: 0;
+	border-right: 1px solid #ccc;
+}
+
+.company-inventory-column:last-of-type {
+	border-right: none;
+}
+
+.company-inventory-column > h4,
+.company-inventory-column > h5 {
+	display: flex;
+	gap: 0.35rem;
+	align-items: center;
+	padding: .4rem 0;
+	margin: 0;
+	font-size: 0.9rem;
+	line-height: 1.2rem;
+}
+
+.company-inventory-column > small {
+	display: block;
+	padding-bottom: 1rem;
+}
+
+ul.company-site-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+	list-style: none;
+	padding: 0;
+}
+
+.company-site-tabs a {
+	display: block;
+	padding: 0.45rem 0.75rem;
+	border: 1px solid #aaa;
+	background: #f4f4f4;
+	color: inherit;
+	text-decoration: none;
+}
+
+.company-sites--tabs .company-site-panel {
+	display: none;
+}
+
+.company-sites--tabs .company-site-panel:first-child {
+	display: block;
+}
+
+.company-sites--tabs:has(.company-site-panel:target) .company-site-panel:first-child:not(:target) {
+	display: none;
+}
+
+.company-sites--tabs .company-site-panel:target {
+	display: block;
+}
+
+.company-site-heading {
+	display: flex;
+	align-items: baseline;
+	gap: 0.75rem;
+}
+
+.company-inline-form {
+	display: inline-flex;
+	gap: 0.35rem;
+	margin-left: 0.5rem;
+}
+
+.company-site-settings form,
+.company-site-representatives > form,
+.company-add-site form {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: end;
+	gap: 0.75rem;
+	margin: 0.75rem 0;
+}
+
+.company-inventory-heading-icon {
+	width: 15px;
+	height: 15px;
+	flex: 0 0 15px;
+	fill: #36731b;
+}
+
+.company-inventory-column > p {
+	font: 0.8rem/1rem Linux Biolinum;
+	margin-bottom: 1em;
+}
+
+.company-inventory {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, 120px);
+	gap: 5px;
+	align-content: start;
+	min-height: 3.875rem;
+}
+
+.company-inventory-row {
+	display: grid;
+	grid-template-columns: 60px 20px;
+	gap: 40px;
+	align-items: end;
+	padding: 0;
+	border: 1px solid #ccc;
+	border-radius: .2rem;
+}
+
+.company-inventory-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: 1rem;
+}
+
+.company-inventory-actions button {
+	min-height: 2rem;
+	padding: 0.35rem 0.75rem;
+	border: 1px solid #36731b;
+	border-radius: 0.2rem;
+	font: 0.9rem/1.2rem Linux Biolinum, sans-serif;
+	cursor: pointer;
+}
+
+.company-inventory-submit {
+	background: #36731b;
+	color: #fff;
+}
+
+.company-inventory-submit:hover,
+.company-inventory-submit:focus-visible {
+	background: #285b14;
+}
+
+.company-inventory-reset {
+	background: #fff;
+	color: #285b14;
+}
+
+.company-inventory-reset:hover,
+.company-inventory-reset:focus-visible {
+	background: #e7f1e3;
+}
+
+.company-inventory-actions button:focus-visible {
+	outline: 2px solid #111;
+	outline-offset: 2px;
+}
+
+@media screen and (max-width: 51.8125em) {
+	.company-inventory-columns {
+		grid-template-columns: 1fr;
+	}
 }

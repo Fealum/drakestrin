@@ -7,6 +7,7 @@ use App\Models\Board\Board;
 use App\Models\Board\Thread;
 use App\Models\Dictionary\Word;
 use App\Models\Economy\Company;
+use App\Models\Economy\CompanySite;
 use App\Models\Economy\CompanyWorker;
 use App\Models\Encyclopedia\Page;
 use App\Models\Territory\Location;
@@ -25,6 +26,7 @@ enum PermissionEntityType: int
     case GROUP = 4;
     case ENCYCLOPEDIA_PAGE = 5;
     case CHARACTER = 6;
+    case COMPANY_SITE = 7;
     case COMPANY_WORKER = 8;
     case DICTIONARY_WORD = 9;
     case TERRITORY = 10;
@@ -41,6 +43,7 @@ enum PermissionEntityType: int
             self::GROUP => Group::class,
             self::ENCYCLOPEDIA_PAGE => Page::class,
             self::CHARACTER => Character::class,
+            self::COMPANY_SITE => CompanySite::class,
             self::COMPANY_WORKER => CompanyWorker::class,
             self::DICTIONARY_WORD => Word::class,
             self::TERRITORY => Territory::class,
@@ -59,6 +62,7 @@ enum PermissionEntityType: int
             $model instanceof Group => self::GROUP,
             $model instanceof Page => self::ENCYCLOPEDIA_PAGE,
             $model instanceof Character => self::CHARACTER,
+            $model instanceof CompanySite => self::COMPANY_SITE,
             $model instanceof CompanyWorker => self::COMPANY_WORKER,
             $model instanceof Word => self::DICTIONARY_WORD,
             $model instanceof Territory => self::TERRITORY,
@@ -88,7 +92,8 @@ enum PermissionEntityType: int
     {
         $map = [];
 
-        foreach (self::cases() as $type) {
+        // Reverse insertion order keeps Laravel from interpreting numeric aliases as a list of model classes.
+        foreach (array_reverse(self::cases()) as $type) {
             $map[$type->value] = $type->modelClass();
         }
 

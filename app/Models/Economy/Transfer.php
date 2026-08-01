@@ -74,12 +74,16 @@ class Transfer extends Model
 
     public function sender(): MorphTo
     {
-        return $this->morphTo();
+        return $this->morphTo()->morphWith([
+            CompanySite::class => ['company.sites:id,company_id,name'],
+        ]);
     }
 
     public function recipient(): MorphTo
     {
-        return $this->morphTo();
+        return $this->morphTo()->morphWith([
+            CompanySite::class => ['company.sites:id,company_id,name'],
+        ]);
     }
 
     public function items(): HasMany

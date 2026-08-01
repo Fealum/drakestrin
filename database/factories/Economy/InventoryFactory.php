@@ -2,13 +2,14 @@
 
 namespace Database\Factories\Economy;
 
-use App\Models\User\Character;
+use App\Models\Economy\Inventory;
 use App\Models\Economy\Item;
+use App\Models\User\Character;
 use App\Support\PermissionEntityType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Economy\Inventory>
+ * @extends Factory<Inventory>
  */
 class InventoryFactory extends Factory
 {
@@ -25,10 +26,11 @@ class InventoryFactory extends Factory
         ];
     }
 
-    public function company(): static
+    public function companySite(int $siteId): static
     {
-        return $this->state(fn (array $attributes) => [
-            'owner_type' => PermissionEntityType::COMPANY->value,
+        return $this->state(fn (array $attributes): array => [
+            'owner_id' => $siteId,
+            'owner_type' => PermissionEntityType::COMPANY_SITE->value,
         ]);
     }
 }
