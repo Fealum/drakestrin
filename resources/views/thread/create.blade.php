@@ -1,7 +1,7 @@
 <x-main-layout title="Neues Thema erstellen" css="thread">
     @if ($characters->isNotEmpty())
     <div class="post">
-        <form name="newthread" action="{{ route('thread.create', $selectedBoard ? ['board' => $selectedBoard->id] : []) }}" method="post">
+        <form name="newthread" action="{{ route('thread.create', $selectedBoard ?: []) }}" method="post">
             @csrf
 
             <p>

@@ -6,9 +6,9 @@
                 @if ($conversation['latest_message']->recipient_user_id == auth()->user()->id && $conversation['latest_message']->view === 0)
                 [ungelesen]
                 @endif
-                <a href="{{ route('user.view', $conversation['other_user']->id) }}"><x-avatar :subject="$conversation['other_user']" size="list" />{{ $conversation['other_user']->name }}</a>,
+                <a href="{{ route('user.view', $conversation['other_user']) }}"><x-avatar :subject="$conversation['other_user']" size="list" />{{ $conversation['other_user']->name }}</a>,
                 <x-datetime :time="$conversation['latest_message']->created_at" />
-                <a href="{{ url('/') }}/conversation/view/{{ $conversation['other_user']->id }}">{{ $conversation['message_count'] }} Nachricht{{ ($conversation['message_count'] === 1) ? '' : 'en' }}</a>
+                <a href="{{ route('conversation.view', $conversation['other_user']) }}">{{ $conversation['message_count'] }} Nachricht{{ ($conversation['message_count'] === 1) ? '' : 'en' }}</a>
             </h4>
             <p>
                 {!! ($conversation['latest_message']->recipient_user_id === auth()->user()->id) ? '&#11106;' : '&#10550;' !!}

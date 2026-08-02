@@ -23,16 +23,16 @@
         <small>
             @if ($transfer->actor)
             ausgeführt von
-            <a href="{{ route('user.character', ['character' => $transfer->actor->id]) }}">{{ $transfer->actor->name }}</a>
+            <a href="{{ route('user.character', $transfer->actor) }}">{{ $transfer->actor->name }}</a>
             @endif
             @if ($transfer->story_at !== null)
             <x-datetime :time="\Illuminate\Support\Carbon::createFromTimestamp($transfer->story_at)" />
             @endif
             @if ($transfer->post)
-            <a href="{{ route('post.view', ['post' => $transfer->post->id]) }}">Beitrag</a>
+            <a href="{{ route('post.view', $transfer->post) }}">Beitrag</a>
             @endif
             @if ($transfer->scene?->location)
-            <a href="{{ route('location.view', ['location' => $transfer->scene->location->id]) }}">{{ $transfer->scene->location->name }}</a>
+            <a href="{{ route('location.view', $transfer->scene->location) }}">{{ $transfer->scene->location->name }}</a>
             @endif
         </small>
     </li>

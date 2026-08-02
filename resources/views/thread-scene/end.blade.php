@@ -5,7 +5,7 @@
     <p>Dieses Thema hat keine aktive Szene.</p>
     @endif
 
-    <form action="{{ route('thread.scene.end', ['thread' => $thread->id]) }}" method="post">
+    <form action="{{ route('thread.scene.end', $thread) }}" method="post">
         @csrf
         <p>
             <label for="story_ended_at">Erzählzeit</label>

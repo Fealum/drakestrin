@@ -100,24 +100,41 @@
         </script>
     </x-slot:js>
 
-    <p>
+    <div>
         {{ number_format($thread->views, 0, ',', '.') }} Aufrufe,
         {{ number_format($thread->post_count, 0, ',', '.') }} Beiträge.
         @if ($canEditThread)
-        <a class="option edit" title="editieren" href="{{ route('thread.edit', ['thread' => $thread->id]) }}">editieren</a>
+        <a class="option edit" title="editieren" href="{{ route('thread.edit', $thread) }}">editieren</a>
         @endif
         @if ($canDeleteThread)
-        <a class="option delete" title="löschen" href="{{ route('thread.delete', ['thread' => $thread->id]) }}">löschen</a>
+        <a class="option delete" title="löschen" href="{{ route('thread.delete', $thread) }}">löschen</a>
         @endif
         @if ($canSetScene)
-        <a class="option scene" title="Szene setzen" href="{{ route('thread.scene.create', ['thread' => $thread->id]) }}">Szene setzen</a>
+        <a class="option scene-begin" title="Szene setzen" href="{{ route('thread.scene.create', $thread) }}">Szene setzen</a>
         @endif
         @if ($thread->currentScene && $canEndScene)
-        <a class="option scene" title="Szene beenden" href="{{ route('thread.scene.end', ['thread' => $thread->id]) }}">Szene beenden</a>
+        <a class="option scene-end" title="Szene beenden" href="{{ route('thread.scene.end', $thread) }}">Szene beenden</a>
         @endif
-    </p>
+        @auth
+            @if ($subscription)
+            <form method="post" action="{{ route('thread.unsubscribe', $thread) }}" class="inline-form">
+                @csrf
+                @method('delete')
+                <button type="submit" class="option unsubscribe" title="Abonnement beenden">Abonnement beenden</button>
+            </form>
+            @else
+            <form method="post" action="{{ route('thread.subscribe', $thread) }}" class="inline-form">
+                @csrf
+                <button type="submit" class="option subscribe" title="abonnieren">Abonnieren</button>
+            </form>
+            @endif
+        @endauth
+        @if ($canViewSubscribers)
+        <a class="option subscribe" href="{{ route('thread.subscribers', $thread) }}">Abonnenten ({{ $subscriberCount }})</a>
+        @endif
+    </div>
 
-    @include('board._pagination', ['paginator' => $posts, 'baseUrl' => url('/thread/view/'.$thread->id)])
+    @include('board._pagination', ['paginator' => $posts, 'baseUrl' => route('thread.view', $thread)])
 
     @forelse ($timelineEntries as $entry)
     @if ($entry['type'] === 'scene_start')
@@ -125,7 +142,7 @@
     <div class="thread-scene" id="scene{{ $scene->id }}">
         <p>
             Szene:
-            <a href="{{ route('location.view', ['location' => $scene->location_id]) }}">{{ $scene->location?->name ?? 'Unbekannter Ort' }}</a>
+            <a href="{{ route('location.view', $scene->location) }}">{{ $scene->location?->name ?? 'Unbekannter Ort' }}</a>
             @if ($scene->story_started_at)
             ab <x-datetime :time="\Illuminate\Support\Carbon::createFromTimestamp($scene->story_started_at)" />
             @endif
@@ -136,7 +153,7 @@
     <div class="thread-scene">
         <p>
             Szene beendet:
-            <a href="{{ route('location.view', ['location' => $scene->location_id]) }}">{{ $scene->location?->name ?? 'Unbekannter Ort' }}</a>
+            <a href="{{ route('location.view', $scene->location) }}">{{ $scene->location?->name ?? 'Unbekannter Ort' }}</a>
             @if ($scene->story_ended_at)
             um <x-datetime :time="\Illuminate\Support\Carbon::createFromTimestamp($scene->story_ended_at)" />
             @endif
@@ -152,36 +169,36 @@
 
         <div class="postuser">
             <h4>
-                @if (auth()->check() && $post->time?->timestamp >= auth()->user()->lastvisit?->timestamp && (($viewedThreads[$thread->id] ?? 0) < $post->getRawOriginal('time')))
+                @if ($unreadPostIds->contains($post->id))
                 <span class="option new">(Neu)</span>
                 @endif
                 @if ($character)
-                <a href="{{ url('/user/character/'.$character->id) }}">{{ $character->name }}</a>
+                <a href="{{ route('user.character', $character) }}">{{ $character->name }}</a>
                 @else
                 Unbekannter Charakter
                 @endif
                 <span class="datetime"><x-datetime :time="$post->time" /></span>
             </h4>
             <p>
-                <a class="postnumber small" href="{{ url('/thread/view/'.$thread->id.($posts->currentPage() > 1 ? '/'.$posts->currentPage() : '')) }}#post{{ $post->id }}">{{ $entry['post_number'] + (($posts->currentPage() - 1) * $posts->perPage()) }}</a>
+                <a class="postnumber small" href="{{ route('thread.view', ['thread' => $thread, 'page' => $posts->currentPage() > 1 ? $posts->currentPage() : null]) }}#post{{ $post->id }}">{{ $entry['post_number'] + (($posts->currentPage() - 1) * $posts->perPage()) }}</a>
                 <a
                     class="option quote"
                     title="zitieren"
-                    href="{{ route('thread.view', ['thread' => $thread->id, 'page' => 'last', 'quote' => $post->id]) }}#newpost"
+                    href="{{ route('thread.view', ['thread' => $thread, 'page' => 'last', 'quote' => $post->id]) }}#newpost"
                     @if ($canCreatePost && ($characters->isNotEmpty() || $canCreateCharacter))
                     x-data
                     x-on:click.prevent="window.insertThreadQuote(@js('[q='.str_replace(']', ')', $character?->name ?? $post->author?->name ?? 'Unbekannter Charakter').']'.trim($post->message).'[/q]'."\n"))"
                     @endif
                 >zitieren</a>
                 @can('update', $post)
-                <a class="option edit" title="editieren" href="{{ route('post.edit', ['post' => $post->id]) }}">editieren</a>
+                <a class="option edit" title="editieren" href="{{ route('post.edit', $post) }}">editieren</a>
                 @endcan
                 @can('delete', $post)
-                <a class="option delete" title="{{ $post->transfers->isNotEmpty() ? 'Inhalt löschen' : 'löschen' }}" href="{{ route('post.delete', ['post' => $post->id]) }}">{{ $post->transfers->isNotEmpty() ? 'Inhalt löschen' : 'löschen' }}</a>
+                <a class="option delete" title="{{ $post->transfers->isNotEmpty() ? 'Inhalt löschen' : 'löschen' }}" href="{{ route('post.delete', $post) }}">{{ $post->transfers->isNotEmpty() ? 'Inhalt löschen' : 'löschen' }}</a>
                 @endcan
                 <a class="option report" title="melden" href="#">melden</a>
                 @can('viewIp', $post)
-                <a class="option ip" title="IP" href="{{ route('post.ip', ['post' => $post->id]) }}">IP</a>
+                <a class="option ip" title="IP" href="{{ route('post.ip', $post) }}">IP</a>
                 @endcan
             </p>
         </div>
@@ -215,7 +232,7 @@
                     @endif
 
                     @if ($reversibleTransferIds->contains($transfer->id))
-                    <form action="{{ route('transfer.reverse', ['transfer' => $transfer->id]) }}" method="post" class="transfer-reversal-form">
+                    <form action="{{ route('transfer.reverse', $transfer) }}" method="post" class="transfer-reversal-form">
                         @csrf
                         <button type="submit" onclick="return confirm('Diese Handlung wirklich rückgängig machen?')">rückgängig machen</button>
                     </form>
@@ -230,14 +247,14 @@
     <p>Keine Beiträge!</p>
     @endforelse
 
-    @include('board._pagination', ['paginator' => $posts, 'baseUrl' => url('/thread/view/'.$thread->id)])
+    @include('board._pagination', ['paginator' => $posts, 'baseUrl' => route('thread.view', $thread)])
 
     @if ($canCreatePost)
     @php($inventoryCharacters = $characters->filter(fn ($character) => $character->inventory->isNotEmpty())->values())
     @php($inventorySites = $representedLocalSites->filter(fn ($site) => $site->inventory->isNotEmpty())->values())
     @if ($characters->isNotEmpty() || $canCreateCharacter)
     <div id="newpost" class="post">
-        <form name="newpost" action="{{ route('post.create', ['thread' => $thread->id]) }}" method="post">
+        <form name="newpost" action="{{ route('post.create', $thread) }}" method="post">
             @csrf
             <div class="post-charselect">
                 <ul>

@@ -1020,7 +1020,6 @@ class ForumModelTest extends TestCase
 
     public function test_post_ip_page_shows_author_ips_and_other_users_with_same_ip(): void
     {
-        $viewIpPermitId = (int) DB::table('permits')->where('name', 'viewip')->value('id');
         $otherUserId = DB::table('users')->insertGetId([
             'name' => $this->prefix.'_same_ip_user',
             'password' => 'secret',
@@ -1058,15 +1057,6 @@ class ForumModelTest extends TestCase
             'smilies' => 1,
             'signature' => 0,
             'ip' => '127.0.0.1',
-        ]);
-
-        DB::table('permissions')->insert([
-            'recipient_type' => 0,
-            'recipient_id' => $this->userId,
-            'subject_type' => 3,
-            'subject_id' => $this->childBoardId,
-            'permit_id' => $viewIpPermitId,
-            'value' => 1,
         ]);
 
         $this->actingAs(User::findOrFail($this->userId));

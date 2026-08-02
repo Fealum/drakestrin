@@ -1,5 +1,5 @@
 <x-main-layout :title="'»'.$user->name.'« bearbeiten'" alt-title="Nutzer bearbeiten" css="user_edit">
-    <form name="edituser" action="{{ route('user.edit', $user->id) }}" method="post">
+    <form name="edituser" action="{{ route('user.edit', $user) }}" method="post">
         @csrf
 
         <h3>Avatar</h3>

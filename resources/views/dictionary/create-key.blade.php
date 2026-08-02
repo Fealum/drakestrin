@@ -1,9 +1,9 @@
 <x-main-layout title="Übersetzung verknüpfen" css="dictionary">
     <div
         class="dictionary-key-search"
-        x-data="dictionaryKeySearch(@js(route('dictionary.create_key', ['word' => $word->id])))"
+        x-data="dictionaryKeySearch(@js(route('dictionary.create_key', $word)))"
     >
-        <form name="searchdictionarykey" action="{{ route('dictionary.create_key', ['word' => $word->id]) }}" method="get" x-on:submit="submitSearch">
+        <form name="searchdictionarykey" action="{{ route('dictionary.create_key', $word) }}" method="get" x-on:submit="submitSearch">
             <p>
                 <label for="q">Wort suchen: </label>
                 <input

@@ -333,7 +333,7 @@ nav>ul li {
 	margin-top: 60px;
 	border-left: 1px solid rgba(192, 192, 192, 0.6);
 	padding-left: 15px;
-	display: block;
+	display: flex;
 	font: 0.75em/1em Linux Biolinum, FontAwesome;
 	background: rgba(221, 221, 221, 0.8);
 	z-index: 4;
@@ -341,6 +341,7 @@ nav>ul li {
 
 #accountoptions {
 	list-style-type: none;
+	display: flex;
 	position: absolute;
 	top: 0px;
 	left: 0px;
@@ -356,13 +357,17 @@ nav>ul li {
 
 #accountoptions li {
 	display: inline-block;
+	flex: 1;
 	height: 20px;
+	text-align: center;
 }
 
 #accountoptions li a {
 	display: inline-block;
+	font-size: 0;
 	padding-left: 1em;
 	height: 20px;
+	width: 100%;
 	position: relative;
 	top: 0px;
 }
@@ -374,6 +379,9 @@ nav>ul li {
 
 #accountoptions li a:before {
 	padding-right: 5px;
+	font-size: .75rem;
+	width: 100%;
+	display: inline-block;
 }
 
 #sidebar-close {
@@ -420,8 +428,7 @@ nav>ul li {
 	text-indent: 5000px;
 	overflow: hidden;
 	padding: 0px;
-	background-image: url('img/sprites.png');
-	background-position: 0px -30px;
+	background: none;
 }
 
 #sidebar form input[type="submit"]:hover, #sidebar form input[type="text"]:hover + input, #sidebar form input[type="text"]:focus + input {
@@ -780,14 +787,13 @@ nav>ul {
 	}
 	
 	#nav-open {
-		background: #000;
+		background: white;
 		opacity: 0.2;
-		background-image: url('img/sprites.png');
+		mask: url('img/nav.svg') center / contain no-repeat;
 		text-indent: -9999px;
 		display: block;
 		height: 60px;
 		width: 60px;
-		background-position: 0px -60px;
 		padding: 0px;
 		margin: 0px;
 		overflow: hidden;

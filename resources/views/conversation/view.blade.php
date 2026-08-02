@@ -1,5 +1,5 @@
 <x-main-layout :title="'Konversation mit '. $user->name">
-<form name="newMessage" action="{{ route('conversation.create', ['user' => $user->id]) }}" method="post">
+<form name="newMessage" action="{{ route('conversation.create', $user) }}" method="post">
     @csrf
 <textarea class="textarea-bbcode" name="message"></textarea>
 <input type="submit" value="Neue Nachricht erstellen" />
@@ -9,7 +9,7 @@
 	<li>
         <h4>
         @if ($message->sender_user_id === $user->id)
-        <a href="{{ url('/') }}/user/view/{{ $message->sender->id }}">{{ $message->sender->name }}</a>,
+        <a href="{{ route('user.view', $message->sender) }}">{{ $message->sender->name }}</a>,
         @else
         Du,
         @endif

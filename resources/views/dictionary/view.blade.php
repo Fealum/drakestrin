@@ -2,10 +2,10 @@
     <p>
         {{ $word->wordType?->name }}.
         @if ($canEdit)
-        <a href="{{ route('dictionary.edit', ['word' => $word->id]) }}" class="option edit" title="Wort bearbeiten">Wort bearbeiten</a>
+        <a href="{{ route('dictionary.edit', $word) }}" class="option edit" title="Wort bearbeiten">Wort bearbeiten</a>
         @endif
         @if ($canDelete)
-        <a href="{{ route('dictionary.delete', ['word' => $word->id]) }}" class="option delete" title="Wort löschen">Wort löschen</a>
+        <a href="{{ route('dictionary.delete', $word) }}" class="option delete" title="Wort löschen">Wort löschen</a>
         @endif
     </p>
 
@@ -21,15 +21,15 @@
     <ol>
         @foreach ($word->translationKeysFrom as $key)
         <li>
-            <a href="{{ route('dictionary.view', ['word' => $key->toWord->id]) }}">{{ $key->toWord->word }}</a>,
+            <a href="{{ route('dictionary.view', $key->toWord) }}">{{ $key->toWord->word }}</a>,
             <em>{{ $key->toWord->wordType?->name }}</em>.
             @if ($canDelete)
-            <a href="{{ route('dictionary.delete_key', ['key' => $key->id]) }}" class="option delete" title="Verknüpfung löschen">Verknüpfung löschen</a>
+            <a href="{{ route('dictionary.delete_key', $key) }}" class="option delete" title="Verknüpfung löschen">Verknüpfung löschen</a>
             @endif
         </li>
         @endforeach
         @if ($canCreate)
-        <li><a href="{{ route('dictionary.create_key', ['word' => $word->id]) }}" class="option create" title="Neue Verknüpfung erstellen">Neue Verknüpfung erstellen</a></li>
+        <li><a href="{{ route('dictionary.create_key', $word) }}" class="option create" title="Neue Verknüpfung erstellen">Neue Verknüpfung erstellen</a></li>
         @endif
     </ol>
     @endif

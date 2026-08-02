@@ -7,7 +7,7 @@
         wirklich gelöscht werden?
     </p>
 
-    <form name="deletepermission" action="{{ route('permission.delete', ['permission' => $permission->id]) }}" method="post">
+    <form name="deletepermission" action="{{ route('permission.delete', $permission) }}" method="post">
         @csrf
         <input type="hidden" name="delete" value="1">
         <input type="submit" value="Recht löschen">

@@ -11,6 +11,7 @@ services:
       - 80:80
     depends_on:
       - db
+      - mailpit
     secrets:
       - ssh_key
   scheduler:
@@ -21,6 +22,7 @@ services:
       - ../:/var/www/html
     depends_on:
       - db
+      - mailpit
   browser-sync:
     image: node:22-alpine
     working_dir: /var/www/html
@@ -51,6 +53,11 @@ services:
     restart: always
     ports:
       - ${ADMINER_PORT:-8081}:8080
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - ${MAILPIT_PORT:-8025}:8025
 
 volumes:
   mysql_data:

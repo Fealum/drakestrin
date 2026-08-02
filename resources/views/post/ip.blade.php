@@ -53,7 +53,7 @@
         ])->values();
         $sameIpUserRows = $sameIpUsers->map(fn ($entry) => [
             'label' => $entry->author?->name ?? ('Nutzer #'.$entry->user_id),
-            'url' => $entry->author ? url('/user/view/'.$entry->author->id) : null,
+            'url' => $entry->author ? route('user.view', $entry->author) : null,
             'is_post_author' => (int) $entry->user_id === $post->user_id,
             'post_count' => (int) $entry->post_count,
             'first_post_time' => (int) $entry->first_post_time,
@@ -71,14 +71,14 @@
         <div class="postuser">
             <h4>
                 @if ($post->character)
-                <a href="{{ url('/user/character/'.$post->character->id) }}">{{ $post->character->name }}</a>
+                <a href="{{ route('user.character', $post->character) }}">{{ $post->character->name }}</a>
                 @else
                 Unbekannter Charakter
                 @endif
                 <span class="datetime"><x-datetime :time="$post->time" /></span>
             </h4>
             <p>
-                <a class="postnumber small" href="{{ url('/thread/view/'.$post->thread_id.'#post'.$post->id) }}">Beitrag #{{ $post->id }}</a>
+                <a class="postnumber small" href="{{ route('thread.view', $post->thread) }}#post{{ $post->id }}">Beitrag #{{ $post->id }}</a>
             </p>
         </div>
 
@@ -152,7 +152,7 @@
                     <tr class="no-js-row">
                         <td>
                             @if ($entry->author)
-                            <a href="{{ url('/user/view/'.$entry->author->id) }}">{{ $entry->author->name }}</a>
+                            <a href="{{ route('user.view', $entry->author) }}">{{ $entry->author->name }}</a>
                             @else
                             Nutzer #{{ $entry->user_id }}
                             @endif

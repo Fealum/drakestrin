@@ -57,7 +57,7 @@
                             .data(territories.features)
                             .enter()
                             .append('a')
-                            .attr('xlink:href', (feature) => `${config.territoryBaseUrl}/${feature.properties.id}`)
+                            .attr('xlink:href', (feature) => config.territoryUrl.replace('__territory__', feature.properties.id))
                             .append('path')
                             .attr('d', path)
                             .attr('class', 'map_territory');
@@ -134,10 +134,10 @@
         id="territory_map"
         @if ($hasMapData)
         x-data="territoryMap(@js([
-            'territoriesUrl' => route('territory.children_geojson', ['territory' => $territory->id]),
-            'territoryDataUrl' => route('territory.settlements_geojson', ['territory' => $territory->id]),
+            'territoriesUrl' => route('territory.children_geojson', $territory),
+            'territoryDataUrl' => route('territory.settlements_geojson', $territory),
             'landUrl' => route('territory.land_geojson'),
-            'territoryBaseUrl' => url('/territory/view'),
+            'territoryUrl' => route('territory.view', ['territory' => '__territory__']),
             'imageBaseUrl' => asset('images/territory'),
             'capitalId' => $territory->capital_id,
         ]))"
@@ -168,7 +168,7 @@
         @if ($territory->ruler)
         <li id="territory_info_ruler">
             {{ $territory->rulerTitle() }}:
-            <a href="{{ url('/') }}/user/character/{{ $territory->ruler->id }}">{{ $territory->ruler->name }}</a>
+            <a href="{{ route('user.character', $territory->ruler) }}">{{ $territory->ruler->name }}</a>
         </li>
         @endif
         <li>Größe: {{ number_format($territory->area / 1000000, 2, ',', '.') }} km&sup2;</li>

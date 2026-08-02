@@ -52,6 +52,16 @@
     <div id="filter">
         <form method="post" action="{{ route('board.setfilter') }}">
             @csrf
+            @auth
+            <section id="scope">
+                <input type="radio" name="scope" id="scope_all" value=""/>
+                <label for="scope_all">Alle</label>
+                <input type="radio" name="scope" id="scope_subscribed" @selected($filters['scope'] === 'subscribed') value="subscribed"/>
+                <label for="scope_subscribed">Abonniert</label>
+                <input type="radio" name="scope" id="scope_participated" @selected($filters['scope'] === 'participated') value="participated"/>
+                <label for="scope_participated">Beteiligt</label>
+            </section>
+            @endauth
             <input type="text" name="title" placeholder="Thementitel &hellip;" value="{{ $filters['title'] }}">
             <input type="text" name="message" placeholder="Beitrag &hellip;" value="{{ $filters['message'] }}">
 
@@ -123,14 +133,20 @@
 
     <div id="threads">
         @if ($canCreateThread)
-        <p class="newthread"><a href="{{ route('thread.create') }}" class="fa-comments">neues Thema</a></p>
+        <div class="newthread">
+            <form method="post" action="{{ route('board.mark_all_read') }}">
+                @csrf
+                <button type="submit" class="fa-check"> Alle Themen als gelesen markieren</button>
+            </form>
+            <a href="{{ route('thread.create') }}" class="fa-comments">neues Thema</a>
+        </div>
         @endif
 
         @if ($threads->isNotEmpty())
         <p>{{ number_format($threads->total(), 0, ',', '.') }} {{ $threads->total() === 1 ? 'Ergebnis' : 'Ergebnisse' }}</p>
-        @include('board._pagination', ['paginator' => $threads, 'baseUrl' => $filter ? url('/board/filter/'.$filter) : url('/board/filter')])
-        @include('board._thread-list', ['threads' => $threads, 'viewedThreads' => $viewedThreads ?? []])
-        @include('board._pagination', ['paginator' => $threads, 'baseUrl' => $filter ? url('/board/filter/'.$filter) : url('/board/filter')])
+        @include('board._pagination', ['paginator' => $threads, 'baseUrl' => route('board.filter', ['filter' => $filter])])
+        @include('board._thread-list', ['threads' => $threads, 'unreadThreadIds' => $unreadThreadIds, 'firstUnreadPosts' => $firstUnreadPosts])
+        @include('board._pagination', ['paginator' => $threads, 'baseUrl' => route('board.filter', ['filter' => $filter])])
         @else
         <p>Keine Themen gefunden!</p>
         @endif

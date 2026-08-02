@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Access\Permission;
 use App\Models\Board\Board;
 use App\Models\Board\Thread as ForumThread;
-use App\Models\User\Character;
 use App\Models\Core\Configuration;
-use App\Models\Access\Permission;
 use App\Models\User;
+use App\Models\User\Character;
+use App\Services\Board\ThreadReadService;
+use App\Services\PermissionService;
 use App\Support\PermissionEntityType;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -15,14 +17,19 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class BoardController extends Controller
 {
     private const PAGE_ENTRIES = 20;
+
+    public function __construct(PermissionService $permissionService, private ThreadReadService $reads)
+    {
+        parent::__construct($permissionService);
+    }
 
     public function index(): View
     {
@@ -34,7 +41,7 @@ class BoardController extends Controller
         $this->authorize('view', $board);
         $this->setLocation($board);
 
-        return $this->filter('board:' . $board->id, $page);
+        return $this->filter('board:'.$board->id, $page);
     }
 
     public function filter(?string $filter = null, int|string $page = 1): View
@@ -51,8 +58,12 @@ class BoardController extends Controller
 
         $this->applyFilters($query, $filters);
 
+        $visibleThreads = $query->get()->filter(fn (ForumThread $thread) => Gate::allows('view', $thread))->values();
+        $unreadThreadIds = auth()->check()
+            ? $this->reads->unreadThreadIds($visibleThreads, auth()->user())
+            : collect();
         $threads = $this->paginateCollection(
-            $query->get()->filter(fn (ForumThread $thread) => Gate::allows('view', $thread))->values(),
+            $visibleThreads,
             (int) $page,
             route('board.filter', ['filter' => $filter ?: null])
         );
@@ -63,7 +74,11 @@ class BoardController extends Controller
             ->orderByRaw('LOWER(name)')
             ->get();
         $boards = $this->visibleBoardTree($boards);
-        $viewedThreads = $this->viewedThreads();
+        $firstUnreadPosts = auth()->check()
+            ? $threads->getCollection()->mapWithKeys(fn (ForumThread $thread) => [
+                $thread->id => $unreadThreadIds->contains($thread->id) ? $this->reads->firstUnreadPost($thread, auth()->user())?->id : null,
+            ])
+            : collect();
 
         return view('board.filter', [
             'boards' => $boards,
@@ -73,8 +88,9 @@ class BoardController extends Controller
             'filterLookups' => $this->filterLookups($filters),
             'showSettings' => $this->boardShowSettings(),
             'threads' => $threads,
-            'viewedBoards' => $this->viewedBoardIds($boards, $viewedThreads),
-            'viewedThreads' => $viewedThreads,
+            'firstUnreadPosts' => $firstUnreadPosts,
+            'viewedBoards' => $this->viewedBoardIds($boards, $unreadThreadIds),
+            'unreadThreadIds' => $unreadThreadIds,
         ]);
     }
 
@@ -103,6 +119,14 @@ class BoardController extends Controller
         }
 
         return redirect()->back(fallback: route('board'));
+    }
+
+    public function markAllRead(Request $request): RedirectResponse
+    {
+        abort_unless($request->user(), 403);
+        $this->reads->markAll($request->user());
+
+        return back()->with('status', 'Alle Themen wurden als gelesen markiert.');
     }
 
     public function permissions(Request $request, Board $board): View
@@ -152,30 +176,34 @@ class BoardController extends Controller
         $filter = [];
 
         if ($request->filled('title')) {
-            $filter[] = 'title:' . urlencode($request->string('title'));
+            $filter[] = 'title:'.urlencode($request->string('title'));
         }
 
         if ($request->filled('message')) {
-            $filter[] = 'message:' . urlencode($request->string('message'));
+            $filter[] = 'message:'.urlencode($request->string('message'));
+        }
+
+        if (in_array($request->input('scope'), ['subscribed', 'participated'], true)) {
+            $filter[] = 'scope:'.$request->input('scope');
         }
 
         $boards = array_filter((array) $request->input('board', []));
 
         if ($boards) {
-            $filter[] = 'board:' . implode(',', array_map('intval', $boards));
+            $filter[] = 'board:'.implode(',', array_map('intval', $boards));
         }
 
         foreach (['user_first', 'user_contains', 'user_last', 'char_first', 'char_contains', 'char_last'] as $key) {
             $ids = $this->parseIds($request->string($key)->toString());
 
             if ($ids) {
-                $filter[] = $key . ':' . implode(',', $ids);
+                $filter[] = $key.':'.implode(',', $ids);
             }
         }
 
         foreach (['date_first', 'date_last'] as $key) {
             if ($request->filled($key)) {
-                $filter[] = $key . ':' . urlencode($request->string($key));
+                $filter[] = $key.':'.urlencode($request->string($key));
             }
         }
 
@@ -189,7 +217,7 @@ class BoardController extends Controller
         return response()->json(
             User::query()
                 ->when($query !== '', function (Builder $users) use ($query) {
-                    $users->where('name', 'like', '%' . $query . '%');
+                    $users->where('name', 'like', '%'.$query.'%');
 
                     if (ctype_digit($query)) {
                         $users->orWhereKey((int) $query);
@@ -214,7 +242,7 @@ class BoardController extends Controller
         return response()->json(
             Character::query()
                 ->when($query !== '', function (Builder $characters) use ($query) {
-                    $characters->where('name', 'like', '%' . $query . '%');
+                    $characters->where('name', 'like', '%'.$query.'%');
 
                     if (ctype_digit($query)) {
                         $characters->orWhereKey((int) $query);
@@ -234,12 +262,22 @@ class BoardController extends Controller
 
     private function applyFilters(Builder $query, array $filters): void
     {
+        if (($filters['scope'] ?? null) === 'subscribed') {
+            abort_unless(auth()->check(), 403);
+            $query->whereHas('subscriptions', fn (Builder $subscriptions) => $subscriptions->where('user_id', auth()->id()));
+        }
+
+        if (($filters['scope'] ?? null) === 'participated') {
+            abort_unless(auth()->check(), 403);
+            $query->whereHas('posts', fn (Builder $posts) => $posts->where('user_id', auth()->id()));
+        }
+
         if (($filters['title'] ?? '') !== '') {
-            $query->where('name', 'like', '%' . $filters['title'] . '%');
+            $query->where('name', 'like', '%'.$filters['title'].'%');
         }
 
         if (($filters['message'] ?? '') !== '') {
-            $query->whereHas('posts', fn (Builder $posts) => $posts->where('message', 'like', '%' . $filters['message'] . '%'));
+            $query->whereHas('posts', fn (Builder $posts) => $posts->where('message', 'like', '%'.$filters['message'].'%'));
         }
 
         if (($filters['board'] ?? []) !== []) {
@@ -284,6 +322,7 @@ class BoardController extends Controller
     private function parseFilterString(?string $filter): array
     {
         $filters = [
+            'scope' => null,
             'title' => null,
             'message' => null,
             'board' => [],
@@ -306,6 +345,10 @@ class BoardController extends Controller
 
             if ($key === 'title' || $key === 'message' || $key === 'date_first' || $key === 'date_last') {
                 $filters[$key] = urldecode((string) $value);
+            }
+
+            if ($key === 'scope' && in_array($value, ['subscribed', 'participated'], true)) {
+                $filters['scope'] = $value;
             }
 
             if ($key === 'board') {
@@ -411,38 +454,22 @@ class BoardController extends Controller
             ->values();
     }
 
-    private function viewedThreads(): array
-    {
-        return session('viewed.1', []);
-    }
-
-    private function viewedBoardIds(Collection $boards, array $viewedThreads): Collection
+    private function viewedBoardIds(Collection $boards, Collection $unreadThreadIds): Collection
     {
         if (! auth()->check()) {
             return collect();
         }
 
-        return $boards->flatMap(function (Board $board) use ($viewedThreads) {
+        return $boards->flatMap(function (Board $board) use ($unreadThreadIds) {
             $ids = collect();
-            $childIds = $this->viewedBoardIds($board->children, $viewedThreads);
+            $childIds = $this->viewedBoardIds($board->children, $unreadThreadIds);
 
-            if ($this->boardHasNewPosts($board, $viewedThreads) || $childIds->isNotEmpty()) {
+            if ($unreadThreadIds->intersect($board->threads()->pluck('id'))->isNotEmpty() || $childIds->isNotEmpty()) {
                 $ids->push($board->id);
             }
 
             return $ids->merge($childIds);
         })->unique()->values();
-    }
-
-    private function boardHasNewPosts(Board $board, array $viewedThreads): bool
-    {
-        $lastVisit = auth()->user()?->lastvisit?->timestamp ?? 0;
-
-        return ForumThread::query()
-            ->where('board_id', $board->id)
-            ->where('last_post_at', '>=', $lastVisit)
-            ->get()
-            ->contains(fn (ForumThread $thread) => ($viewedThreads[$thread->id] ?? 0) < $thread->getRawOriginal('last_post_at'));
     }
 
     private function paginateCollection($items, int $page, string $path): LengthAwarePaginator

@@ -2,10 +2,10 @@
 @foreach ($threads as $thread)
     <li>
         <h4>
-            <a href="{{ route('thread.view', ['thread' => $thread->id]) }}">
-                @if (auth()->check() && $thread->last_post_at?->timestamp >= auth()->user()->lastvisit?->timestamp && (($viewedThreads[$thread->id] ?? 0) < $thread->getRawOriginal('last_post_at')))
-                <span class="option new">(Neu)</span>
-                @endif
+            @if (auth()->check() && $unreadThreadIds->contains($thread->id) && $firstUnreadPosts[$thread->id])
+            <a class="option new" href="{{ route('post.view', ['post' => $firstUnreadPosts[$thread->id]]) }}">(Neu)</a>
+            @endif
+            <a href="{{ route('thread.view', $thread) }}">
                 @if ($thread->important)
                 <span class="important">Wichtig</span>
                 @endif
@@ -16,7 +16,7 @@
         @if ($thread->firstPost)
         <p class="small">
             @if ($thread->firstPost->character)
-            <a href="{{ url('/user/character/'.$thread->firstPost->character->id) }}">
+            <a href="{{ route('user.character', $thread->firstPost->character) }}">
                 <x-avatar :subject="$thread->firstPost->character" size="list" />
                 {{ $thread->firstPost->character->name }}
             </a>;
@@ -30,12 +30,12 @@
         @if ($thread->lastPost)
         <p class="small">
             @if ($thread->lastPost->character)
-            <a href="{{ url('/user/character/'.$thread->lastPost->character->id) }}">
+            <a href="{{ route('user.character', $thread->lastPost->character) }}">
                 <x-avatar :subject="$thread->lastPost->character" size="list" />
                 {{ $thread->lastPost->character->name }}
             </a>;
             @endif
-            <a href="{{ route('thread.view', ['thread' => $thread->id, 'page' => 'last']) }}#post{{ $thread->last_post_id }}">
+            <a href="{{ route('thread.view', ['thread' => $thread, 'page' => 'last']) }}#post{{ $thread->last_post_id }}">
                 <x-datetime :time="$thread->last_post_at" />
             </a>
             <br>

@@ -3,11 +3,11 @@
     <p>
         Gehört zu:
         @if ($location->parent instanceof \App\Models\Territory\Territory)
-        <a href="{{ route('territory.view', ['territory' => $location->parent->id]) }}">{{ $location->parent->displayName() }}</a>
+        <a href="{{ route('territory.view', $location->parent) }}">{{ $location->parent->displayName() }}</a>
         @elseif ($location->parent instanceof \App\Models\Territory\Settlement)
         {{ $location->parent->name }}
         @elseif ($location->parent instanceof \App\Models\Territory\Location)
-        <a href="{{ route('location.view', ['location' => $location->parent->id]) }}">{{ $location->parent->name }}</a>
+        <a href="{{ route('location.view', $location->parent) }}">{{ $location->parent->name }}</a>
         @else
         {{ $location->parent->name ?? 'Unbekannt' }}
         @endif
@@ -24,17 +24,17 @@
         <a href="{{ route('location.create', ['parentType' => 'location', 'parentId' => $location->id]) }}">Unterort erstellen</a>
         @endif
         @if ($canEdit)
-        <a href="{{ route('location.edit', ['location' => $location->id]) }}">bearbeiten</a>
+        <a href="{{ route('location.edit', $location) }}">bearbeiten</a>
         @endif
         @if ($canDelete)
-        <a href="{{ route('location.delete', ['location' => $location->id]) }}">löschen</a>
+        <a href="{{ route('location.delete', $location) }}">löschen</a>
         @endif
     </p>
     @endif
 
     <ol>
         @if ($location->creator)
-        <li>Erstellt von: <a href="{{ route('user.view', ['user' => $location->creator->id]) }}">{{ $location->creator->name }}</a></li>
+        <li>Erstellt von: <a href="{{ route('user.view', $location->creator) }}">{{ $location->creator->name }}</a></li>
         @endif
         @if ($location->created_at)
         <li>Erstellt: <x-datetime :time="$location->created_at" /></li>
@@ -68,7 +68,7 @@
         @foreach ($location->threadScenes as $scene)
         @if ($scene->thread)
         <li>
-            <a href="{{ route('thread.view', ['thread' => $scene->thread->id]) }}">{{ $scene->thread->name }}</a>
+            <a href="{{ route('thread.view', $scene->thread) }}">{{ $scene->thread->name }}</a>
             @if ($scene->isActive())
             <small>aktiv</small>
             @endif
@@ -84,7 +84,7 @@
         @foreach ($location->companySites as $site)
         @if ($site->company)
         <li>
-            <a href="{{ route('company.view', ['company' => $site->company->id]) }}">{{ $site->company->name }}</a>
+            <a href="{{ route('company.view', $site->company) }}">{{ $site->company->name }}</a>
             @if ((int) $site->company?->headquarters_site_id === (int) $site->id)(Hauptsitz)@endif
         </li>
         @endif

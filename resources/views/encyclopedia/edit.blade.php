@@ -1,5 +1,5 @@
 <x-main-layout :title="'Seite »'.$page->name.'« bearbeiten'" css="encyclopedia_view">
-    <form name="editEncyclopedia" action="{{ route('encyclopedia.edit', ['page' => $page->id]) }}" method="post">
+    <form name="editEncyclopedia" action="{{ route('encyclopedia.edit', $page) }}" method="post">
         @csrf
         <x-textinput formname="editEncyclopedia" inputname="name" displayname="Seitentitel (kurz)" :value="old('name') ?? $page->name" :required="true"/>
         <x-textinput formname="editEncyclopedia" inputname="title" displayname="Seitentitel (lang)" :value="old('title') ?? $page->title" :required="true"/>

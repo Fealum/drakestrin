@@ -16,12 +16,42 @@ div#filter {
 }
 
 div#filter input {
-	width: 100%;
+	width: calc(100% - 10px);
 	background: #e7e7e7;
 	border: none;
 	padding: 0 5px;
 	margin: 5px 0;
 	font-family: Linux Biolinum;
+}
+
+div#filter #scope {
+	display: flex;
+	gap: 1em;
+	width: 100%;
+	padding-bottom: 0.4rem;
+}
+
+div#filter #scope input {
+	display: none;
+}
+
+div#filter #scope input + label {
+	text-align: center;
+	width: 100%;
+	flex: 1;
+	border: 2px solid #999;
+	color: #999;
+	font-weight: bold;
+}
+
+div#filter #scope input + label:hover {
+	border-color: #333;
+	color: #333;
+}
+
+div#filter #scope input:checked + label {
+	border-color: #36731B;
+	color: #36731B;
 }
 
 div#filter .contrexp {
@@ -308,21 +338,42 @@ div#threads {
 }
 
 div#threads .newthread {
-	font: 0.875em/1.25em Linux Biolinum, FontAwesome, Sans-Serif;
 	text-align: right;
+	display: flex;
+	justify-content: flex-end;
+	gap: .5rem;
 }
 
-div#threads .newthread a {
+div#threads .newthread a,
+div#threads .newthread button {
+	font: 0.875em/1.25em Linux Biolinum, FontAwesome, Sans-Serif;
 	display: inline-block;
 	padding: 0.3em;
 	border-radius: 0.4em;
 	border: 2px solid #777;
+	background: white;
 	color: #777;
+	cursor: pointer;
+	box-sizing: content-box;
+	height: 20px;
+	transition: background-color .5s;
 }
 
-div#threads .newthread a:hover, div#threads .newthread a:active, div#threads .newthread a:focus {
-	background: #777;
+div#threads .newthread a {
+	border: 2px solid #36731B;
+	color: #36731B;
+}
+
+div#threads .newthread a:hover,
+div#threads .newthread a:active,
+div#threads .newthread a:focus,
+div#threads .newthread button:hover {
+	background: #36731B;
 	color: white;
+}
+
+div#threads .newthread button:hover {
+	background: #777;
 }
 
 div#threads .newthread a:before {
@@ -383,7 +434,17 @@ div#threads ol p:nth-child(3) img {
 	right: 0px;
 }
 
-div#threads h4 a {
+div#threads h4 {
+	display: flex;
+	align-items: center;
+}
+
+div#threads h4 a.new {
+	display: inline-block;
+	margin-right: 5px;
+}
+
+div#threads h4 a:not(.new) {
 	display: inline-block;
 	width: 100%;
 	padding: 5px 0px;
@@ -401,7 +462,7 @@ div#threads h4 a span.important {
 	margin-right: 0.5em;
 }
 
-div#threads h4 a:hover {
+div#threads h4 a:not(.new):hover {
 	background: none;
 	text-decoration: underline;
 }

@@ -11,15 +11,15 @@
             <ol>
                 <li><em>Charakter erstellt:</em> <x-datetime :time="$character->regdate" /></li>
                 @if ($character->user)
-                <li><em>Übergeordneter Nutzer:</em> <a href="{{ route('user.view', $character->user->id) }}">{{ $character->user->name }}</a></li>
+                <li><em>Übergeordneter Nutzer:</em> <a href="{{ route('user.view', $character->user) }}">{{ $character->user->name }}</a></li>
                 @endif
-                <li><em>Beiträge insgesamt:</em> <a href="{{ url('/board/filter/char_contains:'.$character->id) }}">{{ number_format($character->post_count ?? 0, 0, ',', '.') }}</a></li>
+                <li><em>Beiträge insgesamt:</em> <a href="{{ route('board.filter', ['filter' => 'char_contains:'.$character->id]) }}">{{ number_format($character->post_count ?? 0, 0, ',', '.') }}</a></li>
                 <li><em>Beiträge pro Tag:</em> {{ number_format($character->postsPerDay(), 2, ',', '.') }}</li>
             </ol>
         </li>
         <li><h4>Informationen
             @if ($canEdit)
-            <a href="{{ route('user.edit_character', $character->id) }}" class="option edit" title="editieren">editieren</a>
+            <a href="{{ route('user.edit_character', $character) }}" class="option edit" title="editieren">editieren</a>
             @endif
         </h4>
             <ol>
@@ -45,8 +45,8 @@
             <ol>
                 @foreach ($character->territories as $territory)
                 <li class="territory_info">
-                    <a href="{{ route('territory.view', $territory->id) }}">
-                        <img src="{{ url('/img/territory.id/'.$territory->id.'.png') }}" alt="Wappen von {{ $territory->name }}">
+                    <a href="{{ route('territory.view', $territory) }}">
+                        <img src="{{ route('territory.legacy_coat_of_arms', ['file' => $territory->id.'.png']) }}" alt="Wappen von {{ $territory->name }}">
                         {{ $territory->rulerTitle() }} von {{ $territory->name }}
                     </a>
                 </li>
@@ -69,7 +69,7 @@
     <h3>Betriebe</h3>
     <ol>
         @foreach ($character->companies as $company)
-        <li><a href="{{ route('company.view', $company->id) }}">{{ $company->name }}</a>: {{ $company->description }}</li>
+        <li><a href="{{ route('company.view', $company) }}">{{ $company->name }}</a>: {{ $company->description }}</li>
         @endforeach
     </ol>
     @endif

@@ -61,7 +61,7 @@
 			<ul>
 				<li><a href="{{ route('encyclopedia') }}">Kompendium</a></li>
 				<li><a href="{{ route('board') }}">Forum</a></li>
-				<li><a href="{{ url('/') }}/user">Mitglieder</a></li> 
+				<li><a href="{{ route('user') }}">Mitglieder</a></li> 
 				<li><a href="{{ route('territory') }}">Atlas</a></li>
 				<li><a href="{{ route('calendar') }}">Kalendarium</a></li> 
 				<li><a href="{{ route('dictionary') }}">Diktionar</a></li>
@@ -74,6 +74,9 @@
 				<a id="notifypic" href="#sidebar"><x-avatar :subject="auth()->user()" size="list" /></a>
 				@if ($newMessage)
                 <a href="{{ route('conversation') }}" class="fa-envelope newconv"> </a>
+                @endif
+                @if ($newSubscribedThread ?? false)
+                <a href="{{ route('subscriptions.index') }}" class="fa-bell newconv" title="Neue Beiträge in abonnierten Themen"> </a>
                 @endif
                 Sali Vuz,<br />{{ auth()->user()->name }}!
 			@else
@@ -104,14 +107,19 @@
 			{!! $i['content'] !!}
 		</p>
 		@endforeach
+		@if (session('status'))
+		<p class="notice notice_success">{{ session('status') }}</p>
+		@endif
 		{{ $slot }}
 	</main>
 	<aside id="sidebar">
 		@auth
 		<ul id="accountoptions">
-			<li><a href="{{ route('conversation') }}" class="fa-envelope">Konversationen</a></li>
-			<li><a href="{{ url('/') }}/user/view/{{ auth()->user()->id }}" class="fa-user">Profil</a></li>
-			<li><a href="{{ route('log.out') }}" class="fa-sign-out">Abmelden</a></li>
+			<li><a href="{{ route('conversation') }}" class="fa-envelope" title="Konversationen">Konversationen</a></li>
+			<li><a href="{{ route('subscriptions.index') }}" class="fa-bell" title="Abonnements">Abonnements</a></li>
+			<li><a href="{{ route('forum.settings') }}" class="fa-cog" title="Einstellungen">Einstellungen</a></li>
+			<li><a href="{{ route('user.view', auth()->user()) }}" class="fa-user" title="Profil">Profil</a></li>
+			<li><a href="{{ route('log.out') }}" class="fa-sign-out" title="Abmelden">Abmelden</a></li>
 		</ul>
 		@endauth
         @isset ($online)
@@ -134,7 +142,7 @@
 		<a href="{{ route('user') }}">Mitgliederübersicht</a>
 		@elseif ($value->route === 'user.view')
 		@if ($value->locateable)
-		Mitglied »<a href="{{ route('user.view', ['user' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		Mitglied »<a href="{{ route('user.view', $value->locateable) }}">{{ $value->locateable->name }}</a>«
 		@else
 		<a href="{{ route('user') }}">Mitgliederübersicht</a>
 		@endif
@@ -142,7 +150,7 @@
 		Mitglied bearbeiten
 		@elseif ($value->route === 'user.character')
 		@if ($value->locateable)
-		Charakter »<a href="{{ route('user.character', ['character' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		Charakter »<a href="{{ route('user.character', $value->locateable) }}">{{ $value->locateable->name }}</a>«
 		@else
 		Mitglieder
 		@endif
@@ -156,7 +164,7 @@
 		<a href="{{ route('group') }}">Gruppen</a>
 		@elseif ($value->route === 'group.view')
 		@if ($value->locateable)
-		Gruppe »<a href="{{ route('group.view', ['group' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		Gruppe »<a href="{{ route('group.view', $value->locateable) }}">{{ $value->locateable->name }}</a>«
 		@else
 		<a href="{{ route('group') }}">Gruppen</a>
 		@endif
@@ -164,13 +172,13 @@
 		<a href="{{ route('company') }}">Kontor</a>
 		@elseif ($value->route === 'company.view')
 		@if ($value->locateable)
-		Kontor, »<a href="{{ route('company.view', ['company' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		Kontor, »<a href="{{ route('company.view', $value->locateable) }}">{{ $value->locateable->name }}</a>«
 		@else
 		<a href="{{ route('company') }}">Kontor</a>
 		@endif
 		@elseif ($value->route === 'company.worker')
 		@if ($value->locateable)
-		Angestellter »<a href="{{ route('company.worker', ['worker' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		Angestellter »<a href="{{ route('company.worker', $value->locateable) }}">{{ $value->locateable->name }}</a>«
 		@else
 		Kontor
 		@endif
@@ -187,18 +195,18 @@
 		@elseif ($value->route === 'encyclopedia')
 		<a href="{{ route($value->route) }}">Kompendium</a>
 		@elseif ($value->route === 'encyclopedia.view')
-		Kompendium, »<a href="{{ route($value->route, ['page' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		Kompendium, »<a href="{{ route($value->route, $value->locateable) }}">{{ $value->locateable->name }}</a>«
 		@elseif ($value->route === 'encyclopedia.create')
 		Kompendiumsseite erstellen
 		@elseif ($value->route === 'encyclopedia.edit')
-		»<a href="{{ route($value->route, ['page' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>« bearbeiten
+		»<a href="{{ route($value->route, $value->locateable) }}">{{ $value->locateable->name }}</a>« bearbeiten
 		@elseif ($value->route === 'encyclopedia.delete')
-		»<a href="{{ route($value->route, ['page' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>« löschen
+		»<a href="{{ route($value->route, $value->locateable) }}">{{ $value->locateable->name }}</a>« löschen
 		@elseif ($value->route === 'dictionary' || $value->route === 'dictionary.viewall')
 		<a href="{{ route('dictionary') }}">Diktionar</a>
 		@elseif ($value->route === 'dictionary.view')
 		@if ($value->locateable)
-		Diktionar, »<a href="{{ route($value->route, ['word' => $value->locateable->id]) }}">{{ $value->locateable->word }}</a>«
+		Diktionar, »<a href="{{ route($value->route, $value->locateable) }}">{{ $value->locateable->word }}</a>«
 		@else
 		<a href="{{ route('dictionary') }}">Diktionar</a>
 		@endif
@@ -206,19 +214,19 @@
 		Neues Wort erstellen
 		@elseif ($value->route === 'dictionary.edit')
 		@if ($value->locateable)
-		»<a href="{{ route($value->route, ['word' => $value->locateable->id]) }}">{{ $value->locateable->word }}</a>« bearbeiten
+		»<a href="{{ route($value->route, $value->locateable) }}">{{ $value->locateable->word }}</a>« bearbeiten
 		@else
 		Wort bearbeiten
 		@endif
 		@elseif ($value->route === 'dictionary.delete')
 		@if ($value->locateable)
-		»<a href="{{ route($value->route, ['word' => $value->locateable->id]) }}">{{ $value->locateable->word }}</a>« löschen
+		»<a href="{{ route($value->route, $value->locateable) }}">{{ $value->locateable->word }}</a>« löschen
 		@else
 		Wort löschen
 		@endif
 		@elseif ($value->route === 'dictionary.create_key')
 		@if ($value->locateable)
-		Übersetzung zu »<a href="{{ route('dictionary.view', ['word' => $value->locateable->id]) }}">{{ $value->locateable->word }}</a>« verknüpfen
+		Übersetzung zu »<a href="{{ route('dictionary.view', $value->locateable) }}">{{ $value->locateable->word }}</a>« verknüpfen
 		@else
 		Übersetzung verknüpfen
 		@endif
@@ -230,7 +238,7 @@
 		<a href="{{ route('territory') }}">Atlas</a>
 		@elseif ($value->route === 'territory.view')
 		@if ($value->locateable)
-		Atlas, »<a href="{{ route($value->route, ['territory' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		Atlas, »<a href="{{ route($value->route, $value->locateable) }}">{{ $value->locateable->name }}</a>«
 		@else
 		<a href="{{ route('territory') }}">Atlas</a>
 		@endif
@@ -240,7 +248,7 @@
 		<a href="{{ route('board') }}">Forenübersicht</a>
 		@elseif ($value->route === 'board.view' || $value->route === 'board.view.legacy')
 		@if ($value->locateable)
-		Forum, »<a href="{{ route('board.view', ['board' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		Forum, »<a href="{{ route('board.view', $value->locateable) }}">{{ $value->locateable->name }}</a>«
 		@else
 		<a href="{{ route('board') }}">Forenübersicht</a>
 		@endif
@@ -252,7 +260,7 @@
 		<a href="{{ route('board') }}">Forenübersicht</a>
 		@elseif ($value->route === 'thread.view')
 		@if ($value->locateable)
-		Thema »<a href="{{ route('thread.view', ['thread' => $value->locateable->id]) }}">{{ $value->locateable->name }}</a>«
+		Thema »<a href="{{ route('thread.view', $value->locateable) }}">{{ $value->locateable->name }}</a>«
 		@else
 		Thema
 		@endif
@@ -294,34 +302,34 @@
 		@endif
 	@elseif ($value->controller == 'board')
 		@if ($value->action == 'std')
-		<a href="{{ url('/') }}/{{ $value->controller }}">Forenübersicht</a>
+		<a href="{{ route('board') }}">Forenübersicht</a>
 		@else
-		Forum, Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->action }}</a>
+		Forum, Seite {{ $value->action }}
 		@endif
 	@elseif ($value->controller == 'thread')
 		@if ($value->action == 'view')
-		<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">Thema</a>
+		<a href="{{ route('thread.view', $value->location) }}">Thema</a>
 		@elseif ($value->action == 'create')
 		Neues Thema erstellen
 		@elseif ($value->action == 'edit')
-		Thema »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{{ $value->location }}</a>« bearbeiten
+		Thema »<a href="{{ route('thread.edit', $value->location) }}">{{ $value->location }}</a>« bearbeiten
 		@elseif ($value->action == 'delete')
-		Thema »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{{ $value->location }}</a>« löschen
+		Thema »<a href="{{ route('thread.delete', $value->location) }}">{{ $value->location }}</a>« löschen
 		@else
-		Thema, Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->action }}</a>
+		Thema, Seite {{ $value->action }}
 		@endif
 	@elseif ($value->controller == 'user')
 		@if ($value->action == 'viewall')
-		<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">Mitgliederübersicht</a>
+		<a href="{{ route('user.viewall') }}">Mitgliederübersicht</a>
 		@elseif ($value->action == 'view')
-		Mitglied »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{$value->location}</a>«
+		Mitglied »<a href="{{ route('user.view', $value->location) }}">{{ $value->location }}</a>«
 		@elseif ($value->action == 'edit')
-		Mitglied »<a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}/{{ $value->location }}">{{ $value->location }}</a>« bearbeiten
+		Mitglied »<a href="{{ route('user.edit', $value->location) }}">{{ $value->location }}</a>« bearbeiten
 		@else
-		Mitglieder, Seite <a href="{{ url('/') }}/{{ $value->controller }}/{{ $value->action }}">{{ $value->action}}</a>
+		Mitglieder, Seite {{ $value->action }}
 		@endif
 	@elseif ($value->controller)
-		Seite <a href="{{ url('/') }}/{{ Str::lower($value->controller) }}/{{ $value->action }}">{{ $value->controller }}/{{ $value->action }}</a>
+		Seite {{ $value->controller }}/{{ $value->action }}
 	@endif
 			</span>
 			@endforeach

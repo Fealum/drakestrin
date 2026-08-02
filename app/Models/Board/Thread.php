@@ -2,9 +2,11 @@
 
 namespace App\Models\Board;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Thread extends Model
@@ -90,5 +92,16 @@ class Thread extends Model
     public function lastPost(): BelongsTo
     {
         return $this->belongsTo(Post::class);
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(ThreadSubscription::class);
+    }
+
+    public function subscribers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'thread_subscriptions')
+            ->withPivot(['email_frequency', 'created_at']);
     }
 }

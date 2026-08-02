@@ -2,19 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\EmailValidation;
+use App\Models\Access\Group;
+use App\Models\Board\Post;
+use App\Models\User;
+use App\Models\User\UserPreference;
+use App\Models\User\ValidEmail;
+use App\Support\ThreadEmailFrequency;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
-use Carbon\Carbon;
-use App\Mail\EmailValidation;
-use App\Models\User;
-use App\Models\User\ValidEmail;
-use App\Models\Access\Group;
 
 class RegisterController extends Controller
 {
@@ -70,13 +72,15 @@ class RegisterController extends Controller
 
         $validEmail = ValidEmail::where('email', $email)->first();
 
-        if (!$validEmail) {
+        if (! $validEmail) {
             $this->flashMessage('error', 'register.email_not_in_system');
+
             return redirect()->route('register');
         }
 
         if ($key !== $this->makeKey($email, $validEmail->valid_until)) {
             $this->flashMessage('error', 'register.invalid_key', ['email' => $email]);
+
             return redirect()->route('register');
         }
 
@@ -108,6 +112,18 @@ class RegisterController extends Controller
                 'lastactivity' => $now,
             ]);
 
+            UserPreference::create([
+                'user_id' => $newUser->id,
+                'auto_subscribe' => true,
+                'default_email_frequency' => $newUser->receiveemails
+                    ? ThreadEmailFrequency::ONCE_UNTIL_READ
+                    : ThreadEmailFrequency::NONE,
+                'read_tracking_started_at' => $now->timestamp,
+                'read_tracking_started_post_id' => Post::query()->max('id') ?: 0,
+                'last_daily_digest_at' => $now->timestamp,
+                'last_weekly_digest_at' => $now->timestamp,
+            ]);
+
             $defaultGroup = Group::find(1);
             $newUser->groups()->attach($defaultGroup);
 
@@ -131,7 +147,7 @@ class RegisterController extends Controller
 
     private function makeKey(string $email, Carbon $validUntil): string
     {
-        return md5(config('app.key') . $email . config('app.key') . $validUntil->timestamp . config('app.key'));
+        return md5(config('app.key').$email.config('app.key').$validUntil->timestamp.config('app.key'));
     }
 
     private function clearValidEmails(): void

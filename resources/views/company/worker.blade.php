@@ -1,13 +1,13 @@
 <x-main-layout :title="$worker->name" css="company_view">
     <ol>
         @if ($worker->company)
-        <li>Betrieb: <a href="{{ route('company.view', $worker->company->id) }}">{{ $worker->company->name }}</a></li>
+        <li>Betrieb: <a href="{{ route('company.view', $worker->company) }}">{{ $worker->company->name }}</a></li>
         @endif
         @if ($worker->site)
         <li>Standort: {{ $worker->site->name }}</li>
         @endif
         @if ($canFire)
-        <li><a href="{{ route('company.fire', $worker->id) }}">entlassen</a></li>
+        <li><a href="{{ route('company.fire', $worker) }}">entlassen</a></li>
         @endif
         <li>
             <p>
@@ -19,7 +19,7 @@
             </p>
         </li>
         @if ((int) $worker->type === 5 && $worker->company && $worker->site)
-        <li><a href="{{ route('company.pay', ['company' => $worker->company->id, 'site' => $worker->site->id]) }}">Löhne auszahlen</a></li>
+        <li><a href="{{ route('company.pay', ['company' => $worker->company, 'site' => $worker->site]) }}">Löhne auszahlen</a></li>
         @elseif ($worker->activeLabours->isNotEmpty())
             @foreach ($worker->activeLabours as $activeLabour)
             @php($labour = $activeLabour->labour)
@@ -55,7 +55,7 @@
                 <br>Wartet auf Rohstoffe.
                 @endif
                 @if ($canAssignLabour && !$activeLabour->stop_requested_at)
-                <form action="{{ route('company.stop_labour', $activeLabour->id) }}" method="post">
+                <form action="{{ route('company.stop_labour', $activeLabour) }}" method="post">
                     @csrf
                     <button type="submit">Arbeit beenden</button>
                 </form>
@@ -81,7 +81,7 @@
     </div>
     @endif
     @if ($labours->isNotEmpty())
-    <form name="assignlabour" action="{{ route('company.assign_labour', $worker->id) }}" method="post">
+    <form name="assignlabour" action="{{ route('company.assign_labour', $worker) }}" method="post">
         @csrf
         <ul>
             @foreach ($labours as $labour)

@@ -6,7 +6,7 @@
         {{ $result->word }},
         <em>{{ $result->wordType?->name }}</em>,
         {{ $result->language?->name ?? $result->language?->code ?? $result->language_id }}.
-        <form class="dictionary-key-result-form" action="{{ route('dictionary.create_key', ['word' => $word->id]) }}" method="post">
+        <form class="dictionary-key-result-form" action="{{ route('dictionary.create_key', $word) }}" method="post">
             @csrf
             <input type="hidden" name="word" value="{{ $result->id }}" />
             <button type="submit" name="bijective" value="0">Einfach verknüpfen</button>

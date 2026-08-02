@@ -4,7 +4,7 @@
     @endif
     <ol class="companies">
         @foreach ($companies as $company)
-        <li><a href="{{ route('company.view', $company->id) }}">{{ $company->name }}</a></li>
+        <li><a href="{{ route('company.view', $company) }}">{{ $company->name }}</a></li>
         @endforeach
     </ol>
 </x-main-layout>

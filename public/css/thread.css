@@ -7,6 +7,18 @@
 	display: none !important;
 }
 
+.inline-form {
+	display: inline;
+}
+
+.inline-form button {
+	border: 0;
+	color: #060;
+	cursor: pointer;
+	font: inherit;
+	padding: 0;
+}
+
 main h4 {
 	margin: 0px;
 	padding: 0px;
@@ -20,6 +32,8 @@ main > div.post {
 
 main > div.post > div.postuser {
 	overflow: auto;
+	display: flex;
+	justify-content: space-between;
 }
 
 main > div.post + div.post {
@@ -49,8 +63,7 @@ main div.followpost > div > h4 {
 }
 
 main div.post div.postuser p {
-	position: absolute;
-	right: 0px;
+	display: flex;
 }
 
 main div.post > .postcontent, main div.post > form {

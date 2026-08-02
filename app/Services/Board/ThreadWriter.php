@@ -15,13 +15,16 @@ use InvalidArgumentException;
 
 class ThreadWriter
 {
-    public function __construct(private ForumCounters $counters) {}
+    public function __construct(
+        private ForumCounters $counters,
+        private ThreadSubscriptionService $subscriptions,
+    ) {}
 
     public function create(Board $board, User $user, CreateThreadData $data, bool $canMarkAsImportant, string $ip): ForumThread
     {
         $character = $this->userCharacter($user, $data->characterId);
 
-        return DB::transaction(function () use ($board, $user, $character, $data, $canMarkAsImportant, $ip) {
+        $thread = DB::transaction(function () use ($board, $user, $character, $data, $canMarkAsImportant, $ip) {
             $time = now()->timestamp;
 
             $thread = ForumThread::create([
@@ -68,6 +71,10 @@ class ThreadWriter
 
             return $thread;
         });
+
+        $this->subscriptions->afterPostCreated($thread->firstPost()->firstOrFail());
+
+        return $thread;
     }
 
     public function update(ForumThread $thread, Board $newBoard, UpdateThreadData $data, bool $canMarkAsImportant): void

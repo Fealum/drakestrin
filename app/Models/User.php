@@ -6,18 +6,23 @@ namespace App\Models;
 use App\Models\Access\Group;
 use App\Models\Access\Permission;
 use App\Models\Board\Post;
+use App\Models\Board\Thread;
+use App\Models\Board\ThreadRead;
+use App\Models\Board\ThreadSubscription;
 use App\Models\User\Character;
 use App\Models\User\Message;
 use App\Models\User\UserContact;
+use App\Models\User\UserPreference;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
@@ -31,6 +36,7 @@ class User extends Authenticatable
     protected $dateFormat = 'U';
 
     const CREATED_AT = 'regdate';
+
     const UPDATED_AT = 'lastvisit';
 
     /**
@@ -53,6 +59,7 @@ class User extends Authenticatable
         'regdate',
         'lastvisit',
         'lastactivity',
+        'receiveemails',
     ];
 
     /**
@@ -78,6 +85,7 @@ class User extends Authenticatable
         'regdate' => 'datetime',
         'lastvisit' => 'datetime',
         'lastactivity' => 'datetime',
+        'receiveemails' => 'boolean',
     ];
 
     public function avatarCharacter(): BelongsTo
@@ -127,6 +135,27 @@ class User extends Authenticatable
             ->orderBy('contact');
     }
 
+    public function preference(): HasOne
+    {
+        return $this->hasOne(UserPreference::class);
+    }
+
+    public function threadReads(): HasMany
+    {
+        return $this->hasMany(ThreadRead::class);
+    }
+
+    public function threadSubscriptions(): HasMany
+    {
+        return $this->hasMany(ThreadSubscription::class);
+    }
+
+    public function subscribedThreads(): BelongsToMany
+    {
+        return $this->belongsToMany(Thread::class, 'thread_subscriptions')
+            ->withPivot(['email_frequency', 'last_emailed_post_id', 'created_at', 'updated_at']);
+    }
+
     public function avatarThumbPath(): string
     {
         if ($this->avatar_character_id) {
@@ -135,7 +164,7 @@ class User extends Authenticatable
 
         $firstCharacter = mb_substr($this->name, 0, 1);
 
-        return ctype_alpha($firstCharacter) ? 'i/' . mb_strtolower($firstCharacter) : 'i/_';
+        return ctype_alpha($firstCharacter) ? 'i/'.mb_strtolower($firstCharacter) : 'i/_';
     }
 
     public function avatarPath(): string
@@ -145,12 +174,12 @@ class User extends Authenticatable
 
     public function avatarThumbUrl(): string
     {
-        return Storage::disk('public')->url('character-avatars/thumb/' . $this->avatarThumbPath() . '.jpg');
+        return Storage::disk('public')->url('character-avatars/thumb/'.$this->avatarThumbPath().'.jpg');
     }
 
     public function avatarUrl(): string
     {
-        return Storage::disk('public')->url('character-avatars/' . $this->avatarPath() . '.jpg');
+        return Storage::disk('public')->url('character-avatars/'.$this->avatarPath().'.jpg');
     }
 
     public function postsPerDay(): float

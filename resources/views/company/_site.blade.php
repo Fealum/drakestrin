@@ -5,7 +5,7 @@
         @if ((int) $company->headquarters_site_id === (int) $site->id)<span>Hauptsitz</span>@endif
 
     @if ($site->location)
-    <p>Ort: <a href="{{ route('location.view', ['location' => $site->location_id]) }}">{{ $site->location->name }}</a></p>
+    <p>Ort: <a href="{{ route('location.view', $site->location) }}">{{ $site->location->name }}</a></p>
     @else
     <div class="notice notice_error">Für diesen übernommenen Standort muss noch ein Ort festgelegt werden.</div>
     @endif
@@ -13,7 +13,7 @@
     @can('update', $site)
     <details class="company-site-settings" @if(!$site->location_id) open @endif>
         <summary>Standort verwalten</summary>
-        <form action="{{ route('company.site.update', ['company' => $company->id, 'site' => $site->id]) }}" method="post">
+        <form action="{{ route('company.site.update', ['company' => $company, 'site' => $site]) }}" method="post">
             @csrf @method('put')
             <label>Name <input name="name" value="{{ old('name', $site->name) }}" maxlength="255" required></label>
             <label>Ort
@@ -26,11 +26,11 @@
             <button type="submit">Standort speichern</button>
         </form>
         @if ((int) $company->headquarters_site_id !== (int) $site->id && $site->location_id)
-        <form action="{{ route('company.site.headquarters', ['company' => $company->id, 'site' => $site->id]) }}" method="post">
+        <form action="{{ route('company.site.headquarters', ['company' => $company, 'site' => $site]) }}" method="post">
             @csrf @method('patch')
             <button type="submit">Zum Hauptsitz bestimmen</button>
         </form>
-        <form action="{{ route('company.site.destroy', ['company' => $company->id, 'site' => $site->id]) }}" method="post">
+        <form action="{{ route('company.site.destroy', ['company' => $company, 'site' => $site]) }}" method="post">
             @csrf @method('delete')
             <button type="submit">Standort löschen</button>
         </form>
@@ -45,10 +45,10 @@
         <ol>
             @foreach ($site->representatives as $representative)
             <li>
-                <a href="{{ route('user.character', ['character' => $representative->character_id]) }}">{{ $representative->character?->name ?? 'Unbekannter Charakter' }}</a>
+                <a href="{{ route('user.character', $representative->character) }}">{{ $representative->character?->name ?? 'Unbekannter Charakter' }}</a>
                 ({{ $representative->role->label() }})
                 @if ($canManageSiteRepresentatives)
-                <form class="company-inline-form" action="{{ route('company.representative.destroy', ['company' => $company->id, 'representative' => $representative->id]) }}" method="post">
+                <form class="company-inline-form" action="{{ route('company.representative.destroy', ['company' => $company, 'representative' => $representative]) }}" method="post">
                     @csrf @method('delete')
                     <button type="submit">Bevollmächtigung beenden</button>
                 </form>
@@ -59,7 +59,7 @@
         @endif
 
         @if ($canManageSiteRepresentatives)
-        <form action="{{ route('company.representative.store', ['company' => $company->id]) }}" method="post">
+        <form action="{{ route('company.representative.store', $company) }}" method="post">
             @csrf
             <input type="hidden" name="company_site_id" value="{{ $site->id }}">
             <x-character-selector name="character_id" input-id="site-{{ $site->id }}-representative-character" :endpoint="route('board.ajax_get_chars')" label="Standortvertretung" placeholder="Charakter suchen ..." />
@@ -87,7 +87,7 @@
             @include('company._worker', ['company' => $company, 'site' => $site, 'worker' => $worker, 'canManageWorkers' => $canManageWorkers])
             @endforeach
             @if ($canManageWorkers && $site->location_id)
-            <li><a href="{{ route('company.hire', ['company' => $company->id, 'site' => $site->id, 'type' => $type]) }}">Neuen Beschäftigten einstellen</a></li>
+            <li><a href="{{ route('company.hire', ['company' => $company, 'site' => $site, 'type' => $type]) }}">Neuen Beschäftigten einstellen</a></li>
             @endif
         </ol>
     @endforeach
@@ -105,7 +105,7 @@
     <h4>Inventar</h4>
     @php($canManageInventory = auth()->check() && auth()->user()->can('manageInventory', $site))
     @if ($canManageInventory)
-    <form class="company-inventory-form" action="{{ route('company.inventory.update', ['company' => $company->id, 'site' => $site->id]) }}" method="post">
+    <form class="company-inventory-form" action="{{ route('company.inventory.update', ['company' => $company, 'site' => $site]) }}" method="post">
         @csrf @method('put')
     @endif
         <div class="company-inventory-columns">

@@ -32,11 +32,12 @@ class PostWriter
         private PermissionService $permissions,
         private TransferService $transfers,
         private LocationRepository $locations,
+        private ThreadSubscriptionService $subscriptions,
     ) {}
 
     public function create(ForumThread $thread, User $user, CreatePostData $data, string $ip): Post
     {
-        return DB::transaction(function () use ($thread, $user, $data, $ip) {
+        $post = DB::transaction(function () use ($thread, $user, $data, $ip) {
             $thread = ForumThread::query()->whereKey($thread->id)->lockForUpdate()->firstOrFail();
             $time = now()->timestamp;
             $character = $this->resolveCharacterForCreate($thread, $user, $data, $time);
@@ -64,6 +65,10 @@ class PostWriter
 
             return $post;
         });
+
+        $this->subscriptions->afterPostCreated($post);
+
+        return $post;
     }
 
     public function update(Post $post, User $user, UpdatePostData $data): void

@@ -1,6 +1,6 @@
 <x-main-layout :title="'Rechte des Forums »'.$board->name.'«'" css="thread">
     @if ($canCreatePermission)
-    <p><a href="{{ route('permission.create_board', ['board' => $board->id]) }}" class="option create" title="neues Recht anlegen">Neues Recht anlegen</a></p>
+    <p><a href="{{ route('permission.create_board', $board) }}" class="option create" title="neues Recht anlegen">Neues Recht anlegen</a></p>
     @endif
 
     @foreach ($effectivePermissions as $row)
@@ -21,8 +21,8 @@
         {{ $permission->permit?->name ?? '#'.$permission->permit_id }}
         ({{ $permission->value }})
         @if ($canCreatePermission)
-        <a class="option edit" title="bearbeiten" href="{{ route('permission.edit', ['permission' => $permission->id]) }}">bearbeiten</a>
-        <a class="option delete" title="löschen" href="{{ route('permission.delete', ['permission' => $permission->id]) }}">löschen</a>
+        <a class="option edit" title="bearbeiten" href="{{ route('permission.edit', $permission) }}">bearbeiten</a>
+        <a class="option delete" title="löschen" href="{{ route('permission.delete', $permission) }}">löschen</a>
         @endif
     </p>
     @empty

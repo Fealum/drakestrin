@@ -15,9 +15,9 @@
     <ul class="columns">
         @forelse ($words as $word)
         <li>
-            <strong><a href="{{ route('dictionary.view', ['word' => $word->id]) }}">{{ $word->word }}</a>,</strong>&nbsp;<em class="small">{{ $word->wordType?->code }}.</em>
+            <strong><a href="{{ route('dictionary.view', $word) }}">{{ $word->word }}</a>,</strong>&nbsp;<em class="small">{{ $word->wordType?->code }}.</em>
             @forelse ($word->translationKeysFrom as $key)
-            <a href="{{ route('dictionary.view', ['word' => $key->toWord->id]) }}">{{ $key->toWord->word }}</a>,&nbsp;<em class="small">{{ $key->toWord->wordType?->code }}.</em>
+            <a href="{{ route('dictionary.view', $key->toWord) }}">{{ $key->toWord->word }}</a>,&nbsp;<em class="small">{{ $key->toWord->wordType?->code }}.</em>
             @empty
             &ndash;&ndash;
             @endforelse

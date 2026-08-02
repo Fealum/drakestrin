@@ -21,6 +21,7 @@ use App\Http\Controllers\StaticPageController;
 use App\Http\Controllers\TerritoryController;
 use App\Http\Controllers\ThreadController;
 use App\Http\Controllers\ThreadSceneController;
+use App\Http\Controllers\ThreadSubscriptionController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\VerifyCsrfToken;
@@ -60,6 +61,7 @@ Route::controller(BoardController::class)->group(function () {
     Route::get('/board/filter/board:{board}/{page?}', 'filterBoard')->name('board.view');
     Route::get('/board/filter/{filter?}/{page?}', 'filter')->name('board.filter');
     Route::post('/board/setfilter', 'filterRedirect')->name('board.setfilter');
+    Route::post('/board/read', 'markAllRead')->name('board.mark_all_read');
     Route::get('/board/ajax__getusers', 'ajaxGetUsers')->name('board.ajax_get_users');
     Route::get('/board/ajax__getchars', 'ajaxGetCharacters')->name('board.ajax_get_chars');
     Route::get('/board/changeshow/{board}/{change?}/{ajax?}', 'changeShow')->name('board.change_show');
@@ -77,6 +79,17 @@ Route::controller(ThreadController::class)->group(function () {
     Route::match(['get', 'post'], '/thread/edit/{thread}', 'edit')->name('thread.edit');
     Route::get('/thread/delete/{thread}', 'delete')->name('thread.delete');
     Route::post('/thread/delete/{thread}', 'destroy')->name('thread.destroy');
+});
+
+Route::controller(ThreadSubscriptionController::class)->group(function () {
+    Route::get('/subscriptions', 'index')->name('subscriptions.index');
+    Route::post('/subscriptions', 'update')->name('subscriptions.update');
+    Route::match(['get', 'post'], '/forum/settings', 'settings')->name('forum.settings');
+    Route::post('/thread/{thread}/subscribe', 'store')->name('thread.subscribe');
+    Route::delete('/thread/{thread}/subscribe', 'destroy')->name('thread.unsubscribe');
+    Route::get('/thread/{thread}/subscribers', 'subscribers')->name('thread.subscribers');
+    Route::get('/subscription/{subscription}/unsubscribe', 'unsubscribeConfirmation')->name('subscription.unsubscribe.confirm');
+    Route::post('/subscription/{subscription}/unsubscribe', 'signedDestroy')->name('subscription.unsubscribe');
 });
 
 Route::controller(ThreadSceneController::class)->group(function () {

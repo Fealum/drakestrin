@@ -1,5 +1,5 @@
 <x-main-layout :title="'Thema »'.$thread->name.'« bearbeiten'" alt-title="Thema bearbeiten" css="thread">
-    <form name="editthread" action="{{ route('thread.edit', ['thread' => $thread->id]) }}" method="post">
+    <form name="editthread" action="{{ route('thread.edit', $thread) }}" method="post">
         @csrf
 
         <p>

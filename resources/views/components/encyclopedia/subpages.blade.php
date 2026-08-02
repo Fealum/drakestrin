@@ -4,7 +4,7 @@
         @if (!$page->parent)
         <img src="{{ asset('img/encyclopedia/thumb-'.$page->id.'.jpg') }}" />
         @endif
-        <a href="{{ route('encyclopedia.view', ['page' => $page->id]) }}"
+        <a href="{{ route('encyclopedia.view', $page) }}"
             @if (strlen($page->text) < 5)
             class="stub"
             @endif

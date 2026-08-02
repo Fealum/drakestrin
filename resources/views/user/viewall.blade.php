@@ -29,27 +29,27 @@
 
     <h3>Sortieren</h3>
     <p>Nach:
-        <a href="{{ url('/user/viewall/name,a') }}">Namen</a> <a href="{{ url('/user/viewall/name,d') }}">&nbsp;&darr;&nbsp;</a>,
-        <a href="{{ url('/user/viewall/regdate,a') }}">Registrierungsdatum</a> <a href="{{ url('/user/viewall/regdate,d') }}">&nbsp;&darr;&nbsp;</a>,
-        <a href="{{ url('/user/viewall/lastvisit,a') }}">letztem Besuch</a> <a href="{{ url('/user/viewall/lastvisit,d') }}">&nbsp;&darr;&nbsp;</a>,
-        <a href="{{ url('/user/viewall/post,a;name,a') }}">Beiträgen</a> <a href="{{ url('/user/viewall/post,d;name,d') }}">&nbsp;&darr;&nbsp;</a>,
-        <a href="{{ url('/user/viewall/postsperday,a;name,a') }}">Beiträgen pro Tag</a> <a href="{{ url('/user/viewall/postsperday,d;name,d') }}">&nbsp;&darr;&nbsp;</a>.
+        <a href="{{ route('user.viewall', ['order' => 'name,a']) }}">Namen</a> <a href="{{ route('user.viewall', ['order' => 'name,d']) }}">&nbsp;&darr;&nbsp;</a>,
+        <a href="{{ route('user.viewall', ['order' => 'regdate,a']) }}">Registrierungsdatum</a> <a href="{{ route('user.viewall', ['order' => 'regdate,d']) }}">&nbsp;&darr;&nbsp;</a>,
+        <a href="{{ route('user.viewall', ['order' => 'lastvisit,a']) }}">letztem Besuch</a> <a href="{{ route('user.viewall', ['order' => 'lastvisit,d']) }}">&nbsp;&darr;&nbsp;</a>,
+        <a href="{{ route('user.viewall', ['order' => 'post,a;name,a']) }}">Beiträgen</a> <a href="{{ route('user.viewall', ['order' => 'post,d;name,d']) }}">&nbsp;&darr;&nbsp;</a>,
+        <a href="{{ route('user.viewall', ['order' => 'postsperday,a;name,a']) }}">Beiträgen pro Tag</a> <a href="{{ route('user.viewall', ['order' => 'postsperday,d;name,d']) }}">&nbsp;&darr;&nbsp;</a>.
     </p>
 
     <h3>Ergebnisse</h3>
-    @include('board._pagination', ['paginator' => $users, 'baseUrl' => url('/user/viewall/'.$order)])
+    @include('board._pagination', ['paginator' => $users, 'baseUrl' => route('user.viewall', ['order' => $order])])
     <ol class="users">
         @foreach ($users as $user)
         <li>
             <div>
                 <p>
-                    <a href="{{ route('user.view', $user->id) }}">
+                    <a href="{{ route('user.view', $user) }}">
                         <x-avatar :subject="$user" size="post" />
                         {{ $user->name }}
                     </a>
                 </p>
                 <p class="small">
-                    <a href="{{ url('/board/filter/user_contains:'.$user->id) }}">{{ number_format($user->post_count ?? 0, 0, ',', '.') }} Beiträge</a>
+                    <a href="{{ route('board.filter', ['filter' => 'user_contains:'.$user->id]) }}">{{ number_format($user->post_count ?? 0, 0, ',', '.') }} Beiträge</a>
                     seit <x-datetime :time="$user->regdate" only-date="1" />
                     ({{ number_format($user->postsPerDay(), 2, ',', '.') }} / Tag)
                 </p>
@@ -65,5 +65,5 @@
         </li>
         @endforeach
     </ol>
-    @include('board._pagination', ['paginator' => $users, 'baseUrl' => url('/user/viewall/'.$order)])
+    @include('board._pagination', ['paginator' => $users, 'baseUrl' => route('user.viewall', ['order' => $order])])
 </x-main-layout>

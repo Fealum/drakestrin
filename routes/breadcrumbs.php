@@ -218,6 +218,25 @@ Breadcrumbs::for('thread.view', function (BreadcrumbTrail $trail, Thread $thread
     $trail->push($thread->name, route('thread.view', $thread->id));
 });
 
+Breadcrumbs::for('subscriptions.index', function (BreadcrumbTrail $trail) {
+    $trail->parent('board');
+    $trail->push('Abonnements', route('subscriptions.index'));
+});
+
+Breadcrumbs::for('subscriptions.update', function (BreadcrumbTrail $trail) {
+    $trail->parent('subscriptions.index');
+});
+
+Breadcrumbs::for('forum.settings', function (BreadcrumbTrail $trail) {
+    $trail->parent('subscriptions.index');
+    $trail->push('Forum-Einstellungen', route('forum.settings'));
+});
+
+Breadcrumbs::for('thread.subscribers', function (BreadcrumbTrail $trail, Thread $thread) {
+    $trail->parent('thread.view', $thread);
+    $trail->push('Abonnenten', route('thread.subscribers', $thread));
+});
+
 Breadcrumbs::for('thread.create', function (BreadcrumbTrail $trail, $board = null) {
     if ($board instanceof Board) {
         $trail->parent('board.view', $board);

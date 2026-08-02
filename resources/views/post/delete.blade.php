@@ -18,7 +18,7 @@
         <div class="postuser">
             <h4>
                 @if ($post->character)
-                <a href="{{ url('/user/character/'.$post->character->id) }}">{{ $post->character->name }}</a>
+                <a href="{{ route('user.character', $post->character) }}">{{ $post->character->name }}</a>
                 @else
                 Unbekannter Charakter
                 @endif
@@ -28,7 +28,7 @@
         <div class="postcontent">{!! $forumFormatter->render($post->message, $post->smilies) !!}</div>
     </div>
 
-    <form name="deletepost" action="{{ route('post.destroy', ['post' => $post->id]) }}" method="post">
+    <form name="deletepost" action="{{ route('post.destroy', $post) }}" method="post">
         @csrf
         <input type="hidden" name="delete" value="1">
         <p><input type="submit" value="{{ $post->transfers->isNotEmpty() ? 'Inhalt löschen' : 'Beitrag löschen' }}" name="submit"></p>

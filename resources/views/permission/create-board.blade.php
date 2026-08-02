@@ -1,6 +1,6 @@
 <x-main-layout :title="'Neues Recht für »'.$board->name.'« erstellen'" css="thread">
     <div class="post">
-        <form name="createpermission" action="{{ route('permission.create_board', ['board' => $board->id]) }}" method="post">
+        <form name="createpermission" action="{{ route('permission.create_board', $board) }}" method="post">
             @csrf
 
             <p>

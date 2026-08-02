@@ -1,5 +1,5 @@
 <x-main-layout title="Neuen Charakter erstellen">
-    <form name="createcharacter" action="{{ route('user.create_character', $user->id) }}" method="post">
+    <form name="createcharacter" action="{{ route('user.create_character', $user) }}" method="post">
         @csrf
         <p>
             <label for="name">Name</label>

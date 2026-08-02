@@ -13,7 +13,7 @@
         <div class="postuser">
             <h4>
                 @if ($thread->firstPost->character)
-                <a href="{{ url('/user/character/'.$thread->firstPost->character->id) }}">{{ $thread->firstPost->character->name }}</a>
+                <a href="{{ route('user.character', $thread->firstPost->character) }}">{{ $thread->firstPost->character->name }}</a>
                 @else
                 Unbekannter Charakter
                 @endif
@@ -24,7 +24,7 @@
     </div>
     @endif
 
-    <form name="deletethread" action="{{ route('thread.destroy', ['thread' => $thread->id]) }}" method="post">
+    <form name="deletethread" action="{{ route('thread.destroy', $thread) }}" method="post">
         @csrf
         <input type="hidden" name="delete" value="1">
         <p><input type="submit" value="Thema löschen" name="submit"></p>

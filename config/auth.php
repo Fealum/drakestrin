@@ -120,7 +120,7 @@ return [
     | How long an email is kept in the database for validation, in minutes.
     |
     */
-    'valid_email_timeout' => 2880,
+    'valid_email_timeout' => 120,
 
     /*
     |--------------------------------------------------------------------------

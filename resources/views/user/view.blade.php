@@ -42,7 +42,7 @@
             <ol>
                 <li><em>Mitglied seit:</em> <x-datetime :time="$user->regdate" /></li>
                 <li><em>Letzter Besuch:</em> <x-datetime :time="$user->lastvisit" /></li>
-                <li><em>Beiträge insgesamt:</em> <a href="{{ url('/board/filter/user_contains:'.$user->id) }}">{{ number_format($user->post_count ?? 0, 0, ',', '.') }}</a></li>
+                <li><em>Beiträge insgesamt:</em> <a href="{{ route('board.filter', ['filter' => 'user_contains:'.$user->id]) }}">{{ number_format($user->post_count ?? 0, 0, ',', '.') }}</a></li>
                 <li><em>Beiträge pro Tag:</em> {{ number_format($user->postsPerDay(), 2, ',', '.') }}</li>
             </ol>
         </li>
@@ -50,7 +50,7 @@
         <li><h4>Gruppen</h4>
             <ol>
                 @foreach ($user->groups as $group)
-                <li><a href="{{ route('group.view', $group->id) }}">{{ $group->name }}</a></li>
+                <li><a href="{{ route('group.view', $group) }}">{{ $group->name }}</a></li>
                 @endforeach
             </ol>
         </li>
@@ -63,7 +63,7 @@
                 @endforeach
                 @if ($canCreateCharacter)
                 <li id="createchar">
-                    <form name="createcharacter" action="{{ url('/user/createcharacter/'.$user->id) }}" method="post">
+                    <form name="createcharacter" action="{{ route('user.create_character', $user) }}" method="post">
                         <p class="small"><img src="{{ asset('css/img/newchar.png') }}" alt=""><input type="text" name="name" maxlength="85" placeholder="Neuer Charakter" required><input type="submit" value="erstellen" name="submit"></p>
                         <p class="small">&nbsp;</p>
                     </form>
@@ -74,7 +74,7 @@
         </li>
         <li><h4>Informationen
             @if ($canEdit)
-            <a href="{{ route('user.edit', $user->id) }}" class="option edit" title="editieren">editieren</a>
+            <a href="{{ route('user.edit', $user) }}" class="option edit" title="editieren">editieren</a>
             @endif
         </h4>
             <ol>
@@ -98,14 +98,14 @@
         @if ($user->contacts->isNotEmpty() || $canEdit || auth()->check())
         <li><h4>Kontakt
             @if ($canEdit)
-            <a href="{{ route('user.create_contact', $user->id) }}" class="option create" title="neue Kontaktmöglichkeit hinzufügen">neue Kontaktmöglichkeit hinzufügen</a>
+            <a href="{{ route('user.create_contact', $user) }}" class="option create" title="neue Kontaktmöglichkeit hinzufügen">neue Kontaktmöglichkeit hinzufügen</a>
             @endif
         </h4>
             @if ($user->contacts->isNotEmpty() || auth()->check())
             <ol>
                 @auth
                     @if (auth()->id() !== $user->id)
-                    <li><a href="{{ route('conversation.view', $user->id) }}">Private Konversation</a></li>
+                    <li><a href="{{ route('conversation.view', $user) }}">Private Konversation</a></li>
                     @endif
                 @endauth
                 @foreach ($user->contacts as $contact)
@@ -117,8 +117,8 @@
                     {{ $contact->contact }}
                     @endif
                     @if ($canEdit)
-                    <a href="{{ route('user.edit_contact', $contact->id) }}" class="option edit" title="Kontaktmöglichkeit bearbeiten">Kontaktmöglichkeit bearbeiten</a>
-                    <a href="{{ route('user.delete_contact', $contact->id) }}" class="option delete" title="Kontaktmöglichkeit löschen">Kontaktmöglichkeit löschen</a>
+                    <a href="{{ route('user.edit_contact', $contact) }}" class="option edit" title="Kontaktmöglichkeit bearbeiten">Kontaktmöglichkeit bearbeiten</a>
+                    <a href="{{ route('user.delete_contact', $contact) }}" class="option delete" title="Kontaktmöglichkeit löschen">Kontaktmöglichkeit löschen</a>
                     @endif
                 </li>
                 @endforeach

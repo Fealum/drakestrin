@@ -1,5 +1,5 @@
 <x-main-layout :title="'»'.$character->name.'« bearbeiten'" alt-title="Charakter bearbeiten" css="user_edit">
-    <form name="editcharacter" action="{{ route('user.edit_character', $character->id) }}" method="post" enctype="multipart/form-data">
+    <form name="editcharacter" action="{{ route('user.edit_character', $character) }}" method="post" enctype="multipart/form-data">
         @csrf
 
         <h3>Avatar</h3>
@@ -56,7 +56,7 @@
         @foreach ($character->inventory as $inventory)
         @php($item = $inventory->item)
         @if ($item)
-        <li><img src="{{ url('/img/item.img/'.$item->img.'.png') }}" alt=""> {{ $item->name }}: {{ $inventory->stack }}, {{ $inventory->wear }}</li>
+        <li><img src="{{ route('item.legacy_image', ['file' => $item->img.'.png']) }}" alt=""> {{ $item->name }}: {{ $inventory->stack }}, {{ $inventory->wear }}</li>
         @endif
         @endforeach
     </ol>

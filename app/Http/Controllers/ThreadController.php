@@ -12,6 +12,7 @@ use App\Models\Board\Thread as ForumThread;
 use App\Models\Economy\CompanySite;
 use App\Models\Territory\Location;
 use App\Repositories\Territory\LocationRepository;
+use App\Services\Board\ThreadReadService;
 use App\Services\Board\ThreadWriter;
 use App\Services\Economy\InventoryTimeline;
 use App\Services\Economy\TransferReversalService;
@@ -36,6 +37,7 @@ class ThreadController extends Controller
         private InventoryTimeline $inventoryTimeline,
         private TransferReversalService $transferReversals,
         private LocationRepository $locations,
+        private ThreadReadService $reads,
     ) {
         parent::__construct($permissionService);
     }
@@ -66,8 +68,6 @@ class ThreadController extends Controller
     public function view(Request $request, ForumThread $thread, int|string $page = 1): View
     {
         $this->authorize('view', $thread);
-        $viewedThreads = session('viewed.1', []);
-
         $thread->load([
             'board.parent',
             'currentScene.location.inventory.item',
@@ -109,6 +109,10 @@ class ThreadController extends Controller
             max((int) $page, 1),
             ['path' => route('thread.view', ['thread' => $thread->id])]
         );
+        $firstUnreadPost = auth()->check() ? $this->reads->firstUnreadPost($thread, auth()->user()) : null;
+        $unreadPostIds = $firstUnreadPost
+            ? $posts->getCollection()->where('id', '>=', $firstUnreadPost->id)->pluck('id')
+            : collect();
         $quotedPost = $request->filled('quote')
             ? $thread->posts->firstWhere('id', (int) $request->query('quote'))
             : null;
@@ -178,6 +182,7 @@ class ThreadController extends Controller
             'canEndScene' => auth()->check() && auth()->user()->can('endScene', $thread),
             'canSetScene' => auth()->check() && auth()->user()->can('setScene', $thread),
             'canTransfer' => auth()->check() && $this->permissionService->allows('transfer', $thread, auth()->user()),
+            'canViewSubscribers' => auth()->check() && $this->permissionService->allows('viewthreadsubscriptions', $thread, auth()->user()),
             'characters' => $characters,
             'posts' => $posts,
             'locationInventory' => $locationInventory,
@@ -186,12 +191,14 @@ class ThreadController extends Controller
             'quotedMessage' => $quotedPost ? $this->quoteText($quotedPost) : '',
             'reversibleTransferIds' => $reversibleTransferIds,
             'thread' => $thread,
+            'subscription' => auth()->check() ? $thread->subscriptions()->where('user_id', auth()->id())->first() : null,
+            'subscriberCount' => $thread->subscriptions()->count(),
             'timelineEntries' => $this->timelineEntries($posts->getCollection(), $thread->scenes),
-            'viewedThreads' => $viewedThreads,
+            'unreadPostIds' => $unreadPostIds,
         ]);
 
         if (auth()->check()) {
-            session()->put('viewed.1.'.$thread->id, $thread->getRawOriginal('last_post_at'));
+            $this->reads->markDisplayed(auth()->user(), $thread, $posts->getCollection());
         }
 
         return $response;

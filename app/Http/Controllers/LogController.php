@@ -5,13 +5,13 @@ namespace App\Http\Controllers;
 use App\Mail\ForgotPassword;
 use App\Models\Core\Online;
 use App\Models\User;
-use Illuminate\Http\Request;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
 
 class LogController extends Controller
 {
@@ -42,10 +42,10 @@ class LogController extends Controller
 
     public function out(Request $request): RedirectResponse
     {
-        $online = Online::firstWhere('user', Auth::id());
-        $request->user()->lastvisit = $online->time;
+        $online = Online::firstWhere('user_id', Auth::id());
+        $request->user()->lastvisit = $online?->time ?? now();
         $request->user()->save();
-        $online->delete();
+        $online?->delete();
 
         Auth::logoutCurrentDevice();
 
@@ -93,13 +93,15 @@ class LogController extends Controller
     {
         $user = User::firstWhere('email', $email);
 
-        if (!$user) {
+        if (! $user) {
             $this->flashMessage('error', 'log.email_not_in_system');
+
             return redirect()->route('log.forgot_password');
         }
 
         if ($key !== $this->makeKey($email, $user->password, $user->lastvisit)) {
             $this->flashMessage('error', 'log.invalid_key', ['email' => $email]);
+
             return redirect()->route('log.forgot_password');
         }
 
@@ -120,8 +122,8 @@ class LogController extends Controller
             Auth::login($user, true);
 
             $this->flashMessage('success', 'log.password_changed');
-            // @TODO Change to index
-            return redirect()->route('calendar');
+
+            return redirect()->route('index');
         }
 
         return view('log.new_password', [

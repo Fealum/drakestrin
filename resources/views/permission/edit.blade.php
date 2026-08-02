@@ -1,6 +1,6 @@
 <x-main-layout :title="'Recht »'.($permission->permit?->name ?? '#'.$permission->permit_id).'« bearbeiten'" alt-title="Recht bearbeiten" css="thread">
     <div class="post">
-        <form name="editpermission" action="{{ route('permission.edit', ['permission' => $permission->id]) }}" method="post">
+        <form name="editpermission" action="{{ route('permission.edit', $permission) }}" method="post">
             @csrf
 
             <p>

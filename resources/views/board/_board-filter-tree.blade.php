@@ -11,7 +11,7 @@
         >
         @if ($board->children->isNotEmpty() && auth()->check())
         <a
-            href="{{ route('board.change_show', ['board' => $board->id]) }}"
+            href="{{ route('board.change_show', $board) }}"
             class="contrexp fa fa-toggle-{{ $isOpen ? 'down' : 'right' }}"
             x-bind:class="{
                 'fa-toggle-down': ! loading && open,

@@ -17,7 +17,7 @@
     <p>Dieser Ort enthält Inventar und kann nicht gelöscht werden.</p>
     @endif
 
-    <form action="{{ route('location.delete', ['location' => $location->id]) }}" method="post">
+    <form action="{{ route('location.delete', $location) }}" method="post">
         @csrf
         <input type="submit" value="Ort löschen" @disabled($location->children->isNotEmpty() || $location->inventory->isNotEmpty())>
     </form>

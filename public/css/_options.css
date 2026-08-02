@@ -1,90 +1,70 @@
 @charset "utf-8";
 
 main .option {
-	height: 13px;
-	width: 13px;
+	height: 15px;
+	width: 15px;
 	display: inline-block;
-	background-image: url('img/sprites.png');
 	overflow: hidden;
+	background-color: #bcddbc;
 	text-indent: 9999px;
+	mask: url('img/icons/edit.svg') center / contain no-repeat;
+	transition: background-color .5s;
+}
+
+main .option:hover {
+	background-color: #36731b;
 }
 
 main .option.edit {
-	background-position: 0px 0px;
-}
-
-main .option.edit:hover {
-	background-position: 0px -15px;
+	mask-image: url('img/icons/edit.svg');
 }
 
 main .option.quote {
-	background-position: -15px 0px;
-}
-
-main .option.quote:hover {
-	background-position: -15px -15px;
+	mask-image: url('img/icons/quote.svg');
 }
 
 main .option.report {
-	background-position: -30px 0px;
-}
-
-main .option.report:hover {
-	background-position: -30px -15px;
+	mask-image: url('img/icons/report.svg');
 }
 
 main .option.ip {
-	background-position: -45px 0px;
-}
-
-main .option.ip:hover {
-	background-position: -45px -15px;
+	mask-image: url('img/icons/view_ip.svg');
 }
 
 main .option.create {
-	background-position: -60px 0px;
-}
-
-main .option.create:hover {
-	background-position: -60px -15px;
+	mask-image: url('img/icons/create.svg');
 }
 
 main .option.delete {
-	background-position: -75px 0px;
+	mask-image: url('img/icons/delete.svg');
 }
 
 main .option.delete:hover {
-	background-position: -75px -15px;
+	background-color: #d40000;
 }
 
-main .option.permission {
-	background-position: -90px 0px;
+main .option.subscribe,
+main .option.unsubscribe {
+	mask-image: url('img/icons/subscribe.svg');
 }
 
-main .option.permission:hover {
-	background-position: -90px -15px;
+main .option.unsubscribe {
+	background-color: #36731b;
 }
 
-main .option.expand {
-	background-position: -105px 0px;
+main .option.unsubscribe:hover {
+	background-color: #bcddbc;
 }
 
-main .option.expand:hover {
-	background-position: -105px -15px;
+main .option.scene-begin {
+	mask-image: url('img/icons/scene_begin.svg');
 }
 
-main .option.contract {
-	background-position: -120px 0px;
-}
-
-main .option.contract:hover {
-	background-position: -120px -15px;
+main .option.scene-end {
+	mask-image: url('img/icons/scene_end.svg');
 }
 
 main .option.new {
-	background-position: -135px 0px;
-}
-
-main .option.new:hover {
-	background-position: -135px 0px;
+	background-color: #ff6600;
+	mask-image: url('img/icons/new.svg');
 }

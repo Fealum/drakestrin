@@ -3,7 +3,7 @@
     <p>Aktuelle Szene: {{ $thread->currentScene->location?->name }}</p>
     @endif
 
-    <form action="{{ route('thread.scene.create', ['thread' => $thread->id]) }}" method="post">
+    <form action="{{ route('thread.scene.create', $thread) }}" method="post">
         @csrf
         <p>
             <label for="location_id">Ort</label>

@@ -1,8 +1,8 @@
 <li>
     <img src="{{ asset('images/company-worker/'.$worker->type.'.png') }}" alt="">
-    <a href="{{ route('company.worker', $worker->id) }}">{{ $worker->name }}</a>
+    <a href="{{ route('company.worker', $worker) }}">{{ $worker->name }}</a>
     @if ($canManageWorkers && $worker->activeLabours->isEmpty())
-    (<a href="{{ route('company.fire', $worker->id) }}">entlassen</a>)
+    (<a href="{{ route('company.fire', $worker) }}">entlassen</a>)
     @endif
     <p>
         Eingestellt am <x-datetime :time="$worker->hired" />;
@@ -13,7 +13,7 @@
     </p>
     @if ((int) $worker->type === 5)
     @if ($canManageWorkers)
-    <p><a href="{{ route('company.pay', ['company' => $company->id, 'site' => $site->id]) }}">Löhne auszahlen</a></p>
+    <p><a href="{{ route('company.pay', ['company' => $company, 'site' => $site]) }}">Löhne auszahlen</a></p>
     @endif
     @elseif ($worker->activeLabours->isNotEmpty())
         @foreach ($worker->activeLabours as $activeLabour)

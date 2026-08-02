@@ -1,5 +1,5 @@
 <x-main-layout :title="$location->name . ' bearbeiten'">
-    <form action="{{ route('location.edit', ['location' => $location->id]) }}" method="post">
+    <form action="{{ route('location.edit', $location) }}" method="post">
         @csrf
         @include('location._form', [
             'location' => $location,

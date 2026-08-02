@@ -1,6 +1,6 @@
 <x-main-layout :title="'Beitrag im Thema »'.$post->thread->name.'« bearbeiten'" alt-title="Beitrag bearbeiten" css="thread">
     <div class="post">
-        <form name="editpost" action="{{ route('post.update', ['post' => $post->id]) }}" method="post">
+        <form name="editpost" action="{{ route('post.update', $post) }}" method="post">
             @csrf
             <div class="post-charselect">
                 <ul>

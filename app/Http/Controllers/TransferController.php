@@ -11,6 +11,7 @@ use App\Models\Board\Thread as ForumThread;
 use App\Models\Economy\Transfer;
 use App\Models\User\Character;
 use App\Services\Board\ForumCounters;
+use App\Services\Board\ThreadSubscriptionService;
 use App\Services\Economy\TransferReversalService;
 use App\Services\Economy\TransferService;
 use App\Services\PermissionService;
@@ -26,6 +27,7 @@ class TransferController extends Controller
         PermissionService $permissionService,
         private TransferService $transfers,
         private TransferReversalService $reversals,
+        private ThreadSubscriptionService $subscriptions,
     ) {
         parent::__construct($permissionService);
     }
@@ -116,6 +118,8 @@ class TransferController extends Controller
             return redirect()->route('thread.view', ['thread' => $thread->id])
                 ->withErrors(['inventory' => 'Keine übertragbaren Gegenstände ausgewählt.']);
         }
+
+        $this->subscriptions->afterPostCreated($post);
 
         return redirect(route('thread.view', ['thread' => $thread->id, 'page' => 'last']).'#post'.$post->id);
     }

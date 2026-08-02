@@ -1,12 +1,12 @@
 <li>
     <p class="small">
-        <a href="{{ route('user.character', $character->id) }}">
+        <a href="{{ route('user.character', $character) }}">
             <x-avatar :subject="$character" size="list" />
             {{ $character->name }}
         </a>
     </p>
     <p class="small">
-        <a href="{{ url('/board/filter/char_contains:'.$character->id) }}">{{ number_format($character->post_count ?? 0, 0, ',', '.') }} Beiträge</a>
+        <a href="{{ route('board.filter', ['filter' => 'char_contains:'.$character->id]) }}">{{ number_format($character->post_count ?? 0, 0, ',', '.') }} Beiträge</a>
         seit <x-datetime :time="$character->regdate" only-date="1" />
     </p>
 </li>

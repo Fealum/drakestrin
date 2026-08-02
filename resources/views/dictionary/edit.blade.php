@@ -1,5 +1,5 @@
 <x-main-layout :title="'Wort »'.$word->word.'« bearbeiten'" css="dictionary">
-    <form name="editdictionary" action="{{ route('dictionary.edit', ['word' => $word->id]) }}" method="post">
+    <form name="editdictionary" action="{{ route('dictionary.edit', $word) }}" method="post">
         @csrf
         <p>
             <label for="language_id">Sprache: </label>

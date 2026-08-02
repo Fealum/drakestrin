@@ -1,5 +1,5 @@
 <x-main-layout :title="$company->name.' bearbeiten'" css="company_view">
-    <form action="{{ route('company.update', ['company' => $company->id]) }}" method="post">
+    <form action="{{ route('company.update', $company) }}" method="post">
         @csrf
         @method('put')
         @include('company._form', [

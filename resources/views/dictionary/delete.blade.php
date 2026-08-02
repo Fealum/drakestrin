@@ -7,7 +7,7 @@
         <li>Von &raquo;{{ $word->word }}&laquo; zu &hellip;
             <ul>
                 @foreach ($word->translationKeysFrom as $key)
-                <li><a href="{{ route('dictionary.view', ['word' => $key->toWord->id]) }}">{{ $key->toWord->word }}</a></li>
+                <li><a href="{{ route('dictionary.view', $key->toWord) }}">{{ $key->toWord->word }}</a></li>
                 @endforeach
             </ul>
         </li>
@@ -16,13 +16,13 @@
         <li>Zu &raquo;{{ $word->word }}&laquo; von &hellip;
             <ul>
                 @foreach ($word->translationKeysTo as $key)
-                <li><a href="{{ route('dictionary.view', ['word' => $key->fromWord->id]) }}">{{ $key->fromWord->word }}</a></li>
+                <li><a href="{{ route('dictionary.view', $key->fromWord) }}">{{ $key->fromWord->word }}</a></li>
                 @endforeach
             </ul>
         </li>
         @endif
     </ul>
-    <form name="deletedictionary" action="{{ route('dictionary.delete', ['word' => $word->id]) }}" method="post">
+    <form name="deletedictionary" action="{{ route('dictionary.delete', $word) }}" method="post">
         @csrf
         <input type="hidden" name="delete" value="1" />
         <p><input type="submit" value="Wort löschen" name="submit" /></p>
