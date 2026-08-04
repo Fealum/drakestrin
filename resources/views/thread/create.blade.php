@@ -57,7 +57,6 @@
             </div>
 
             <input type="hidden" name="smilies" value="1">
-            <input type="hidden" name="signature" value="1">
             <x-bbcode-textarea name="message" :value="old('message')" required />
             <input type="submit" value="Neues Thema erstellen">
         </form>

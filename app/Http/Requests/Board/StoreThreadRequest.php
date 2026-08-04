@@ -27,7 +27,6 @@ class StoreThreadRequest extends FormRequest
             'message' => ['required', 'string'],
             'important' => ['nullable', 'boolean'],
             'smilies' => ['nullable', 'boolean'],
-            'signature' => ['nullable', 'boolean'],
             'scene_location' => ['nullable', 'integer', 'exists:locations,id'],
             'scene_story_started_at' => ['nullable', 'date_format:Y-m-d\TH:i'],
         ];

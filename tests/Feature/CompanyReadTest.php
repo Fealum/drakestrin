@@ -43,6 +43,7 @@ class CompanyReadTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['economy.process_labour_on_request' => false]);
 
         $this->prefix = '000_ct_company_'.substr(str_replace('.', '_', uniqid('', true)), 0, 8);
         $this->timestamp = now()->subDays(10)->timestamp;

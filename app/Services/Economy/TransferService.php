@@ -34,10 +34,11 @@ class TransferService
         InventoryOwner $source,
         InventoryOwner $target,
         array $items,
+        ?int $postElementId = null,
         ?TransferContext $context = null,
         ?int $reversalOfTransferId = null,
     ): Transfer {
-        return DB::transaction(function () use ($postId, $sender, $recipient, $source, $target, $items, $context, $reversalOfTransferId) {
+        return DB::transaction(function () use ($postId, $postElementId, $sender, $recipient, $source, $target, $items, $context, $reversalOfTransferId) {
             $itemsByInventoryId = collect($items)
                 ->keyBy(fn (TransferInventoryItem $item) => $item->inventoryId);
 
@@ -96,6 +97,7 @@ class TransferService
             $transfer = Transfer::create([
                 'reversal_of_transfer_id' => $reversalOfTransferId,
                 'post_id' => $postId,
+                'post_element_id' => $postElementId,
                 'thread_scene_id' => $context?->threadSceneId,
                 'story_at' => $context?->storyAt,
                 'created_by_user_id' => $context?->createdByUserId,

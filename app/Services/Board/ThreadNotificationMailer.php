@@ -21,7 +21,7 @@ class ThreadNotificationMailer
 
     public function processPost(Post $post): void
     {
-        $post->loadMissing(['author', 'character', 'thread.board']);
+        $post->loadMissing(['author', 'character', 'thread.board', 'elements.message']);
 
         ThreadSubscription::query()
             ->with(['user', 'thread.board'])
@@ -46,7 +46,7 @@ class ThreadNotificationMailer
                 ->chunkById(100, function ($subscriptions) {
                     foreach ($subscriptions as $subscription) {
                         $posts = $subscription->thread->posts()
-                            ->with(['author', 'character', 'thread.board'])
+                            ->with(['author', 'character', 'thread.board', 'elements.message'])
                             ->where('id', '>', (int) $subscription->last_emailed_post_id)
                             ->orderBy('id')
                             ->get();

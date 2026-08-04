@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Dictionary\Word;
 use App\Models\Board\Post;
+use App\Models\Dictionary\Word;
 use Illuminate\View\View;
 
 class IndexController extends Controller
@@ -19,6 +19,7 @@ class IndexController extends Controller
             ->first();
 
         $news = Post::where('thread_id', 2108)
+            ->with('elements.message')
             ->orderByDesc('time')
             ->first();
 

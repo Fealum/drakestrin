@@ -20,7 +20,7 @@
                 <span class="datetime"><x-datetime :time="$thread->firstPost->time" /></span>
             </h4>
         </div>
-        <div class="postcontent">{!! $forumFormatter->render($thread->firstPost->message, $thread->firstPost->smilies) !!}</div>
+        <div class="postcontent">@foreach($thread->firstPost->elements as $element)@if($element->message){!! $forumFormatter->render($element->message->message, $element->message->smilies) !!}@endif @endforeach</div>
     </div>
     @endif
 

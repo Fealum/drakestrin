@@ -3,14 +3,23 @@
 namespace App\Services\Board;
 
 use App\Data\Board\CreatePostData;
+use App\Data\Board\MessageElementData;
+use App\Data\Board\PollElementData;
+use App\Data\Board\PostCompositionData;
+use App\Data\Board\SceneTransitionElementData;
+use App\Data\Board\TransferElementData;
 use App\Data\Board\UpdatePostData;
 use App\Data\Economy\InventoryOwner;
+use App\Data\Economy\PostTransferData;
 use App\Data\Economy\TransferContext;
 use App\Data\Economy\TransferInventoryItem;
 use App\Data\Economy\TransferParticipant;
 use App\Exceptions\Economy\InventoryUnavailableAtStoryTime;
 use App\Models\Board\Post;
+use App\Models\Board\PostElement;
+use App\Models\Board\PostSceneTransition;
 use App\Models\Board\Thread as ForumThread;
+use App\Models\Board\ThreadScene;
 use App\Models\Economy\CompanySite;
 use App\Models\Economy\Inventory;
 use App\Models\User;
@@ -20,6 +29,7 @@ use App\Services\Economy\TransferService;
 use App\Services\PermissionService;
 use App\Support\InventoryStockState;
 use App\Support\PermissionEntityType;
+use App\Support\PostElementType;
 use App\Support\PostTransferAction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -50,12 +60,18 @@ class PostWriter
                 'time' => $time,
                 'message' => $data->message,
                 'smilies' => (int) $data->smilies,
-                'signature' => (int) $data->signature,
                 'ip' => $ip,
             ]);
 
+            $position = 100;
+            if ($data->message !== '' || ! $data->hasTransfer()) {
+                $this->createMessageElement($post, $position, new MessageElementData($data->message, $data->smilies));
+                $position += 100;
+            }
+
             if ($data->hasTransfer()) {
-                $this->attachTransfer($thread, $user, $character, $post, $data);
+                $element = $this->createElement($post, $position, PostElementType::TRANSFER);
+                $this->attachTransfer($thread, $user, $character, $post, $data->transfer, $thread->currentScene()->with('location')->first(), $element);
             }
 
             $this->counters->refreshThread($thread);
@@ -66,7 +82,84 @@ class PostWriter
             return $post;
         });
 
-        $this->subscriptions->afterPostCreated($post);
+        DB::afterCommit(fn () => $this->subscriptions->afterPostCreated($post));
+
+        return $post;
+    }
+
+    public function createComposition(ForumThread $thread, User $user, int $characterId, PostCompositionData $composition, string $ip): Post
+    {
+        $post = DB::transaction(function () use ($thread, $user, $characterId, $composition, $ip) {
+            $thread = ForumThread::query()->whereKey($thread->id)->lockForUpdate()->firstOrFail();
+            $character = $this->userCharacter($user, $characterId);
+            $activeScene = ThreadScene::query()->with('location')->where('thread_id', $thread->id)->whereNull('ended_at')->latest('id')->first();
+            $activeSceneKey = $activeScene ? 'scene:'.$activeScene->id : null;
+            $messages = collect($composition->elements)->filter(fn ($element) => $element instanceof MessageElementData);
+
+            if ($composition->elements === [] || ($messages->every(fn (MessageElementData $message) => $message->message === '')
+                && collect($composition->elements)->every(fn ($element) => $element instanceof MessageElementData))) {
+                throw ValidationException::withMessages(['elements' => 'Der Beitrag benötigt mindestens einen Inhalt.']);
+            }
+
+            $post = Post::create([
+                'board_id' => $thread->board_id,
+                'thread_id' => $thread->id,
+                'user_id' => $user->id,
+                'character_id' => $character->id,
+                'time' => now()->timestamp,
+                'message' => $messages->pluck('message')->filter()->implode("\n\n"),
+                'smilies' => (int) $messages->contains(fn (MessageElementData $message) => $message->smilies),
+                'ip' => $ip,
+            ]);
+
+            foreach (array_values($composition->elements) as $index => $data) {
+                $position = ($index + 1) * 100;
+
+                if ($data instanceof MessageElementData) {
+                    $this->createMessageElement($post, $position, $data);
+
+                    continue;
+                }
+
+                if ($data instanceof PollElementData) {
+                    abort_unless($this->permissions->allows('createpoll', $thread, $user), 403);
+                    if ($activeScene) {
+                        throw ValidationException::withMessages(['elements.'.$index => 'Umfragen können nur außerhalb einer Szene stehen.']);
+                    }
+                    $this->createPollElement($post, $position, $data, $index);
+
+                    continue;
+                }
+
+                if ($data instanceof SceneTransitionElementData) {
+                    [$activeScene, $activeSceneKey] = $this->createSceneTransitionElement(
+                        $thread, $post, $position, $data, $activeScene, $activeSceneKey, $user, $index,
+                    );
+
+                    continue;
+                }
+
+                if ($data instanceof TransferElementData) {
+                    if (! $activeScene || $activeScene->story_started_at === null) {
+                        throw ValidationException::withMessages(['elements.'.$index => 'Handlungen benötigen an dieser Position eine Szene mit Spielzeit.']);
+                    }
+                    if ($data->sceneKey && $data->sceneKey !== $activeSceneKey) {
+                        throw ValidationException::withMessages(['elements.'.$index => 'Die Handlung kann ihre zugeordnete Szene nicht verlassen.']);
+                    }
+                    $element = $this->createElement($post, $position, PostElementType::TRANSFER);
+                    $this->attachTransfer($thread, $user, $character, $post, $data->transfer, $activeScene, $element);
+                }
+            }
+
+            $this->counters->refreshThread($thread);
+            $this->counters->refreshBoard($thread->board);
+            $this->counters->refreshUser($user->id);
+            $this->counters->refreshCharacter($character->id);
+
+            return $post;
+        });
+
+        DB::afterCommit(fn () => $this->subscriptions->afterPostCreated($post));
 
         return $post;
     }
@@ -77,10 +170,21 @@ class PostWriter
         $oldCharacterId = $post->character_id;
 
         DB::transaction(function () use ($post, $character, $data, $oldCharacterId) {
-            $post->update([
-                'character_id' => $character->id,
-                'message' => $data->message,
-            ]);
+            if ($post->hasCharacterBoundAction() && $post->character_id !== $character->id) {
+                throw ValidationException::withMessages(['character' => 'Der Charakter einer veröffentlichten Handlung kann nicht geändert werden.']);
+            }
+
+            $messages = $post->messages()->orderBy('post_elements.position')->get();
+            $messageData = $data->messages ?: [['message' => $data->message, 'smilies' => true]];
+            foreach ($messages as $index => $message) {
+                $row = $messageData[$index] ?? ['message' => '', 'smilies' => $message->smilies];
+                $message->update(['message' => trim((string) ($row['message'] ?? '')), 'smilies' => (bool) ($row['smilies'] ?? false)]);
+            }
+            $shadowMessage = $post->messages()->orderBy('post_elements.position')->pluck('message')->filter()->implode("\n\n");
+            if ($shadowMessage === '' && ! $post->hasDurableElements()) {
+                throw ValidationException::withMessages(['messages' => 'Ein gewöhnlicher Beitrag darf nicht vollständig leer sein.']);
+            }
+            $post->update(['character_id' => $character->id, 'message' => $shadowMessage]);
 
             if ($oldCharacterId !== $character->id) {
                 $this->counters->refreshCharacter($oldCharacterId);
@@ -95,7 +199,8 @@ class PostWriter
 
     public function delete(Post $post): bool
     {
-        if ($post->transfers()->exists()) {
+        if ($post->hasDurableElements()) {
+            $post->messages()->update(['message' => '']);
             $post->update(['message' => '']);
 
             return false;
@@ -154,10 +259,9 @@ class PostWriter
         ]);
     }
 
-    private function attachTransfer(ForumThread $thread, User $user, Character $sender, Post $post, CreatePostData $data): void
+    private function attachTransfer(ForumThread $thread, User $user, Character $sender, Post $post, PostTransferData $transferData, ?ThreadScene $scene, PostElement $element): void
     {
         abort_unless($this->permissions->allows('transfer', $thread, $user), 403);
-        $scene = $thread->currentScene()->with('location')->first();
         abort_unless($scene?->location, 403);
 
         if ($scene->story_started_at === null) {
@@ -165,9 +269,6 @@ class PostWriter
                 'transfer_action' => 'Für eine Handlung benötigt die aktive Szene eine Spielzeit.',
             ]);
         }
-
-        $transferData = $data->transfer;
-        abort_unless($transferData, 422);
 
         $characterOwner = new InventoryOwner(PermissionEntityType::CHARACTER, $sender->id);
         $locationOwner = new InventoryOwner(PermissionEntityType::LOCATION, $scene->location->id);
@@ -262,6 +363,7 @@ class PostWriter
         try {
             $this->transfers->transferInventories(
                 postId: $post->id,
+                postElementId: $element->id,
                 sender: $transferSender,
                 recipient: $transferRecipient,
                 source: $source,
@@ -283,6 +385,103 @@ class PostWriter
                 'inventory' => 'Keine übertragbaren Gegenstände ausgewählt.',
             ]);
         }
+    }
+
+    private function createElement(Post $post, int $position, PostElementType $type): PostElement
+    {
+        return $post->elements()->create(['position' => $position, 'type' => $type]);
+    }
+
+    private function createMessageElement(Post $post, int $position, MessageElementData $data): PostElement
+    {
+        $element = $this->createElement($post, $position, PostElementType::MESSAGE);
+        $element->message()->create(['message' => $data->message, 'smilies' => $data->smilies]);
+
+        return $element;
+    }
+
+    private function createPollElement(Post $post, int $position, PollElementData $data, int $index): void
+    {
+        if ($data->question === '' || count($data->options) < 2) {
+            throw ValidationException::withMessages(['elements.'.$index => 'Eine Umfrage benötigt eine Frage und mindestens zwei Antworten.']);
+        }
+        if ($data->maxChoices > count($data->options)) {
+            throw ValidationException::withMessages(['elements.'.$index.'.max_choices' => 'Es können nicht mehr Antworten gewählt werden als vorhanden sind.']);
+        }
+        if ($data->closesAt !== null && $data->closesAt <= now()->timestamp) {
+            throw ValidationException::withMessages(['elements.'.$index.'.closes_at' => 'Der Abstimmungsschluss muss in der Zukunft liegen.']);
+        }
+
+        $element = $this->createElement($post, $position, PostElementType::POLL);
+        $poll = $element->poll()->create([
+            'question' => $data->question,
+            'visibility' => $data->visibility,
+            'max_choices' => $data->maxChoices,
+            'closes_at' => $data->closesAt,
+        ]);
+        foreach ($data->options as $optionPosition => $label) {
+            $poll->options()->create(['position' => $optionPosition + 1, 'label' => $label]);
+        }
+    }
+
+    private function createSceneTransitionElement(
+        ForumThread $thread,
+        Post $post,
+        int $position,
+        SceneTransitionElementData $data,
+        ?ThreadScene $activeScene,
+        ?string $activeSceneKey,
+        User $user,
+        int $index,
+    ): array {
+        $element = $this->createElement($post, $position, PostElementType::SCENE_TRANSITION);
+        $endedScene = null;
+        $startedScene = null;
+
+        if ($data->action === 'end') {
+            abort_unless($this->permissions->allows('endthreadscene', $thread, $user), 403);
+            if (! $activeScene) {
+                throw ValidationException::withMessages(['elements.'.$index => 'Es gibt an dieser Position keine Szene, die beendet werden könnte.']);
+            }
+        } elseif ($data->action === 'start') {
+            abort_unless($this->permissions->allows('setthreadscene', $thread, $user), 403);
+            if (! $data->locationId) {
+                throw ValidationException::withMessages(['elements.'.$index.'.location_id' => 'Bitte wähle einen Ort für die Szene.']);
+            }
+        } else {
+            throw ValidationException::withMessages(['elements.'.$index => 'Unbekannter Szenenwechsel.']);
+        }
+
+        if ($activeScene) {
+            $activeScene->update([
+                'ends_at_post_id' => $post->id,
+                'story_ended_at' => $data->storyAt,
+                'ended_at' => now(),
+            ]);
+            $endedScene = $activeScene;
+            $activeScene = null;
+            $activeSceneKey = null;
+        }
+
+        if ($data->action === 'start') {
+            $startedScene = ThreadScene::create([
+                'thread_id' => $thread->id,
+                'location_id' => $data->locationId,
+                'starts_at_post_id' => $post->id,
+                'story_started_at' => $data->storyAt,
+                'created_by_user_id' => $user->id,
+            ]);
+            $activeScene = $startedScene->load('location');
+            $activeSceneKey = $data->sceneKey ?: 'draft-scene:'.$element->id;
+        }
+
+        PostSceneTransition::create([
+            'post_element_id' => $element->id,
+            'ended_scene_id' => $endedScene?->id,
+            'started_scene_id' => $startedScene?->id,
+        ]);
+
+        return [$activeScene, $activeSceneKey];
     }
 
     private function userCharacter(User $user, int $characterId): Character

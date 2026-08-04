@@ -150,6 +150,8 @@ class BoardController extends Controller
             'createpost' => 'Beiträge erstellen',
             'editpost' => 'Beiträge bearbeiten',
             'deletepost' => 'Beiträge löschen',
+            'createpoll' => 'Umfragen erstellen',
+            'votepoll' => 'An Umfragen teilnehmen',
         ];
 
         return view('board.permissions', [
@@ -277,7 +279,7 @@ class BoardController extends Controller
         }
 
         if (($filters['message'] ?? '') !== '') {
-            $query->whereHas('posts', fn (Builder $posts) => $posts->where('message', 'like', '%'.$filters['message'].'%'));
+            $query->whereHas('posts.elements.message', fn (Builder $messages) => $messages->where('message', 'like', '%'.$filters['message'].'%'));
         }
 
         if (($filters['board'] ?? []) !== []) {

@@ -1,9 +1,10 @@
+@inject('forumFormatter', 'App\Services\Board\ForumFormatter')
 <x-main-layout :title="$character->name" css="user_id">
     @if ($character->avatar)
     <x-avatar :subject="$character" size="full" />
     @endif
     @if ($character->usertext)
-    <p id="usertext" @class(['usertext_long' => mb_strlen($character->usertext) > 80])>{!! nl2br(e($character->usertext)) !!}</p>
+    <p id="usertext" @class(['usertext_long' => mb_strlen($character->usertext) > 80])>{!! $forumFormatter->render($character->usertext) !!}</p>
     @endif
 
     <ol class="columns">

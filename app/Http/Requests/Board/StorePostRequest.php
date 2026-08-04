@@ -22,7 +22,6 @@ class StorePostRequest extends FormRequest
             'message' => ['nullable', 'string', 'required_without:inventory'],
             'newcharname' => ['nullable', 'string', 'max:85'],
             'smilies' => ['nullable', 'boolean'],
-            'signature' => ['nullable', 'boolean'],
             'transfer_action' => ['nullable', Rule::enum(PostTransferAction::class), 'required_with:inventory'],
             'inventory' => ['nullable', 'array', 'min:1', 'required_with:transfer_action'],
             'inventory.*' => ['integer', 'exists:inventories,id'],

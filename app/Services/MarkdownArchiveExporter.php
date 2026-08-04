@@ -6,6 +6,7 @@ use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
 use App\Models\Encyclopedia\Page;
+use App\Services\Board\PostMarkdownRenderer;
 use Illuminate\Support\Facades\Gate;
 use RuntimeException;
 use ZipArchive;
@@ -19,7 +20,7 @@ class MarkdownArchiveExporter
         }
 
         $temporaryFiles = [];
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
 
         if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             throw new RuntimeException('Could not create markdown export archive.');
@@ -68,9 +69,10 @@ class MarkdownArchiveExporter
         }
     }
 
-    public function __construct(private PermissionService $permissions)
-    {
-    }
+    public function __construct(
+        private PermissionService $permissions,
+        private PostMarkdownRenderer $postMarkdown,
+    ) {}
 
     private function addBoard(ZipArchive $zip, Board $board, string $parentPath, array &$temporaryFiles): void
     {
@@ -78,7 +80,7 @@ class MarkdownArchiveExporter
             return;
         }
 
-        $boardPath = $parentPath . '/' . $this->entryName($board->id, $board->name);
+        $boardPath = $parentPath.'/'.$this->entryName($board->id, $board->name);
         $zip->addEmptyDir($boardPath);
 
         ForumThread::query()
@@ -91,7 +93,7 @@ class MarkdownArchiveExporter
             ->each(function (ForumThread $thread) use ($zip, $board, $boardPath, &$temporaryFiles) {
                 $this->addMarkdownFile(
                     $zip,
-                    $boardPath . '/' . $this->entryName($thread->id, $thread->name) . '.md',
+                    $boardPath.'/'.$this->entryName($thread->id, $thread->name).'.md',
                     fn ($handle) => $this->writeThread($handle, $thread, $board),
                     $temporaryFiles
                 );
@@ -112,7 +114,7 @@ class MarkdownArchiveExporter
 
         $this->addMarkdownFile(
             $zip,
-            $parentPath . '/' . $entryName . '.md',
+            $parentPath.'/'.$entryName.'.md',
             fn ($handle) => $this->writePage($handle, $page),
             $temporaryFiles
         );
@@ -125,7 +127,7 @@ class MarkdownArchiveExporter
             return;
         }
 
-        $childrenPath = $parentPath . '/' . $entryName;
+        $childrenPath = $parentPath.'/'.$entryName;
         $zip->addEmptyDir($childrenPath);
 
         $children->each(fn (Page $child) => $this->addPage($zip, $child, $childrenPath, $temporaryFiles));
@@ -134,14 +136,14 @@ class MarkdownArchiveExporter
     private function writeThread($handle, ForumThread $thread, Board $board): void
     {
         $this->writeLines($handle, [
-            '# Thema: ' . $thread->name . ' (ID: ' . $thread->id . ')',
-            'Board: ' . $board->name . ' (ID: ' . $board->id . ')',
-            'Erstellt: ' . $this->isoDate($thread->first_post_at),
+            '# Thema: '.$thread->name.' (ID: '.$thread->id.')',
+            'Board: '.$board->name.' (ID: '.$board->id.')',
+            'Erstellt: '.$this->isoDate($thread->first_post_at),
             '',
         ]);
 
         Post::query()
-            ->with('character')
+            ->with(['character', 'elements.message', 'elements.transfer.items.item', 'elements.sceneTransition.endedScene.location', 'elements.sceneTransition.startedScene.location', 'elements.poll.options'])
             ->where('thread_id', $thread->id)
             ->orderBy('time')
             ->orderBy('id')
@@ -151,13 +153,13 @@ class MarkdownArchiveExporter
                 $characterId = $post->character_id ?: 'unbekannt';
 
                 $this->writeLines($handle, [
-                    '## Beitrag ' . ($index + 1),
-                    'Charakter: ' . $characterName . ' (ID: ' . $characterId . ')',
-                    'Erstellt: ' . $this->isoDate($post->time),
+                    '## Beitrag '.($index + 1),
+                    'Charakter: '.$characterName.' (ID: '.$characterId.')',
+                    'Erstellt: '.$this->isoDate($post->time),
                     '',
                     '---',
                     '',
-                    (string) $post->message,
+                    $this->postMarkdown->render($post),
                     '',
                 ]);
             });
@@ -168,7 +170,7 @@ class MarkdownArchiveExporter
         $title = $page->title ?: $page->name;
 
         $this->writeLines($handle, [
-            '# ' . $title . ' (ID: ' . $page->id . ')',
+            '# '.$title.' (ID: '.$page->id.')',
             '',
             (string) $page->text,
         ]);
@@ -203,13 +205,13 @@ class MarkdownArchiveExporter
     private function writeLines($handle, array $lines): void
     {
         foreach ($lines as $line) {
-            fwrite($handle, rtrim($line) . PHP_EOL);
+            fwrite($handle, rtrim($line).PHP_EOL);
         }
     }
 
     private function entryName(int $id, string $name): string
     {
-        return str_pad((string) $id, 4, '0', STR_PAD_LEFT) . ' ' . $this->sanitizePathSegment($name);
+        return str_pad((string) $id, 4, '0', STR_PAD_LEFT).' '.$this->sanitizePathSegment($name);
     }
 
     private function sanitizePathSegment(string $value): string

@@ -6,11 +6,7 @@
     im Forum {{ $post->thread->board?->name }} geschrieben.
 </p>
 
-@if (trim($post->message) !== '')
-<blockquote>{{ \Illuminate\Support\Str::limit(strip_tags($post->message), 300) }}</blockquote>
-@else
-<p>Der Beitrag enthält eine Handlung.</p>
-@endif
+<blockquote>{{ \Illuminate\Support\Str::limit(strip_tags($post->contentSummary()), 300) }}</blockquote>
 
 <p><a href="{{ route('post.view', $post) }}">Zum Beitrag</a></p>
 <p>

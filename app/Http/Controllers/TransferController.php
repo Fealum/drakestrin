@@ -16,6 +16,7 @@ use App\Services\Economy\TransferReversalService;
 use App\Services\Economy\TransferService;
 use App\Services\PermissionService;
 use App\Support\PermissionEntityType;
+use App\Support\PostElementType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -84,12 +85,14 @@ class TransferController extends Controller
                     'time' => $time,
                     'message' => '',
                     'smilies' => 0,
-                    'signature' => 0,
                     'ip' => $request->ip(),
                 ]);
 
+                $element = $actionPost->elements()->create(['position' => 100, 'type' => PostElementType::TRANSFER]);
+
                 $this->transfers->transferInventories(
                     postId: $actionPost->id,
+                    postElementId: $element->id,
                     sender: TransferParticipant::character($sender->id),
                     recipient: TransferParticipant::character($recipient->id),
                     source: new InventoryOwner(PermissionEntityType::CHARACTER, $sender->id),

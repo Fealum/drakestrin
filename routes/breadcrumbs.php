@@ -9,6 +9,7 @@ use App\Models\Access\Group;
 use App\Models\Access\Permission;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
+use App\Models\Board\PostDraft;
 use App\Models\Board\Thread;
 use App\Models\Dictionary\Key;
 use App\Models\Dictionary\Word;
@@ -21,9 +22,9 @@ use App\Models\Territory\Territory;
 use App\Models\User;
 use App\Models\User\Character;
 use App\Models\User\UserContact;
-use App\Support\PermissionEntityType;
 // This import is also not required, and you could replace `BreadcrumbTrail $trail`
 //  with `$trail`. This is nice for IDE type checking and completion.
+use App\Support\PermissionEntityType;
 use Diglactic\Breadcrumbs\Breadcrumbs;
 use Diglactic\Breadcrumbs\Generator as BreadcrumbTrail;
 
@@ -223,6 +224,21 @@ Breadcrumbs::for('subscriptions.index', function (BreadcrumbTrail $trail) {
     $trail->push('Abonnements', route('subscriptions.index'));
 });
 
+Breadcrumbs::for('draft.index', function (BreadcrumbTrail $trail) {
+    $trail->parent('board');
+    $trail->push('Entwürfe', route('draft.index'));
+});
+
+Breadcrumbs::for('draft.edit', function (BreadcrumbTrail $trail, PostDraft $draft) {
+    $trail->parent('draft.index');
+    $trail->push($draft->thread?->name ?? $draft->title ?? 'Neues Thema', route('draft.edit', $draft));
+});
+
+Breadcrumbs::for('draft.topic', function (BreadcrumbTrail $trail, $board = null) {
+    $trail->parent('draft.index');
+    $trail->push('Neues Thema');
+});
+
 Breadcrumbs::for('subscriptions.update', function (BreadcrumbTrail $trail) {
     $trail->parent('subscriptions.index');
 });
@@ -255,16 +271,6 @@ Breadcrumbs::for('thread.edit', function (BreadcrumbTrail $trail, Thread $thread
 Breadcrumbs::for('thread.delete', function (BreadcrumbTrail $trail, Thread $thread) {
     $trail->parent('thread.view', $thread);
     $trail->push('Thema löschen', route('thread.delete', $thread->id));
-});
-
-Breadcrumbs::for('thread.scene.create', function (BreadcrumbTrail $trail, Thread $thread) {
-    $trail->parent('thread.view', $thread);
-    $trail->push('Szene setzen', route('thread.scene.create', $thread->id));
-});
-
-Breadcrumbs::for('thread.scene.end', function (BreadcrumbTrail $trail, Thread $thread) {
-    $trail->parent('thread.view', $thread);
-    $trail->push('Szene beenden', route('thread.scene.end', $thread->id));
 });
 
 Breadcrumbs::for('post.edit', function (BreadcrumbTrail $trail, Post $post) {

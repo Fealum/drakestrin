@@ -15,12 +15,13 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\MarkdownExportController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\PollController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\PostDraftController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\StaticPageController;
 use App\Http\Controllers\TerritoryController;
 use App\Http\Controllers\ThreadController;
-use App\Http\Controllers\ThreadSceneController;
 use App\Http\Controllers\ThreadSubscriptionController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UserController;
@@ -81,6 +82,16 @@ Route::controller(ThreadController::class)->group(function () {
     Route::post('/thread/delete/{thread}', 'destroy')->name('thread.destroy');
 });
 
+Route::middleware('auth')->controller(PostDraftController::class)->group(function () {
+    Route::get('/drafts', 'index')->name('draft.index');
+    Route::get('/draft/topic/{board?}', 'topic')->name('draft.topic');
+    Route::post('/draft/topic/{board?}', 'updateTopic')->name('draft.topic.update');
+    Route::post('/thread/{thread}/draft', 'updateReply')->name('draft.reply.update');
+    Route::get('/draft/{draft}', 'edit')->name('draft.edit');
+    Route::post('/draft/{draft}', 'update')->name('draft.update');
+    Route::delete('/draft/{draft}', 'destroy')->name('draft.destroy');
+});
+
 Route::controller(ThreadSubscriptionController::class)->group(function () {
     Route::get('/subscriptions', 'index')->name('subscriptions.index');
     Route::post('/subscriptions', 'update')->name('subscriptions.update');
@@ -90,11 +101,6 @@ Route::controller(ThreadSubscriptionController::class)->group(function () {
     Route::get('/thread/{thread}/subscribers', 'subscribers')->name('thread.subscribers');
     Route::get('/subscription/{subscription}/unsubscribe', 'unsubscribeConfirmation')->name('subscription.unsubscribe.confirm');
     Route::post('/subscription/{subscription}/unsubscribe', 'signedDestroy')->name('subscription.unsubscribe');
-});
-
-Route::controller(ThreadSceneController::class)->group(function () {
-    Route::match(['get', 'post'], '/thread/scene/create/{thread}', 'create')->name('thread.scene.create');
-    Route::match(['get', 'post'], '/thread/scene/end/{thread}', 'end')->name('thread.scene.end');
 });
 
 Route::controller(PostController::class)->group(function () {
@@ -107,8 +113,8 @@ Route::controller(PostController::class)->group(function () {
     Route::post('/post/delete/{post}', 'destroy')->name('post.destroy');
 });
 
-Route::post('/transfer/transfer/{thread}', [TransferController::class, 'transfer'])->name('transfer.transfer');
 Route::post('/transfer/{transfer}/reverse', [TransferController::class, 'reverse'])->name('transfer.reverse');
+Route::post('/poll/{poll}/vote', [PollController::class, 'vote'])->name('poll.vote');
 
 Route::get('/img/avatarCharacter.id/thumb/{path}.jpg', function (string $path) {
     return redirect(Storage::disk('public')->url('character-avatars/thumb/'.$path.'.jpg'), 301);

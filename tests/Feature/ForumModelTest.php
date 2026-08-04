@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Data\Board\PostCompositionData;
 use App\Data\Economy\InventoryStateChange;
 use App\Jobs\GenerateMarkdownExport;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
+use App\Models\Board\PostDraft;
 use App\Models\Board\Thread as ForumThread;
 use App\Models\Board\ThreadScene;
 use App\Models\Economy\Inventory;
@@ -13,6 +15,8 @@ use App\Models\Territory\Location;
 use App\Models\Territory\Territory;
 use App\Models\User;
 use App\Models\User\Character;
+use App\Services\Board\PostDraftService;
+use App\Services\Board\PostWriter;
 use App\Services\InventoryService;
 use App\Services\MarkdownArchiveExporter;
 use App\Services\PermissionService;
@@ -23,6 +27,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -370,7 +375,15 @@ class ForumModelTest extends TestCase
             'created_at' => now(),
         ]);
 
-        $this->get('/thread/view/'.$this->threadId)
+        $draftService = app(PostDraftService::class);
+        $thread = ForumThread::findOrFail($this->threadId);
+        $payload = $draftService->command($draftService->replyState(User::findOrFail($this->userId), $thread)->payload, 'add_transfer');
+        $draftService->saveReply($thread, User::findOrFail($this->userId), [
+            'character' => $this->characterId,
+            'elements' => $draftService->bindAndValidateScenes($payload, $thread),
+        ], 0);
+
+        $this->get(route('thread.view', $thread))
             ->assertOk()
             ->assertSee($this->prefix.'_scene_company')
             ->assertSee('company_deposit', false)
@@ -415,7 +428,7 @@ class ForumModelTest extends TestCase
             ->value('id');
         $this->assertGreaterThan(0, $companyInventoryId);
 
-        $this->get('/thread/view/'.$this->threadId)
+        $this->get(route('thread.view', $this->threadId))
             ->assertOk()
             ->assertDontSee('value="'.$companyInventoryId.'"', false);
 
@@ -434,7 +447,7 @@ class ForumModelTest extends TestCase
             'wear' => InventoryStockState::RESERVED->value,
         ]);
 
-        $this->get('/thread/view/'.$this->threadId)
+        $this->get(route('thread.view', $this->threadId))
             ->assertOk()
             ->assertSee('value="'.$companyInventoryId.'"', false);
 
@@ -494,7 +507,6 @@ class ForumModelTest extends TestCase
         $this->assertSame($this->childBoardId, $post->board->id);
         $this->assertSame($this->threadId, $post->thread->id);
         $this->assertTrue($post->smilies);
-        $this->assertFalse($post->signature);
         $this->assertSame($this->postTime, $post->time->timestamp);
     }
 
@@ -784,17 +796,14 @@ class ForumModelTest extends TestCase
         $threadResponse->assertSee('/thread/delete/'.$this->threadId, false);
         $threadResponse->assertSee('/post/edit/'.$this->postId, false);
         $threadResponse->assertSee('/post/delete/'.$this->postId, false);
-        $threadResponse->assertSee('/thread/view/'.$this->threadId.'/last?quote='.$this->postId.'#newpost', false);
-        $threadResponse->assertSee('x-data', false);
-        $threadResponse->assertSee('insertThreadQuote', false);
+        $threadResponse->assertSee('form="post-composer" name="intent" value="quote:'.$this->postId.'"', false);
+        $threadResponse->assertSee('action="'.route('draft.reply.update', $this->threadId).'"', false);
+        $threadResponse->assertSee('id="post-composer"', false);
+        $this->assertDatabaseMissing('post_drafts', ['user_id' => $this->userId, 'thread_id' => $this->threadId]);
         $threadResponse->assertDontSee('?page=2', false);
         $threadResponse->assertSee('1 Aufrufe');
         $threadResponse->assertSee('(Neu)');
-        $threadResponse->assertSee('textarea-bbcode', false);
-        $threadResponse->assertSee('bbcode-toolbar', false);
-        $threadResponse->assertSee('window.bbcodeTextarea', false);
-        $threadResponse->assertSee('[h]', false);
-        $threadResponse->assertSee('Neuen Beitrag erstellen');
+        $threadResponse->assertDontSee('name="newpost"', false);
 
         $this->assertDatabaseHas('threads', [
             'id' => $this->threadId,
@@ -810,10 +819,35 @@ class ForumModelTest extends TestCase
             'views' => 2,
         ]);
 
-        $quotedThreadResponse = $this->get('/thread/view/'.$this->threadId.'/last?quote='.$this->postId);
+        $emptyDraftResponse = $this->post(route('draft.reply.update', $this->threadId), [
+            'version' => 0,
+            'character' => $this->characterId,
+            'intent' => 'save',
+            'elements' => [['type' => 'message', 'message' => '', 'smilies' => '1']],
+        ]);
+        $emptyDraftResponse->assertRedirect(route('thread.view', $this->threadId).'#post-composer');
+        $this->assertDatabaseMissing('post_drafts', ['user_id' => $this->userId, 'thread_id' => $this->threadId]);
 
-        $quotedThreadResponse->assertOk();
-        $quotedThreadResponse->assertSee('[q='.$this->prefix.'_character]'.$this->prefix.'_message[/q]', false);
+        $quotedThreadResponse = $this->post(route('draft.reply.update', $this->threadId), [
+            'version' => 0,
+            'character' => $this->characterId,
+            'intent' => 'quote:'.$this->postId,
+            'elements' => [['type' => 'message', 'message' => 'Eigener Anfang', 'smilies' => '1']],
+        ]);
+        $quotedThreadResponse->assertRedirect(route('thread.view', $this->threadId).'#post-composer');
+        $draft = PostDraft::query()->where('user_id', $this->userId)->where('thread_id', $this->threadId)->firstOrFail();
+        $this->assertStringContainsString('Eigener Anfang', $draft->payload[0]['message']);
+        $this->assertStringContainsString('[q='.$this->prefix.'_character]'.$this->prefix.'_message[/q]', $draft->payload[0]['message']);
+        $secondQuote = $this->post(route('draft.reply.update', $this->threadId), [
+            'version' => $draft->version,
+            'character' => $this->characterId,
+            'intent' => 'quote:'.$this->postId,
+            'elements' => $draft->payload,
+        ]);
+        $secondQuote->assertRedirect(route('thread.view', $this->threadId).'#post-composer');
+        $draft->refresh();
+        $this->assertSame(2, substr_count($draft->payload[0]['message'], '[q='.$this->prefix.'_character]'));
+        $this->followRedirects($quotedThreadResponse)->assertSee('Eigener Anfang');
     }
 
     public function test_thread_posts_render_legacy_bbcode_and_smilies_safely(): void
@@ -822,6 +856,16 @@ class ForumModelTest extends TestCase
 
         DB::table('posts')
             ->where('id', $this->postId)
+            ->update([
+                'message' => '[b]'.$this->prefix.'_bold[/b]'.PHP_EOL
+                    .'[h]'.$this->prefix.'_action[/h]'.PHP_EOL
+                    .'[q='.$this->prefix.'_character]'.$this->prefix.'_quote[/q]'.PHP_EOL
+                    .'Warten... "Hallo" - "Welt"'.PHP_EOL
+                    .':) <script>alert(1)</script>',
+                'smilies' => 1,
+            ]);
+        DB::table('post_messages')
+            ->whereIn('post_element_id', DB::table('post_elements')->where('post_id', $this->postId)->where('type', 'message')->select('id'))
             ->update([
                 'message' => '[b]'.$this->prefix.'_bold[/b]'.PHP_EOL
                     .'[h]'.$this->prefix.'_action[/h]'.PHP_EOL
@@ -852,6 +896,9 @@ class ForumModelTest extends TestCase
                 'message' => ':)',
                 'smilies' => 0,
             ]);
+        DB::table('post_messages')
+            ->whereIn('post_element_id', DB::table('post_elements')->where('post_id', $this->postId)->where('type', 'message')->select('id'))
+            ->update(['message' => ':)', 'smilies' => 0]);
 
         $withoutSmilies = $this->get('/thread/view/'.$this->threadId);
 
@@ -1236,12 +1283,6 @@ class ForumModelTest extends TestCase
     {
         $this->actingAs(User::findOrFail($this->userId));
 
-        $threadPage = $this->get('/thread/view/'.$this->threadId);
-
-        $threadPage->assertOk();
-        $threadPage->assertSee('id="char-new"', false);
-        $threadPage->assertSee('name="newcharname"', false);
-
         $createResponse = $this->post('/post/create/'.$this->threadId, [
             'character' => 'new',
             'newcharname' => $this->prefix.'_inline_character',
@@ -1284,19 +1325,17 @@ class ForumModelTest extends TestCase
         $this->setPermitStandard('setthreadscene', 2);
         $this->setPermitStandard('endthreadscene', 2);
         $this->actingAs(User::findOrFail($this->userId));
-
-        $sceneForm = $this->get('/thread/scene/create/'.$this->threadId);
-        $sceneForm->assertOk();
-        $sceneForm->assertSee($this->prefix.'_location');
-        $sceneForm->assertSee('type="datetime-local"', false);
-
         $startedAt = CarbonImmutable::createFromTimestamp($this->postTime + 10, config('app.timezone'))->setSecond(0);
-        $setScene = $this->post('/thread/scene/create/'.$this->threadId, [
-            'location_id' => $this->locationId,
-            'story_started_at' => $startedAt->format('Y-m-d\TH:i'),
-        ]);
-
-        $setScene->assertRedirect('/thread/view/'.$this->threadId);
+        $firstPost = app(PostWriter::class)->createComposition(
+            ForumThread::findOrFail($this->threadId),
+            User::findOrFail($this->userId),
+            $this->characterId,
+            PostCompositionData::fromArray([
+                ['type' => 'scene_transition', 'scene_action' => 'start', 'scene_key' => 'first-scene', 'location_id' => $this->locationId, 'story_at' => $startedAt->timestamp],
+                ['type' => 'message', 'message' => 'Die Szene beginnt.', 'smilies' => true],
+            ]),
+            '127.0.0.1',
+        );
         $firstSceneId = (int) DB::table('thread_scenes')
             ->where('thread_id', $this->threadId)
             ->where('location_id', $this->locationId)
@@ -1313,7 +1352,7 @@ class ForumModelTest extends TestCase
         $threadPage = $this->get('/thread/view/'.$this->threadId);
         $threadPage->assertOk();
         $threadPage->assertSee($this->prefix.'_location');
-        $threadPage->assertSee('Szene beenden');
+        $threadPage->assertSee('Die Szene beginnt.');
 
         $secondLocation = Location::factory()->create([
             'parent_type' => PermissionEntityType::LOCATION->value,
@@ -1324,25 +1363,32 @@ class ForumModelTest extends TestCase
         ]);
 
         $changedAt = CarbonImmutable::createFromTimestamp($this->postTime + 20, config('app.timezone'))->setSecond(0);
-        $changeScene = $this->post('/thread/scene/create/'.$this->threadId, [
-            'location_id' => $secondLocation->id,
-            'story_started_at' => $changedAt->format('Y-m-d\TH:i'),
-        ]);
-
-        $changeScene->assertRedirect('/thread/view/'.$this->threadId);
+        $changePost = app(PostWriter::class)->createComposition(
+            ForumThread::findOrFail($this->threadId),
+            User::findOrFail($this->userId),
+            $this->characterId,
+            PostCompositionData::fromArray([
+                ['type' => 'scene_transition', 'scene_action' => 'start', 'scene_key' => 'second-scene', 'location_id' => $secondLocation->id, 'story_at' => $changedAt->timestamp],
+            ]),
+            '127.0.0.1',
+        );
         $this->assertDatabaseHas('thread_scenes', [
             'id' => $firstSceneId,
-            'ends_at_post_id' => $this->postId,
-            'story_ended_at' => null,
+            'ends_at_post_id' => $changePost->id,
+            'story_ended_at' => $changedAt->timestamp,
         ]);
         $this->assertNotNull(DB::table('thread_scenes')->where('id', $firstSceneId)->value('ended_at'));
 
         $endedAt = CarbonImmutable::createFromTimestamp($this->postTime + 30, config('app.timezone'))->setSecond(0);
-        $endScene = $this->post('/thread/scene/end/'.$this->threadId, [
-            'story_ended_at' => $endedAt->format('Y-m-d\TH:i'),
-        ]);
-
-        $endScene->assertRedirect('/thread/view/'.$this->threadId);
+        app(PostWriter::class)->createComposition(
+            ForumThread::findOrFail($this->threadId),
+            User::findOrFail($this->userId),
+            $this->characterId,
+            PostCompositionData::fromArray([
+                ['type' => 'scene_transition', 'scene_action' => 'end', 'story_at' => $endedAt->timestamp],
+            ]),
+            '127.0.0.1',
+        );
         $this->assertDatabaseHas('thread_scenes', [
             'thread_id' => $this->threadId,
             'location_id' => $secondLocation->id,
@@ -1435,24 +1481,29 @@ class ForumModelTest extends TestCase
             'data' => '',
         ]);
 
-        $threadPage = $this->get('/thread/view/'.$this->threadId);
+        $draftService = app(PostDraftService::class);
+        $thread = ForumThread::findOrFail($this->threadId);
+        $payload = $draftService->command($draftService->replyState(User::findOrFail($this->userId), $thread)->payload, 'add_transfer');
+        $draft = $draftService->saveReply($thread, User::findOrFail($this->userId), [
+            'character' => $this->characterId,
+            'elements' => $draftService->bindAndValidateScenes($payload, $thread),
+        ], 0);
+        $threadPage = $this->get(route('thread.view', $thread));
 
         $threadPage->assertOk();
         $threadPage->assertDontSee('href="#newaction"', false);
         $threadPage->assertDontSee('name="newtransfer"', false);
         $threadPage->assertDontSee('showActionPanel(window.location.hash === \'#newaction\' ? \'newaction\' : \'newpost\');', false);
         $threadPage->assertDontSee('/transfer/transfer/'.$this->threadId, false);
-        $threadPage->assertSee('name="newpost"', false);
-        $threadPage->assertSee('/post/create/'.$this->threadId, false);
-        $threadPage->assertSee('id="char-'.$this->characterId.'"', false);
-        $threadPage->assertSee('name="transfer_action"', false);
+        $threadPage->assertSee(route('draft.reply.update', $thread), false);
+        $threadPage->assertSee('name="elements[1][transfer_action]"', false);
         $threadPage->assertSee('value="give"', false);
         $threadPage->assertSee('value="drop"', false);
-        $threadPage->assertSee('id="inventory-'.$inventoryId.'"', false);
-        $threadPage->assertSee('name="inventorystack['.$inventoryId.']"', false);
-        $threadPage->assertSee('name="recipient"', false);
+        $threadPage->assertSee('name="elements[1][inventory]['.$inventoryId.']"', false);
+        $threadPage->assertSee('name="elements[1][inventorystack]['.$inventoryId.']"', false);
+        $threadPage->assertSee('name="elements[1][recipient]"', false);
         $threadPage->assertSee('class="character-selector-search" x-show="! selected"', false);
-        $threadPage->assertSee('Neuen Beitrag erstellen');
+        $threadPage->assertSee('Veröffentlichen');
     }
 
     public function test_inventory_transfer_backend_moves_items_and_creates_action_post(): void
@@ -1681,7 +1732,18 @@ class ForumModelTest extends TestCase
         $threadPage->assertSee($this->prefix.'_pickup_post');
         $threadPage->assertSee($this->prefix.'_scene_item');
         $threadPage->assertSee($this->prefix.'_location');
-        $threadPage->assertSee('value="pickup"', false);
+
+        $draftService = app(PostDraftService::class);
+        $thread = ForumThread::findOrFail($this->threadId);
+        $payload = $draftService->command($draftService->replyState(User::findOrFail($this->userId), $thread)->payload, 'add_transfer');
+        $draftService->saveReply($thread, User::findOrFail($this->userId), [
+            'character' => $this->characterId,
+            'elements' => $draftService->bindAndValidateScenes($payload, $thread),
+        ], 0);
+        $this->get(route('thread.view', $thread))
+            ->assertOk()
+            ->assertSee('value="pickup"', false)
+            ->assertSee('value="'.$locationInventory->id.'"', false);
 
         $locationPage = $this->get('/location/view/'.$this->locationId);
         $locationPage->assertOk();
@@ -2208,16 +2270,13 @@ class ForumModelTest extends TestCase
 
         $createPage = $this->get('/thread/create/'.$this->childBoardId);
 
-        $createPage->assertOk();
-        $createPage->assertSee('Neues Thema erstellen');
-        $createPage->assertSeeInOrder([
-            $this->prefix.'_parent',
-            '&mdash;'.$this->prefix.'_child',
-            '&mdash;'.$this->prefix.'_other_child',
-        ], false);
-        $createPage->assertSee('value="'.$this->parentBoardId.'"  disabled', false);
-        $createPage->assertSee($this->prefix.'_child');
-        $createPage->assertSee('textarea-bbcode', false);
+        $createPage->assertRedirect();
+        $composerPage = $this->followRedirects($createPage);
+        $composerPage->assertOk();
+        $composerPage->assertSee('Neues Thema');
+        $composerPage->assertSee($this->prefix.'_child');
+        $composerPage->assertSee($this->prefix.'_other_child');
+        $composerPage->assertSee('textarea-bbcode', false);
 
         $createResponse = $this->post('/thread/create/'.$this->childBoardId, [
             'board' => $this->childBoardId,
@@ -2456,6 +2515,260 @@ class ForumModelTest extends TestCase
                 'last_post_id' => $lastPostId,
                 'last_post_at' => $this->postTime + $count,
             ]);
+    }
+
+    public function test_draft_scene_rules_keep_actions_bound_and_allow_polls_to_cross_complete_scenes(): void
+    {
+        $drafts = app(PostDraftService::class);
+        $payload = [
+            ['type' => 'scene_transition', 'scene_action' => 'start', 'scene_key' => 'scene-a', 'location_id' => $this->locationId, 'story_at' => $this->postTime],
+            ['type' => 'transfer', 'scene_key' => null, 'transfer_action' => 'drop', 'inventory' => [1 => 1]],
+            ['type' => 'scene_transition', 'scene_action' => 'end', 'story_at' => $this->postTime + 60],
+            ['type' => 'poll', 'question' => 'Außerhalb?', 'options' => ['Ja', 'Nein'], 'visibility' => 'anonymous', 'max_choices' => 1],
+        ];
+
+        $bound = $drafts->bindAndValidateScenes($payload, null);
+        $this->assertSame('scene-a', $bound[1]['scene_key']);
+
+        try {
+            $drafts->bindAndValidateScenes($drafts->command($bound, 'move', 1, 3), null);
+            $this->fail('The action was allowed to leave its scene.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('elements.3', $exception->errors());
+        }
+
+        $movedPoll = $drafts->bindAndValidateScenes($drafts->command($bound, 'move', 3, 0), null);
+        $this->assertSame('poll', $movedPoll[0]['type']);
+        $this->assertSame('scene_transition', $movedPoll[1]['type']);
+    }
+
+    public function test_reply_and_topic_drafts_enforce_cardinality_and_optimistic_versions(): void
+    {
+        $drafts = app(PostDraftService::class);
+        $user = User::findOrFail($this->userId);
+        $thread = ForumThread::findOrFail($this->threadId);
+        $replyState = $drafts->replyState($user, $thread);
+        $this->assertFalse($replyState->exists);
+        $this->assertDatabaseMissing('post_drafts', ['user_id' => $user->id, 'thread_id' => $thread->id]);
+        $reply = $drafts->saveReply($thread, $user, [
+            'character' => $this->characterId,
+            'elements' => [['type' => 'message', 'message' => 'Gespeichert', 'smilies' => true]],
+        ], 0);
+        $this->assertSame($reply->id, $drafts->replyState($user, $thread)->id);
+
+        $topicA = $drafts->saveTopic($user, [
+            'board' => $this->childBoardId,
+            'title' => 'Thema A',
+            'character' => $this->characterId,
+            'elements' => [['type' => 'message', 'message' => '', 'smilies' => true]],
+        ], 0);
+        $topicB = $drafts->saveTopic($user, [
+            'board' => $this->childBoardId,
+            'title' => 'Thema B',
+            'character' => $this->characterId,
+            'elements' => [['type' => 'message', 'message' => '', 'smilies' => true]],
+        ], 0);
+        $this->assertNotSame($topicA->id, $topicB->id);
+
+        try {
+            $saved = $drafts->save($reply, $user, [
+                'board' => $this->childBoardId,
+                'character' => $this->characterId,
+                'elements' => [['type' => 'message', 'message' => 'Neu', 'smilies' => true]],
+            ], $reply->version);
+            $this->assertSame($reply->version + 1, $saved->version);
+
+            try {
+                $drafts->save($reply, $user, [
+                    'character' => $this->characterId,
+                    'elements' => [['type' => 'message', 'message' => 'Veraltet', 'smilies' => true]],
+                ], $reply->version);
+                $this->fail('A stale draft overwrote the newer version.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('draft', $exception->errors());
+            }
+        } finally {
+            $topicA->delete();
+            $topicB->delete();
+        }
+    }
+
+    public function test_empty_composers_are_not_saved_and_reply_drafts_resume_in_their_thread(): void
+    {
+        $user = User::findOrFail($this->userId);
+        $thread = ForumThread::findOrFail($this->threadId);
+        $this->actingAs($user);
+
+        $this->get(route('draft.topic', $this->childBoardId))
+            ->assertOk()
+            ->assertSee('action="'.route('draft.topic.update', $this->childBoardId).'"', false)
+            ->assertSee('value="0" id="draft-version"', false);
+        $this->assertDatabaseMissing('post_drafts', ['user_id' => $user->id]);
+
+        $empty = $this->postJson(route('draft.topic.update', $this->childBoardId), [
+            'version' => 0,
+            'board' => $this->childBoardId,
+            'title' => '',
+            'character' => $this->characterId,
+            'intent' => 'autosave',
+            'elements' => [['type' => 'message', 'message' => '', 'smilies' => true]],
+        ]);
+        $empty->assertOk()->assertJsonPath('version', 0)->assertJsonPath('saved_at', null);
+        $this->assertDatabaseMissing('post_drafts', ['user_id' => $user->id]);
+
+        $saved = $this->postJson(route('draft.topic.update', $this->childBoardId), [
+            'version' => 0,
+            'board' => $this->childBoardId,
+            'title' => '',
+            'character' => $this->characterId,
+            'intent' => 'autosave',
+            'elements' => [['type' => 'message', 'message' => 'Ein Anfang', 'smilies' => true]],
+        ]);
+        $topicDraft = PostDraft::query()->where('user_id', $user->id)->whereNull('thread_id')->firstOrFail();
+        $saved->assertOk()->assertJsonPath('version', 1)->assertJsonPath('action', route('draft.update', $topicDraft));
+
+        $this->postJson(route('draft.update', $topicDraft), [
+            'version' => 1,
+            'board' => $this->childBoardId,
+            'title' => '',
+            'character' => $this->characterId,
+            'intent' => 'autosave',
+            'elements' => [['type' => 'message', 'message' => '', 'smilies' => true]],
+        ])->assertOk()->assertJsonPath('version', 0);
+        $this->assertDatabaseMissing('post_drafts', ['id' => $topicDraft->id]);
+
+        app(PostDraftService::class)->saveReply($thread, $user, [
+            'character' => $this->characterId,
+            'elements' => [['type' => 'message', 'message' => 'Antwortentwurf', 'smilies' => true]],
+        ], 0);
+        $this->get(route('draft.index'))
+            ->assertOk()
+            ->assertSee(route('thread.view', $thread).'#post-composer', false)
+            ->assertDontSee('/draft/'.$topicDraft->id, false);
+    }
+
+    public function test_mixed_composition_is_published_in_order_with_two_polls_and_a_scene(): void
+    {
+        $originalCreatePoll = (int) DB::table('permits')->where('name', 'createpoll')->value('standard');
+        $this->setPermitStandard('createpoll', 2);
+        $this->setPermitStandard('setthreadscene', 2);
+        $this->setPermitStandard('endthreadscene', 2);
+
+        try {
+            $composition = PostCompositionData::fromArray([
+                ['type' => 'poll', 'question' => 'Vorher?', 'options' => ['Ja', 'Nein'], 'visibility' => 'anonymous', 'max_choices' => 1],
+                ['type' => 'scene_transition', 'scene_action' => 'start', 'scene_key' => 'scene-a', 'location_id' => $this->locationId, 'story_at' => $this->postTime],
+                ['type' => 'message', 'message' => 'In der Szene', 'smilies' => true],
+                ['type' => 'scene_transition', 'scene_action' => 'end', 'story_at' => $this->postTime + 60],
+                ['type' => 'poll', 'question' => 'Nachher?', 'options' => ['Ja', 'Nein'], 'visibility' => 'open', 'max_choices' => 1],
+            ]);
+
+            $post = app(PostWriter::class)->createComposition(
+                ForumThread::findOrFail($this->threadId),
+                User::findOrFail($this->userId),
+                $this->characterId,
+                $composition,
+                '127.0.0.1',
+            );
+
+            $this->assertSame(
+                ['poll', 'scene_transition', 'message', 'scene_transition', 'poll'],
+                $post->elements()->orderBy('position')->get()->map(fn ($element) => $element->type->value)->all(),
+            );
+            $this->assertSame(2, $post->elements()->where('type', 'poll')->count());
+            $this->assertSame(1, DB::table('thread_scenes')->where('thread_id', $this->threadId)->whereNotNull('ended_at')->count());
+        } finally {
+            $this->setPermitStandard('createpoll', $originalCreatePoll);
+        }
+    }
+
+    public function test_open_and_anonymous_poll_votes_are_final_and_store_only_the_intended_attribution(): void
+    {
+        $originalCreatePoll = (int) DB::table('permits')->where('name', 'createpoll')->value('standard');
+        $originalVotePoll = (int) DB::table('permits')->where('name', 'votepoll')->value('standard');
+        $this->setPermitStandard('createpoll', 2);
+        $this->setPermitStandard('votepoll', 2);
+        $this->actingAs(User::findOrFail($this->userId));
+
+        try {
+            $post = app(PostWriter::class)->createComposition(
+                ForumThread::findOrFail($this->threadId),
+                User::findOrFail($this->userId),
+                $this->characterId,
+                PostCompositionData::fromArray([
+                    ['type' => 'poll', 'question' => 'Offen?', 'options' => ['Ja', 'Nein'], 'visibility' => 'open', 'max_choices' => 1],
+                    ['type' => 'poll', 'question' => 'Anonym?', 'options' => ['Links', 'Rechts'], 'visibility' => 'anonymous', 'max_choices' => 1],
+                ]),
+                '127.0.0.1',
+            );
+            $polls = $post->elements()->with('poll.options')->orderBy('position')->get()->pluck('poll');
+            $openPoll = $polls[0];
+            $anonymousPoll = $polls[1];
+            $openOption = $openPoll->options->first();
+            $anonymousOption = $anonymousPoll->options->first();
+
+            $this->post(route('poll.vote', $openPoll), ['options' => $openPoll->options->pluck('id')->all()])
+                ->assertSessionHasErrors('options');
+            $this->post(route('poll.vote', $openPoll), ['options' => [$openOption->id]])
+                ->assertSessionHasNoErrors();
+            $this->post(route('poll.vote', $openPoll), ['options' => [$openPoll->options->last()->id]])
+                ->assertSessionHasErrors('poll');
+
+            $openParticipationId = (int) DB::table('poll_participations')
+                ->where('poll_id', $openPoll->id)->where('user_id', $this->userId)->value('id');
+            $this->assertDatabaseHas('poll_choices', [
+                'poll_participation_id' => $openParticipationId,
+                'poll_option_id' => $openOption->id,
+            ]);
+
+            $this->post(route('poll.vote', $anonymousPoll), ['options' => [$anonymousOption->id]])
+                ->assertSessionHasNoErrors();
+            $anonymousParticipationId = (int) DB::table('poll_participations')
+                ->where('poll_id', $anonymousPoll->id)->where('user_id', $this->userId)->value('id');
+            $this->assertDatabaseMissing('poll_choices', ['poll_participation_id' => $anonymousParticipationId]);
+            $this->assertDatabaseHas('poll_options', ['id' => $anonymousOption->id, 'unattributed_votes' => 1]);
+
+            $this->get(route('thread.view', $this->threadId))
+                ->assertOk()
+                ->assertSee('/user/view/'.$this->userId, false);
+        } finally {
+            $this->setPermitStandard('createpoll', $originalCreatePoll);
+            $this->setPermitStandard('votepoll', $originalVotePoll);
+        }
+    }
+
+    public function test_draft_publication_deletes_only_successful_drafts_and_retains_failed_compositions(): void
+    {
+        $user = User::findOrFail($this->userId);
+        $thread = ForumThread::findOrFail($this->threadId);
+        $this->actingAs($user);
+        $published = $this->post(route('draft.reply.update', $thread), [
+            'version' => 0,
+            'character' => $this->characterId,
+            'intent' => 'publish',
+            'elements' => [['type' => 'message', 'message' => $this->prefix.'_draft_publication', 'smilies' => '1']],
+        ]);
+        $post = Post::query()->where('message', $this->prefix.'_draft_publication')->firstOrFail();
+        $published->assertRedirect(route('post.view', $post));
+        $this->assertDatabaseMissing('post_drafts', ['user_id' => $user->id, 'thread_id' => $thread->id]);
+
+        $this->createSceneAt($this->postTime);
+        $failed = $this->post(route('draft.reply.update', $thread), [
+            'version' => 0,
+            'character' => $this->characterId,
+            'intent' => 'publish',
+            'elements' => [[
+                'type' => 'poll',
+                'question' => 'Innerhalb der Szene?',
+                'options' => ['Ja', 'Nein'],
+                'visibility' => 'anonymous',
+                'max_choices' => 1,
+            ]],
+        ]);
+
+        $failed->assertSessionHasErrors('elements.0');
+        $this->assertDatabaseHas('post_drafts', ['user_id' => $user->id, 'thread_id' => $thread->id]);
+        $this->assertDatabaseMissing('polls', ['question' => 'Innerhalb der Szene?']);
     }
 
     private function setPermitStandard(string $name, int $standard): void

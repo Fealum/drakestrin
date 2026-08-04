@@ -9,7 +9,7 @@
         <div id="index-news">
             <img src="{{ asset('css/img/eksnor.png') }}" />
             <p><x-datetime :time="$news->time" /></p>
-            <p>{{ $news->message }}</p>
+            <p>{{ $news->contentSummary() }}</p>
         </div>
         @endif
         @if ($word)

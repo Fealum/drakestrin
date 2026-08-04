@@ -2,24 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Data\Economy\InventoryOwner;
 use App\Http\Requests\Board\DestroyThreadRequest;
 use App\Http\Requests\Board\StoreThreadRequest;
 use App\Http\Requests\Board\UpdateThreadRequest;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\Thread as ForumThread;
-use App\Models\Economy\CompanySite;
 use App\Models\Territory\Location;
-use App\Repositories\Territory\LocationRepository;
+use App\Services\Board\PostComposerViewData;
+use App\Services\Board\PostDraftService;
 use App\Services\Board\ThreadReadService;
 use App\Services\Board\ThreadWriter;
-use App\Services\Economy\InventoryTimeline;
 use App\Services\Economy\TransferReversalService;
 use App\Services\PermissionService;
-use App\Support\CompanyRepresentativeRole;
-use App\Support\InventoryStockState;
-use App\Support\PermissionEntityType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -34,10 +29,10 @@ class ThreadController extends Controller
     public function __construct(
         PermissionService $permissionService,
         private ThreadWriter $threads,
-        private InventoryTimeline $inventoryTimeline,
         private TransferReversalService $transferReversals,
-        private LocationRepository $locations,
         private ThreadReadService $reads,
+        private PostDraftService $drafts,
+        private PostComposerViewData $composer,
     ) {
         parent::__construct($permissionService);
     }
@@ -55,6 +50,10 @@ class ThreadController extends Controller
             return redirect()->route('thread.view', ['thread' => $thread->id]);
         }
 
+        if ($request->user()) {
+            return redirect()->route('draft.topic', $board ?: []);
+        }
+
         return view('thread.create', [
             'boards' => $this->threadBoardOptions(),
             'characters' => auth()->user()->characters()->orderBy('name')->get(),
@@ -65,7 +64,7 @@ class ThreadController extends Controller
         ]);
     }
 
-    public function view(Request $request, ForumThread $thread, int|string $page = 1): View
+    public function view(Request $request, ForumThread $thread, int|string $page = 1): View|RedirectResponse
     {
         $this->authorize('view', $thread);
         $thread->load([
@@ -79,6 +78,17 @@ class ThreadController extends Controller
             'posts.transfers.reversal',
             'posts.transfers.reversalOf',
             'posts.transfers.sender',
+            'posts.elements.message',
+            'posts.elements.transfer.items.item',
+            'posts.elements.transfer.actor',
+            'posts.elements.transfer.recipient',
+            'posts.elements.transfer.reversal',
+            'posts.elements.transfer.reversalOf',
+            'posts.elements.transfer.sender',
+            'posts.elements.sceneTransition.endedScene.location',
+            'posts.elements.sceneTransition.startedScene.location',
+            'posts.elements.poll.options.participations.user',
+            'posts.elements.poll.participations',
             'scenes.location',
         ]);
         $thread->increment('views');
@@ -93,6 +103,17 @@ class ThreadController extends Controller
             'posts.transfers.reversal',
             'posts.transfers.reversalOf',
             'posts.transfers.sender',
+            'posts.elements.message',
+            'posts.elements.transfer.items.item',
+            'posts.elements.transfer.actor',
+            'posts.elements.transfer.recipient',
+            'posts.elements.transfer.reversal',
+            'posts.elements.transfer.reversalOf',
+            'posts.elements.transfer.sender',
+            'posts.elements.sceneTransition.endedScene.location',
+            'posts.elements.sceneTransition.startedScene.location',
+            'posts.elements.poll.options.participations.user',
+            'posts.elements.poll.participations',
             'scenes.location',
         ]);
 
@@ -113,87 +134,35 @@ class ThreadController extends Controller
         $unreadPostIds = $firstUnreadPost
             ? $posts->getCollection()->where('id', '>=', $firstUnreadPost->id)->pluck('id')
             : collect();
-        $quotedPost = $request->filled('quote')
-            ? $thread->posts->firstWhere('id', (int) $request->query('quote'))
-            : null;
         $characters = auth()->check()
-            ? auth()->user()->characters()->with('inventory.item')->orderBy('name')->get()
+            ? auth()->user()->characters()->orderBy('name')->get()
             : collect();
-        $storyAt = $thread->currentScene?->story_started_at;
-
-        if ($storyAt !== null) {
-            $characters->each(function ($character) use ($storyAt) {
-                $character->setRelation('inventory', $this->inventoryTimeline->transferableInventory(
-                    new InventoryOwner(PermissionEntityType::CHARACTER, $character->id),
-                    $storyAt,
-                ));
-            });
-        }
-
-        $locationInventory = $storyAt !== null
-            ? $this->inventoryTimeline->transferableInventory(
-                new InventoryOwner(PermissionEntityType::LOCATION, $thread->currentScene->location_id),
-                $storyAt,
-            )
-            : collect();
-        $localSites = collect();
-
-        if ($storyAt !== null && $thread->currentScene?->location) {
-            $localSites = CompanySite::query()
-                ->with(['company.owners.character', 'company.representatives.character', 'company.sites:id,company_id,name', 'representatives.character', 'location', 'inventory.item'])
-                ->whereIn('location_id', $this->locations->ancestorLocationIds($thread->currentScene->location))
-                ->orderBy('company_id')
-                ->orderBy('name')
-                ->get();
-
-            $localSites->each(function (CompanySite $site) use ($storyAt) {
-                $site->setRelation(
-                    'inventory',
-                    $this->inventoryTimeline->transferableInventory(
-                        new InventoryOwner(PermissionEntityType::COMPANY_SITE, $site->id),
-                        $storyAt,
-                    )->filter(fn ($inventory) => (int) $inventory->wear >= InventoryStockState::RESERVED->value)->values(),
-                );
-            });
-        }
-        $representedLocalSites = $localSites
-            ->filter(function (CompanySite $site) use ($characters) {
-                $representativeIds = $site->company->owners
-                    ->pluck('character_id')
-                    ->concat($site->company->representatives->where('role', CompanyRepresentativeRole::MANAGER)->pluck('character_id'))
-                    ->concat($site->representatives->pluck('character_id'))
-                    ->unique();
-
-                return $representativeIds->intersect($characters->pluck('id'))->isNotEmpty();
-            })
-            ->values();
         $reversibleTransferIds = auth()->check()
             ? $thread->posts
                 ->flatMap->transfers
                 ->filter(fn ($transfer) => $this->transferReversals->canReverse($transfer, auth()->user()))
                 ->pluck('id')
             : collect();
+        $canCreatePost = auth()->check() && auth()->user()->can('create', [Post::class, $thread]);
+        $composerData = null;
+        if ($canCreatePost && $characters->isNotEmpty()) {
+            $draft = $this->drafts->replyState(auth()->user(), $thread);
+            $draft->setRelation('thread', $thread);
+            $composerData = $this->composer->make($draft, auth()->user(), $thread);
+        }
 
         $response = view('thread.view', [
-            'canCreatePost' => auth()->check() && auth()->user()->can('create', [Post::class, $thread]),
-            'canCreateCharacter' => auth()->check() && $this->permissionService->allows('createcharacter', $thread, auth()->user()),
+            'canCreatePost' => $canCreatePost,
             'canDeleteThread' => auth()->check() && auth()->user()->can('delete', $thread),
             'canEditThread' => auth()->check() && auth()->user()->can('update', $thread),
-            'canEndScene' => auth()->check() && auth()->user()->can('endScene', $thread),
-            'canSetScene' => auth()->check() && auth()->user()->can('setScene', $thread),
-            'canTransfer' => auth()->check() && $this->permissionService->allows('transfer', $thread, auth()->user()),
             'canViewSubscribers' => auth()->check() && $this->permissionService->allows('viewthreadsubscriptions', $thread, auth()->user()),
             'characters' => $characters,
+            'composerData' => $composerData,
             'posts' => $posts,
-            'locationInventory' => $locationInventory,
-            'localSites' => $localSites,
-            'representedLocalSites' => $representedLocalSites,
-            'quotedMessage' => $quotedPost ? $this->quoteText($quotedPost) : '',
             'reversibleTransferIds' => $reversibleTransferIds,
             'thread' => $thread,
             'subscription' => auth()->check() ? $thread->subscriptions()->where('user_id', auth()->id())->first() : null,
             'subscriberCount' => $thread->subscriptions()->count(),
-            'timelineEntries' => $this->timelineEntries($posts->getCollection(), $thread->scenes),
             'unreadPostIds' => $unreadPostIds,
         ]);
 
@@ -230,7 +199,7 @@ class ThreadController extends Controller
 
         return view('thread.delete', [
             'postCount' => $thread->posts()->count(),
-            'thread' => $thread->load(['board', 'firstPost.character']),
+            'thread' => $thread->load(['board', 'firstPost.character', 'firstPost.elements.message']),
         ]);
     }
 
@@ -239,68 +208,6 @@ class ThreadController extends Controller
         $this->threads->delete($thread);
 
         return redirect()->route('board');
-    }
-
-    private function quoteText(Post $post): string
-    {
-        $author = $post->character?->name
-            ?? $post->author?->name
-            ?? 'Unbekannter Charakter';
-        $author = str_replace(']', ')', $author);
-
-        return '[q='.$author.']'.trim($post->message).'[/q]'.PHP_EOL;
-    }
-
-    private function timelineEntries(Collection $posts, Collection $scenes): Collection
-    {
-        $entries = collect();
-
-        foreach ($scenes as $scene) {
-            if ($scene->starts_at_post_id === null) {
-                $entries->push([
-                    'type' => 'scene_start',
-                    'scene' => $scene,
-                    'post' => null,
-                    'sort_post_id' => 0,
-                    'sort' => 0,
-                ]);
-            }
-        }
-
-        foreach ($posts as $postNumber => $post) {
-            $entries->push([
-                'type' => 'post',
-                'post' => $post,
-                'scene' => null,
-                'post_number' => $postNumber + 1,
-                'sort_post_id' => $post->id,
-                'sort' => 1,
-            ]);
-
-            foreach ($scenes->where('ends_at_post_id', $post->id) as $scene) {
-                $entries->push([
-                    'type' => 'scene_end',
-                    'scene' => $scene,
-                    'post' => $post,
-                    'sort_post_id' => $post->id,
-                    'sort' => 2,
-                ]);
-            }
-
-            foreach ($scenes->where('starts_at_post_id', $post->id) as $scene) {
-                $entries->push([
-                    'type' => 'scene_start',
-                    'scene' => $scene,
-                    'post' => $post,
-                    'sort_post_id' => $post->id,
-                    'sort' => 3,
-                ]);
-            }
-        }
-
-        return $entries
-            ->sortBy(fn (array $entry) => [$entry['sort_post_id'], $entry['sort'], $entry['scene']?->id ?? $entry['post']?->id ?? 0])
-            ->values();
     }
 
     private function threadBoardOptions(): Collection

@@ -14,7 +14,15 @@
                     @endforeach
                 </ul>
             </div>
-            <x-bbcode-textarea name="message" :value="$post->message" />
+            @foreach($post->elements->where('type', \App\Support\PostElementType::MESSAGE) as $index => $element)
+                @if($element->message)
+                <fieldset>
+                    <legend>Text {{ $loop->iteration }}</legend>
+                    <x-bbcode-textarea :name="'messages['.$index.'][message]'" :value="$element->message->message" />
+                    <label><input type="checkbox" name="messages[{{ $index }}][smilies]" value="1" @checked($element->message->smilies)> Smileys anzeigen</label>
+                </fieldset>
+                @endif
+            @endforeach
             <input type="submit" value="Beitrag bearbeiten">
         </form>
     </div>

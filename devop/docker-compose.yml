@@ -7,6 +7,9 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ../:/var/www/html
+      - ${SSH_AUTH_SOCK:-/dev/null}:/ssh-agent
+    environment:
+      SSH_AUTH_SOCK: /ssh-agent
     ports:
       - 80:80
     depends_on:

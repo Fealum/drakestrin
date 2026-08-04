@@ -4,11 +4,17 @@ namespace App\Console\Commands;
 
 use App\Models\Board\Board;
 use App\Models\Board\Thread;
+use App\Services\Board\PostMarkdownRenderer;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 
 class ExportBoardThreads extends Command
 {
+    public function __construct(private PostMarkdownRenderer $postMarkdown)
+    {
+        parent::__construct();
+    }
+
     protected $signature = 'forum:export-board {board : Board ID} {--path= : Write the Markdown export to this file instead of stdout}';
 
     protected $description = 'Export a board and its subboards as Markdown.';
@@ -28,7 +34,7 @@ class ExportBoardThreads extends Command
 
         if ($path) {
             File::put($path, $markdown);
-            $this->info('Export written to ' . $path);
+            $this->info('Export written to '.$path);
         } else {
             $this->line($markdown);
         }
@@ -39,11 +45,18 @@ class ExportBoardThreads extends Command
     private function renderBoard(Board $board): string
     {
         $lines = [
-            '# Forum ' . $board->id . ': ' . $board->name,
+            '# Forum '.$board->id.': '.$board->name,
             '',
         ];
 
-        $threads = Thread::with('posts.character')
+        $threads = Thread::with([
+            'posts.character',
+            'posts.elements.message',
+            'posts.elements.transfer.items.item',
+            'posts.elements.sceneTransition.endedScene.location',
+            'posts.elements.sceneTransition.startedScene.location',
+            'posts.elements.poll.options',
+        ])
             ->where('board_id', $board->id)
             ->orderByDesc('important')
             ->orderByDesc('last_post_at')
@@ -51,16 +64,16 @@ class ExportBoardThreads extends Command
             ->get();
 
         foreach ($threads as $thread) {
-            $lines[] = '## Thema ' . $thread->id . ': ' . $thread->name;
+            $lines[] = '## Thema '.$thread->id.': '.$thread->name;
             $lines[] = '';
 
             foreach ($thread->posts as $post) {
                 $author = $post->character?->name ?? 'Unbekannter Charakter';
                 $time = $post->time?->format('Y-m-d H:i:s') ?? '';
 
-                $lines[] = '### Beitrag von ' . $author . ', ' . $time;
+                $lines[] = '### Beitrag von '.$author.', '.$time;
                 $lines[] = '';
-                $lines[] = (string) $post->message;
+                $lines[] = $this->postMarkdown->render($post);
                 $lines[] = '';
             }
         }
@@ -75,6 +88,6 @@ class ExportBoardThreads extends Command
             $lines[] = '';
         }
 
-        return rtrim(implode(PHP_EOL, $lines)) . PHP_EOL;
+        return rtrim(implode(PHP_EOL, $lines)).PHP_EOL;
     }
 }

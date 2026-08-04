@@ -39,7 +39,7 @@ class PostController extends Controller
 
         return view('post.edit', [
             'characters' => auth()->user()->characters()->orderBy('name')->get(),
-            'post' => $post->load(['character', 'thread.board']),
+            'post' => $post->load(['character', 'thread.board', 'elements.message']),
         ]);
     }
 
@@ -53,7 +53,7 @@ class PostController extends Controller
     public function delete(Post $post): View
     {
         $this->authorize('delete', $post);
-        $post->load(['character', 'thread.board', 'author', 'transfers']);
+        $post->load(['character', 'thread.board', 'author', 'transfers', 'elements.message']);
 
         return view('post.delete', [
             'deletesThread' => $post->thread->posts()->count() === 1,
@@ -114,6 +114,9 @@ class PostController extends Controller
     {
         $page ??= $post->pageInThread(self::PAGE_ENTRIES);
 
-        return url('/thread/view/'.$post->thread_id.($page === 1 ? '' : '/'.$page).'#post'.$post->id);
+        return route('thread.view', [
+            'thread' => $post->thread_id,
+            'page' => $page === 1 ? null : $page,
+        ]).'#post'.$post->id;
     }
 }

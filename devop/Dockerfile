@@ -11,7 +11,11 @@ RUN docker-php-ext-install mysqli && docker-php-ext-enable mysqli
 RUN a2enmod rewrite
 
 # SSH-Key
-RUN mkdir -p ~/.ssh && ln -s /run/secrets/ssh_key ~/.ssh/id_rsa
+COPY docker-entrypoint.sh /usr/local/bin/drakestrin-entrypoint
+RUN chmod 755 /usr/local/bin/drakestrin-entrypoint
 
 # Installieren von Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+ENTRYPOINT ["drakestrin-entrypoint"]
+CMD ["apache2-foreground"]

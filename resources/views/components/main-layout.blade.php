@@ -117,6 +117,7 @@
 		<ul id="accountoptions">
 			<li><a href="{{ route('conversation') }}" class="fa-envelope" title="Konversationen">Konversationen</a></li>
 			<li><a href="{{ route('subscriptions.index') }}" class="fa-bell" title="Abonnements">Abonnements</a></li>
+			<li><a href="{{ route('draft.index') }}" class="fa-edit" title="Entwürfe">Entwürfe</a></li>
 			<li><a href="{{ route('forum.settings') }}" class="fa-cog" title="Einstellungen">Einstellungen</a></li>
 			<li><a href="{{ route('user.view', auth()->user()) }}" class="fa-user" title="Profil">Profil</a></li>
 			<li><a href="{{ route('log.out') }}" class="fa-sign-out" title="Abmelden">Abmelden</a></li>

@@ -3,14 +3,18 @@
 namespace App\Services\Board;
 
 use App\Data\Board\CreateThreadData;
+use App\Data\Board\PostCompositionData;
 use App\Data\Board\UpdateThreadData;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
+use App\Models\Board\PostDraft;
 use App\Models\Board\Thread as ForumThread;
 use App\Models\Board\ThreadScene;
 use App\Models\User;
 use App\Models\User\Character;
+use App\Support\PostElementType;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 class ThreadWriter
@@ -18,6 +22,7 @@ class ThreadWriter
     public function __construct(
         private ForumCounters $counters,
         private ThreadSubscriptionService $subscriptions,
+        private PostWriter $posts,
     ) {}
 
     public function create(Board $board, User $user, CreateThreadData $data, bool $canMarkAsImportant, string $ip): ForumThread
@@ -45,9 +50,12 @@ class ThreadWriter
                 'time' => $time,
                 'message' => $data->message,
                 'smilies' => (int) $data->smilies,
-                'signature' => (int) $data->signature,
                 'ip' => $ip,
             ]);
+
+            $messagePosition = $data->sceneLocationId ? 200 : 100;
+            $messageElement = $post->elements()->create(['position' => $messagePosition, 'type' => PostElementType::MESSAGE]);
+            $messageElement->message()->create(['message' => $data->message, 'smilies' => $data->smilies]);
 
             $thread->update([
                 'first_post_id' => $post->id,
@@ -55,13 +63,15 @@ class ThreadWriter
             ]);
 
             if ($data->sceneLocationId) {
-                ThreadScene::create([
+                $scene = ThreadScene::create([
                     'thread_id' => $thread->id,
                     'location_id' => $data->sceneLocationId,
                     'starts_at_post_id' => null,
                     'story_started_at' => $data->sceneStoryStartedAt,
                     'created_by_user_id' => $user->id,
                 ]);
+                $element = $post->elements()->create(['position' => 100, 'type' => PostElementType::SCENE_TRANSITION]);
+                $element->sceneTransition()->create(['started_scene_id' => $scene->id]);
             }
 
             $this->counters->refreshThread($thread);
@@ -72,9 +82,34 @@ class ThreadWriter
             return $thread;
         });
 
-        $this->subscriptions->afterPostCreated($thread->firstPost()->firstOrFail());
+        DB::afterCommit(fn () => $this->subscriptions->afterPostCreated($thread->firstPost()->firstOrFail()));
 
         return $thread;
+    }
+
+    public function createComposition(Board $board, User $user, PostDraft $draft, PostCompositionData $composition, string $ip): ForumThread
+    {
+        if (! filled($draft->title)) {
+            throw ValidationException::withMessages(['title' => 'Bitte gib einen Titel ein.']);
+        }
+
+        return DB::transaction(function () use ($board, $user, $draft, $composition, $ip) {
+            $time = now()->timestamp;
+            $thread = ForumThread::create([
+                'board_id' => $board->id,
+                'name' => $draft->title,
+                'first_post_at' => $time,
+                'post_count' => 0,
+                'last_post_at' => $time,
+                'views' => 0,
+                'important' => 0,
+            ]);
+
+            $post = $this->posts->createComposition($thread, $user, $draft->character_id, $composition, $ip);
+            $thread->update(['first_post_id' => $post->id, 'last_post_id' => $post->id]);
+
+            return $thread->refresh();
+        });
     }
 
     public function update(ForumThread $thread, Board $newBoard, UpdateThreadData $data, bool $canMarkAsImportant): void

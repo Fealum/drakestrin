@@ -3,6 +3,7 @@
 namespace App\Models\Economy;
 
 use App\Models\Board\Post;
+use App\Models\Board\PostElement;
 use App\Models\Board\ThreadScene;
 use App\Models\User;
 use App\Models\User\Character;
@@ -18,6 +19,7 @@ class Transfer extends Model
 {
     protected $fillable = [
         'post_id',
+        'post_element_id',
         'reversal_of_transfer_id',
         'thread_scene_id',
         'story_at',
@@ -31,6 +33,7 @@ class Transfer extends Model
 
     protected $casts = [
         'post_id' => 'integer',
+        'post_element_id' => 'integer',
         'reversal_of_transfer_id' => 'integer',
         'thread_scene_id' => 'integer',
         'story_at' => 'integer',
@@ -45,6 +48,11 @@ class Transfer extends Model
     public function post(): BelongsTo
     {
         return $this->belongsTo(Post::class);
+    }
+
+    public function element(): BelongsTo
+    {
+        return $this->belongsTo(PostElement::class, 'post_element_id');
     }
 
     public function scene(): BelongsTo

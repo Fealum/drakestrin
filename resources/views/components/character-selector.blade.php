@@ -4,6 +4,7 @@
     'label',
     'name',
     'placeholder' => 'Charakter suchen ...',
+    'value' => null,
 ])
 
 @php($inputId ??= $name)
@@ -11,11 +12,11 @@
 @once
 <script defer src="{{ asset('js/alpine.min.js') }}"></script>
 <script>
-    window.singleCharacterSelector = function ({ endpoint, name }) {
+    window.singleCharacterSelector = function ({ endpoint, name, value }) {
         return {
             endpoint,
             enhanced: false,
-            idText: '',
+            idText: value ? String(value) : '',
             loading: false,
             name,
             query: '',
@@ -23,6 +24,14 @@
             selected: null,
             init() {
                 this.enhanced = true;
+                if (this.idText) {
+                    fetch(this.endpoint + '?q=' + encodeURIComponent(this.idText))
+                        .then((response) => response.json())
+                        .then((results) => {
+                            this.selected = results.find((character) => String(character.id) === this.idText) ?? null;
+                        })
+                        .catch(() => this.selected = null);
+                }
             },
             clear() {
                 this.selected = null;
@@ -60,6 +69,7 @@
     x-data="singleCharacterSelector({
         endpoint: @js($endpoint),
         name: @js($name),
+        value: @js($value),
     })"
 >
     <label for="{{ $inputId }}">{{ $label }}</label>
@@ -70,6 +80,7 @@
         id="{{ $inputId }}"
         name="{{ $name }}"
         placeholder="Charakter-ID"
+        value="{{ $value }}"
         x-model="idText"
         x-bind:name="enhanced ? null : name"
     >

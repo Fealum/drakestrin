@@ -12,6 +12,7 @@ use App\Models\Economy\Transfer;
 use App\Models\User;
 use App\Services\PermissionService;
 use App\Support\PermissionEntityType;
+use App\Support\PostElementType;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -84,8 +85,14 @@ class TransferReversalService
             $target = new InventoryOwner($targetType, $transfer->sender_id);
 
             try {
+                $element = $transfer->post->elements()->create([
+                    'position' => ((int) $transfer->post->elements()->max('position')) + 100,
+                    'type' => PostElementType::TRANSFER,
+                ]);
+
                 return $this->transfers->transferInventories(
                     postId: $transfer->post_id,
+                    postElementId: $element->id,
                     sender: new TransferParticipant($sourceType, $source->id),
                     recipient: new TransferParticipant($targetType, $target->id),
                     source: $source,
