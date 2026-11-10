@@ -1,6 +1,8 @@
 @inject('forumFormatter', 'App\Services\Board\ForumFormatter')
 
 <x-main-layout :title="$thread->name" css="thread">
+    <x-validation-errors />
+
     <div>
         {{ number_format($thread->views, 0, ',', '.') }} Aufrufe,
         {{ number_format($thread->post_count, 0, ',', '.') }} Beiträge.
@@ -53,7 +55,7 @@
             <p>
                 <a class="postnumber small" href="{{ route('thread.view', ['thread' => $thread, 'page' => $posts->currentPage() > 1 ? $posts->currentPage() : null]) }}#post{{ $post->id }}">{{ $postNumber + 1 + (($posts->currentPage() - 1) * $posts->perPage()) }}</a>
                 @if($composerData)
-                <button type="submit" form="post-composer" name="intent" value="quote:{{ $post->id }}" class="option quote" title="zitieren">zitieren</button>
+                <button type="submit" form="post-composer" name="intent" value="quote:{{ $post->id }}" formnovalidate class="option quote" title="zitieren">zitieren</button>
                 @endif
                 @can('update', $post)
                 <a class="option edit" title="editieren" href="{{ route('post.edit', $post) }}">editieren</a>

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Data\Board\PostCompositionData;
+use App\Http\Requests\Board\SearchComposerLocationsRequest;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\PostDraft;
 use App\Models\Board\Thread as ForumThread;
+use App\Repositories\Territory\LocationRepository;
 use App\Services\Board\PostComposerViewData;
 use App\Services\Board\PostDraftService;
 use App\Services\Board\PostWriter;
@@ -45,6 +47,15 @@ class PostDraftController extends Controller
 
         return view('draft.index', [
             'drafts' => $drafts->filter->exists,
+        ]);
+    }
+
+    public function locations(SearchComposerLocationsRequest $request, LocationRepository $locations): View
+    {
+        return view('draft._locations', [
+            'index' => $request->integer('index'),
+            'selected' => $request->integer('selected') ?: null,
+            'choices' => $locations->composerChoices((string) $request->input('q', ''), $request->integer('page', 1), $request->integer('selected') ?: null),
         ]);
     }
 

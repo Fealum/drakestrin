@@ -21,7 +21,7 @@ class Datetime extends Component
         Carbon $time = null,
         $onlyDate = null,
     ) {
-        $this->time = $time ?? Carbon::now();
+        $time = $this->time = ($time ?? Carbon::now())->copy()->setTimezone(config('app.timezone'));
         $this->onlyDate = $onlyDate ? true : false;
         $this->isCurrent = $time->greaterThanOrEqualTo(Carbon::today()->subDays(7));
 

@@ -3,15 +3,7 @@
 @php($showResults = $poll?->isClosed() || $participation)
 @if($poll)
 <section class="post-poll">
-    <h4>{{ $poll->question }}</h4>
-    <p>
-        <small>
-            {{ $poll->visibility === \App\Support\PollVisibility::OPEN ? 'Offene Abstimmung' : 'Anonyme Abstimmung' }}
-            @if($poll->max_choices > 1)
-                , bis zu {{ $poll->max_choices }} Antworten
-            @endif
-        </small>
-    </p>
+    <x-poll-heading :question="$poll->question" :visibility="$poll->visibility" :max-choices="$poll->max_choices" />
     @if($showResults)
         @php($total = $poll->options->sum(fn($option) => $option->voteCount()))
         <ol>

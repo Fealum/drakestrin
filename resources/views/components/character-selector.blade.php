@@ -10,7 +10,6 @@
 @php($inputId ??= $name)
 
 @once
-<script defer src="{{ asset('js/alpine.min.js') }}"></script>
 <script>
     window.singleCharacterSelector = function ({ endpoint, name, value }) {
         return {

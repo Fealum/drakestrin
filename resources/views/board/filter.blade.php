@@ -1,6 +1,5 @@
 <x-main-layout title="Forum" css="board">
     <x-slot:js>
-        <script defer src="{{ asset('js/alpine.min.js') }}"></script>
         <script>
             window.boardPersonFilter = function ({ endpoint, initialItems, initialIds }) {
                 return {

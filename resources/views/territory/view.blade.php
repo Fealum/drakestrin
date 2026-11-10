@@ -6,7 +6,6 @@
     @if ($hasMapData)
     <x-slot:js>
         <script src="{{ asset('js/d3.v4.min.js') }}"></script>
-        <script defer src="{{ asset('js/alpine.min.js') }}"></script>
         <script>
             document.addEventListener('alpine:init', () => {
                 Alpine.data('territoryMap', (config) => ({

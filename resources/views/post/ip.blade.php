@@ -1,6 +1,5 @@
 <x-main-layout title="IP-Adresse" css="thread">
     <x-slot:js>
-        <script defer src="{{ asset('js/alpine.min.js') }}"></script>
         <script>
             window.sortableIpTable = function (initialRows, initialSort) {
                 return {

@@ -145,14 +145,17 @@ class ThreadController extends Controller
             : collect();
         $canCreatePost = auth()->check() && auth()->user()->can('create', [Post::class, $thread]);
         $composerData = null;
-        if ($canCreatePost && $characters->isNotEmpty()) {
+        $canCreateCharacter = auth()->check() && $this->permissionService->allows('createcharacter', $thread, auth()->user());
+        if ($canCreatePost && ($characters->isNotEmpty() || $canCreateCharacter)) {
             $draft = $this->drafts->replyState(auth()->user(), $thread);
             $draft->setRelation('thread', $thread);
             $composerData = $this->composer->make($draft, auth()->user(), $thread);
+            $composerData['threadPage'] = $posts->currentPage();
         }
 
         $response = view('thread.view', [
             'canCreatePost' => $canCreatePost,
+            'canCreateCharacter' => $canCreateCharacter,
             'canDeleteThread' => auth()->check() && auth()->user()->can('delete', $thread),
             'canEditThread' => auth()->check() && auth()->user()->can('update', $thread),
             'canViewSubscribers' => auth()->check() && $this->permissionService->allows('viewthreadsubscriptions', $thread, auth()->user()),

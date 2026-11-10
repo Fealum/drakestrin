@@ -7,7 +7,7 @@
 @php($item = $inventory->item)
 @php($showQuantity = $showQuantity ?? (bool) $item?->stackable)
 @if ($item)
-<span class="inventory-item-control">
+<span class="inventory-item-control" data-item-name="{{ $item->name }}" data-stackable="{{ $item->stackable ? 1 : 0 }}">
     <img src="{{ asset('images/item/'.$item->img.'.png') }}" title="{{ $item->name }}" alt="{{ $item->name }}">
     @if ($quantityName && $showQuantity)
     <input

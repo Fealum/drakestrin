@@ -9,6 +9,8 @@ main .option {
 	text-indent: 9999px;
 	mask: url('img/icons/edit.svg') center / contain no-repeat;
 	transition: background-color .5s;
+	border: none;
+	cursor: pointer;
 }
 
 main .option:hover {

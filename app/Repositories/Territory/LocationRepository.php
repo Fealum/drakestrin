@@ -7,6 +7,28 @@ use Illuminate\Support\Collection;
 
 class LocationRepository
 {
+    public function composerChoices(string $search, int $page = 1, ?int $selected = null): array
+    {
+        $matches = Location::query()->when(trim($search) !== '', fn ($query) => $query->where('name', 'like', '%'.trim($search).'%'))
+            ->orderBy('priority')->orderByRaw('LOWER(name)')->orderBy('id')
+            ->paginate(20, ['id', 'name'], 'page', max(1, $page));
+        $choices = $matches->getCollection();
+        if ($selected && ! $choices->contains('id', $selected)) {
+            if ($location = Location::find($selected, ['id', 'name'])) {
+                $choices->prepend($location);
+            }
+        }
+
+        return [
+            'matches' => $matches,
+            'options' => $choices->map(fn (Location $location) => [
+                'value' => (string) $location->id,
+                'label' => $location->name,
+                'icon' => 'map-marker',
+            ])->all(),
+        ];
+    }
+
     public function options(): Collection
     {
         return Location::query()

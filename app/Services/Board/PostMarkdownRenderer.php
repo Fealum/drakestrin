@@ -13,7 +13,7 @@ class PostMarkdownRenderer
                 return (string) $element->message->message;
             }
             if ($element->transfer) {
-                return '[Handlung: '.$element->transfer->items
+                return '[Übergabe: '.$element->transfer->items
                     ->map(fn ($item) => $item->item?->name.' ('.$item->stack.')')
                     ->filter()->implode(', ').']';
             }

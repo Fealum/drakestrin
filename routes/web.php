@@ -25,6 +25,7 @@ use App\Http\Controllers\ThreadController;
 use App\Http\Controllers\ThreadSubscriptionController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UserController;
+use App\Http\Middleware\RenderPostComposer;
 use App\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -82,8 +83,9 @@ Route::controller(ThreadController::class)->group(function () {
     Route::post('/thread/delete/{thread}', 'destroy')->name('thread.destroy');
 });
 
-Route::middleware('auth')->controller(PostDraftController::class)->group(function () {
+Route::middleware(['auth', RenderPostComposer::class])->controller(PostDraftController::class)->group(function () {
     Route::get('/drafts', 'index')->name('draft.index');
+    Route::get('/draft/locations', 'locations')->name('draft.locations');
     Route::get('/draft/topic/{board?}', 'topic')->name('draft.topic');
     Route::post('/draft/topic/{board?}', 'updateTopic')->name('draft.topic.update');
     Route::post('/thread/{thread}/draft', 'updateReply')->name('draft.reply.update');

@@ -17,10 +17,12 @@ use App\Models\User;
 use App\Models\User\Character;
 use App\Repositories\Board\ThreadParticipantRepository;
 use App\Services\Board\ForumFormatter;
+use App\Services\Board\PostComposerViewData;
 use App\Services\Board\PostDraftService;
 use App\Services\Board\PostElementMigrationAuditor;
 use App\Services\Board\PostMarkerParser;
 use App\Services\Board\PostWriter;
+use App\Services\Economy\InventoryTimeline;
 use App\Services\InventoryService;
 use App\Services\MarkdownArchiveExporter;
 use App\Services\PermissionService;
@@ -339,6 +341,23 @@ class ForumModelTest extends TestCase
             'updated_at' => now(),
         ]);
         DB::table('companies')->where('id', $companyId)->update(['headquarters_site_id' => $companySiteId]);
+        $otherLocationId = DB::table('locations')->insertGetId([
+            'parent_type' => PermissionEntityType::TERRITORY->value,
+            'parent_id' => $territoryId,
+            'created_by_user_id' => $this->userId,
+            'name' => $this->prefix.'_other_company_location',
+            'description' => '',
+            'priority' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('company_sites')->insert([
+            'company_id' => $companyId,
+            'location_id' => $otherLocationId,
+            'name' => 'Zweigstelle',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         $itemId = $this->createStackableItem($this->prefix.'_company_scene_item');
         $characterInventoryId = DB::table('inventories')->insertGetId([
             'item_id' => $itemId,
@@ -391,7 +410,9 @@ class ForumModelTest extends TestCase
         $this->get(route('thread.view', $thread))
             ->assertOk()
             ->assertSee($this->prefix.'_scene_company')
-            ->assertSee('company_deposit', false)
+            ->assertSee('<legend>'.$this->prefix.'_scene_company (Hauptstandort)</legend>', false)
+            ->assertSee('name="elements[1][source]"', false)
+            ->assertSee('value="company_site:'.$companySiteId.'"', false)
             ->assertDontSee($this->prefix.'_future_company_item');
 
         $this->post('/post/create/'.$this->threadId, [
@@ -485,7 +506,7 @@ class ForumModelTest extends TestCase
 
         $this->get('/thread/view/'.$this->threadId)
             ->assertOk()
-            ->assertSee('>'.$this->prefix.'_scene_company</a>', false)
+            ->assertSee('>'.$this->prefix.'_scene_company (Hauptstandort)</a>', false)
             ->assertDontSee('>Hauptstandort</a>', false);
     }
 
@@ -796,6 +817,8 @@ class ForumModelTest extends TestCase
         $threadResponse->assertSee($this->prefix.'_thread');
         $threadResponse->assertSee($this->prefix.'_character');
         $threadResponse->assertSee($this->prefix.'_message');
+        $threadResponse->assertSee('js/htmx.min.js', false);
+        $threadResponse->assertSee('js/alpine.min.js', false);
         $threadResponse->assertSee('/thread/view/'.$this->threadId.'/2', false);
         $threadResponse->assertSee('/thread/edit/'.$this->threadId, false);
         $threadResponse->assertSee('/thread/delete/'.$this->threadId, false);
@@ -853,6 +876,16 @@ class ForumModelTest extends TestCase
         $draft->refresh();
         $this->assertSame(2, substr_count($draft->payload[0]['message'], '[q='.$this->prefix.'_character]'));
         $this->followRedirects($quotedThreadResponse)->assertSee('Eigener Anfang');
+
+        $pageTwoCommand = $this->post(route('draft.reply.update', $this->threadId), [
+            'version' => $draft->version,
+            'thread_page' => 2,
+            'character' => $this->characterId,
+            'intent' => 'insert:add_message:1',
+            'elements' => $draft->payload,
+        ]);
+        $pageTwoCommand->assertRedirect(route('thread.view', ['thread' => $this->threadId, 'page' => 2]).'#post-composer');
+        $this->followRedirects($pageTwoCommand)->assertSee('name="thread_page" value="2"', false);
     }
 
     public function test_thread_posts_render_legacy_bbcode_and_smilies_safely(): void
@@ -1485,6 +1518,15 @@ class ForumModelTest extends TestCase
             'timelastvalue' => 0,
             'data' => '',
         ]);
+        $secondInventoryId = DB::table('inventories')->insertGetId([
+            'item_id' => $itemId,
+            'stack' => 2,
+            'wear' => 0,
+            'owner_id' => $this->secondCharacterId,
+            'owner_type' => PermissionEntityType::CHARACTER->value,
+            'timelastvalue' => 0,
+            'data' => '',
+        ]);
 
         $draftService = app(PostDraftService::class);
         $thread = ForumThread::findOrFail($this->threadId);
@@ -1501,14 +1543,73 @@ class ForumModelTest extends TestCase
         $threadPage->assertDontSee('showActionPanel(window.location.hash === \'#newaction\' ? \'newaction\' : \'newpost\');', false);
         $threadPage->assertDontSee('/transfer/transfer/'.$this->threadId, false);
         $threadPage->assertSee(route('draft.reply.update', $thread), false);
-        $threadPage->assertSee('name="elements[1][transfer_action]"', false);
-        $threadPage->assertSee('value="give"', false);
-        $threadPage->assertSee('value="drop"', false);
+        $threadPage->assertSee('name="elements[1][source]"', false);
+        $threadPage->assertSee('value="character"', false);
+        $threadPage->assertSee('value="location:'.$this->locationId.'"', false);
         $threadPage->assertSee('name="elements[1][inventory]['.$inventoryId.']"', false);
         $threadPage->assertSee('name="elements[1][inventorystack]['.$inventoryId.']"', false);
-        $threadPage->assertSee('name="elements[1][recipient]"', false);
-        $threadPage->assertSee('class="character-selector-search" x-show="! selected"', false);
-        $threadPage->assertSee('Veröffentlichen');
+        $threadPage->assertSee('name="elements[1][recipient_party]"', false);
+        $threadPage->assertSee('Charakterauswahl übernehmen');
+        $threadPage->assertSee('Quelle übernehmen');
+        $this->assertMatchesRegularExpression(
+            '/data-source="character" data-owner="'.$this->secondCharacterId.'"\s+hidden\s+disabled/',
+            $threadPage->getContent(),
+        );
+        $threadPage->assertSee('veröffentlichen');
+
+        $selectionResponse = $this->post(route('draft.reply.update', $thread), [
+            'version' => $draft->version,
+            'character' => $this->secondCharacterId,
+            'intent' => 'save',
+            'elements' => $draft->payload,
+        ]);
+        $selectionResponse->assertRedirect(route('thread.view', $thread).'#post-composer');
+        $updatedPage = $this->followRedirects($selectionResponse);
+        $updatedPage->assertSee('name="elements[1][inventory]['.$secondInventoryId.']"', false);
+        $this->assertMatchesRegularExpression(
+            '/data-source="character" data-owner="'.$this->characterId.'"\s+hidden\s+disabled/',
+            $updatedPage->getContent(),
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/data-source="character" data-owner="'.$this->secondCharacterId.'"\s+hidden/',
+            $updatedPage->getContent(),
+        );
+
+        $draft->refresh();
+        $locationPayload = $draftService->withTextSlots($draft->payload);
+        $locationPayload[1]['source'] = 'location:'.$this->locationId;
+        $sourceResponse = $this->post(route('draft.reply.update', $thread), [
+            'version' => $draft->version,
+            'character' => $this->secondCharacterId,
+            'intent' => 'save',
+            'elements' => $locationPayload,
+        ]);
+        $sourceResponse->assertRedirect(route('thread.view', $thread).'#post-composer');
+        $sourcePage = $this->followRedirects($sourceResponse);
+        $this->assertMatchesRegularExpression(
+            '/data-source="character" data-owner="'.$this->secondCharacterId.'"\s+hidden\s+disabled/',
+            $sourcePage->getContent(),
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/data-source="location" data-owner="'.$this->locationId.'"\s+hidden/',
+            $sourcePage->getContent(),
+        );
+
+        $draft->refresh();
+        $invalidPayload = $draftService->withTextSlots($draft->payload);
+        $invalidPayload[1]['source'] = 'character';
+        $invalidPayload[1]['recipient_party'] = 'character:'.$this->secondCharacterId;
+        $invalidResponse = $this->from(route('thread.view', $thread))
+            ->post(route('draft.reply.update', $thread), [
+                'version' => $draft->version,
+                'character' => $this->secondCharacterId,
+                'intent' => 'publish',
+                'elements' => $invalidPayload,
+            ]);
+        $invalidResponse->assertSessionHasErrors('elements');
+        $this->followRedirects($invalidResponse)
+            ->assertSee('Bitte überprüfe deine Eingaben:')
+            ->assertSee('Eine Übergabe benötigt eine Quelle, einen Empfänger und mindestens einen Gegenstand.');
     }
 
     public function test_inventory_transfer_backend_moves_items_and_creates_action_post(): void
@@ -1747,7 +1848,7 @@ class ForumModelTest extends TestCase
         ], 0);
         $this->get(route('thread.view', $thread))
             ->assertOk()
-            ->assertSee('value="pickup"', false)
+            ->assertSee('value="location:'.$this->locationId.'"', false)
             ->assertSee('value="'.$locationInventory->id.'"', false);
 
         $locationPage = $this->get('/location/view/'.$this->locationId);
@@ -3112,6 +3213,10 @@ class ForumModelTest extends TestCase
         $this->actingAs(User::findOrFail($this->userId));
 
         try {
+            $this->get(route('draft.topic', $this->childBoardId))
+                ->assertOk()
+                ->assertSee('id="char-new"', false);
+
             $response = $this->post(route('draft.topic.update', $this->childBoardId), [
                 'version' => 0,
                 'board' => $this->childBoardId,
@@ -3181,6 +3286,15 @@ class ForumModelTest extends TestCase
         $draft = app(PostDraftService::class)->replyState($user, $thread);
         $this->assertSame($this->secondCharacterId, $draft->character_id);
 
+        $this->actingAs($user);
+        $response = $this->get(route('thread.view', $thread));
+        $response->assertSeeInOrder([
+            'id="char-'.$this->secondCharacterId.'"',
+            'id="char-'.$this->characterId.'"',
+            'id="char-'.$globalCharacter->id.'"',
+            'id="char-'.$neverPostedCharacter->id.'"',
+        ], false);
+
         app(PostDraftService::class)->saveReply($thread, $user, [
             'character' => $this->characterId,
             'elements' => [['type' => 'message', 'message' => 'Gespeicherte Auswahl', 'smilies' => true]],
@@ -3214,6 +3328,11 @@ class ForumModelTest extends TestCase
             'character' => $this->characterId,
             'elements' => $normalized,
         ], 0);
+        $this->get(route('thread.view', $this->threadId))
+            ->assertOk()
+            ->assertSee('type="datetime-local" required', false)
+            ->assertDontSee('draggable="true"', false);
+
         $submitted = $normalized;
         $submitted[2]['story_at'] = CarbonImmutable::createFromTimestamp($this->postTime + 60)->format('Y-m-d\TH:i');
         $response = $this->post(route('draft.reply.update', $this->threadId), [
@@ -3251,6 +3370,411 @@ class ForumModelTest extends TestCase
         $this->assertCount(1, $post->elements);
         $this->assertSame("Erster Text\n\nZweiter Text", $post->elements[0]->message->message);
         $this->assertFalse($post->elements[0]->message->smilies);
+        $this->get(route('post.edit', $post))->assertOk()
+            ->assertDontSee('Smileys anzeigen')
+            ->assertSee('name="messages[0][smilies]" value="0"', false);
+    }
+
+    public function test_htmx_composer_commands_return_fragments_and_reject_stale_versions(): void
+    {
+        $this->actingAs(User::findOrFail($this->userId));
+        $url = route('draft.reply.update', $this->threadId);
+        $headers = ['HX-Request' => 'true'];
+        $empty = $this->post($url, [
+            'version' => 0, 'thread_page' => 2, 'character' => $this->characterId,
+            'intent' => 'insert:add_message:1',
+            'elements' => [['type' => 'message', 'message' => '']],
+        ], $headers);
+        $empty->assertOk()->assertDontSee('name="elements[1][type]"', false)
+            ->assertSee('name="thread_page" value="2"', false)->assertDontSee('<html', false);
+        $this->assertDatabaseMissing('post_drafts', ['thread_id' => $this->threadId]);
+
+        $data = [
+            'version' => 0, 'character' => $this->characterId, 'intent' => 'save',
+            'elements' => [['type' => 'message', 'message' => 'Ein erhaltener Text', 'smilies' => '1']],
+        ];
+        $this->post($url, $data, $headers)->assertOk()->assertSee('Ein erhaltener Text')
+            ->assertSee('name="version" value="1"', false)->assertDontSee('<html', false);
+        $this->post($url, $data, $headers)->assertStatus(409)
+            ->assertHeader('HX-Retarget', '#composer-feedback')
+            ->assertSee('nicht überschrieben');
+        $draft = PostDraft::where('thread_id', $this->threadId)->firstOrFail();
+        $this->assertSame('Ein erhaltener Text', $draft->payload[0]['message']);
+
+        $this->post($url, [
+            ...$data, 'version' => 1, 'intent' => 'publish',
+            'elements' => [['type' => 'transfer', 'source' => 'character', 'recipient_party' => 'character']],
+        ], $headers)->assertStatus(422)->assertHeader('X-Draft-Version', '2')
+            ->assertHeader('HX-Retarget', '#composer-feedback')->assertSee('innerhalb einer Szene');
+        $published = $this->post($url, [...$data, 'version' => 2, 'intent' => 'publish'], $headers);
+        $published->assertOk()->assertHeader('HX-Redirect');
+        $this->assertDatabaseMissing('post_drafts', ['thread_id' => $this->threadId]);
+    }
+
+    public function test_reply_marker_conversion_is_explicit_and_failure_keeps_the_original_draft(): void
+    {
+        $this->setPermitStandard('setthreadscene', 2);
+        $this->actingAs(User::findOrFail($this->userId));
+        $url = route('draft.reply.update', $this->threadId);
+        $data = [
+            'version' => 0, 'thread_page' => 2, 'character' => $this->characterId, 'intent' => 'autosave',
+            'elements' => [['type' => 'message', 'message' => 'Vor [action/] Nach', 'smilies' => '0']],
+        ];
+        $this->postJson($url, $data)->assertOk();
+        $draft = PostDraft::where('thread_id', $this->threadId)->firstOrFail();
+        $this->assertSame('Vor [action/] Nach', $draft->payload[0]['message']);
+        $this->post($url, [...$data, 'version' => 1, 'intent' => 'convert_markers'], ['HX-Request' => 'true'])
+            ->assertStatus(422)->assertHeader('X-Draft-Version', '2')
+            ->assertSee('innerhalb einer Szene');
+        $this->assertSame($draft->payload, $draft->fresh()->payload);
+        $this->post($url, [...$data, 'version' => 2, 'intent' => 'publish'])
+            ->assertSessionHasErrors('elements.1');
+        $this->assertSame(1, Post::where('thread_id', $this->threadId)->count());
+
+        $converted = $this->post($url, [
+            ...$data, 'version' => 3, 'intent' => 'convert_markers',
+            'elements' => [['type' => 'message', 'message' => 'Vor [scene /] Nach', 'smilies' => '0']],
+        ]);
+        $converted->assertSessionHasNoErrors()->assertRedirect(route('thread.view', ['thread' => $this->threadId, 'page' => 2]).'#post-composer');
+        $this->assertSame(['message', 'scene_transition', 'message'], array_column($draft->fresh()->payload, 'type'));
+        $this->assertFalse((bool) $draft->fresh()->payload[2]['smilies']);
+    }
+
+    public function test_empty_text_slots_are_display_only_and_new_scenes_default_to_now(): void
+    {
+        $drafts = app(PostDraftService::class);
+        $user = User::findOrFail($this->userId);
+        $thread = ForumThread::findOrFail($this->threadId);
+        $this->actingAs($user);
+        $poll = ['type' => 'poll', 'question' => 'Frage?', 'options' => ['Ja', 'Nein']];
+        $secondPoll = [...$poll, 'question' => 'Andere Frage?'];
+        $slots = $drafts->withTextSlots([$poll, $secondPoll]);
+        $this->assertSame(['message', 'poll', 'message', 'poll', 'message'], array_column($slots, 'type'));
+        $this->assertSame($slots, $drafts->withTextSlots($slots));
+        $targets = $drafts->validMoveTargets($slots, $thread);
+        $this->assertSame([0], $targets[0]);
+        $this->assertNotContains(0, $targets[1]);
+        $this->assertNotContains(2, $targets[1]);
+        $this->assertContains(3, $targets[1]);
+        $draft = $drafts->saveReply($thread, $user, ['character' => $this->characterId, 'elements' => $slots], 0);
+        $this->assertSame([$poll, $secondPoll], $draft->payload);
+        $view = $this->get(route('thread.view', $thread))->assertOk();
+        $view->assertSee('name="elements[4][message]"', false)
+            ->assertDontSee('<strong>Text</strong>', false)
+            ->assertDontSee('value="insert:add_message:', false)
+            ->assertDontSee('name="move_targets[0]"', false)
+            ->assertDontSee('value="remove:0"', false)
+            ->assertDontSee('value="remove:2"', false)
+            ->assertDontSee('value="remove:4"', false)
+            ->assertSee('name="move_targets[1]"', false);
+        $this->assertSame(1, substr_count($view->getContent(), '>speichern</button>'));
+        $view->assertDontSee('Bausteine übernehmen')->assertDontSee('>Verschieben</button>', false);
+        $this->assertEquals([$poll, $secondPoll], $draft->fresh()->payload);
+        $slots[2]['message'] = 'Ein neuer Absatz';
+        $saved = $drafts->saveReply($thread, $user, ['character' => $this->characterId, 'elements' => $slots], 1);
+        $this->assertSame(['poll', 'message', 'poll'], array_column($saved->payload, 'type'));
+        $this->assertSame('Ein neuer Absatz', $saved->payload[1]['message']);
+
+        $this->travelTo(CarbonImmutable::parse('2026-11-08 14:23:45', config('app.timezone')));
+        try {
+            foreach (['add_scene_start', 'add_scene_end'] as $intent) {
+                $this->assertSame(now()->startOfMinute()->timestamp, $drafts->command([], $intent)[0]['story_at']);
+            }
+            $states = $drafts->sceneStates([['type' => 'scene_transition', 'scene_action' => 'start', 'story_at' => now()->format('Y-m-d\TH:i')]], null);
+            $this->assertSame(now()->startOfMinute()->timestamp, $states['positions'][1]['story_at']);
+            $this->assertNull($drafts->normalizePayload([['type' => 'scene_transition', 'story_at' => '']])[0]['story_at']);
+            $drafts->saveReply($thread, $user, ['character' => $this->characterId, 'elements' => $drafts->command([], 'add_scene_start')], 2);
+            $this->get(route('thread.view', $thread))->assertOk()
+                ->assertSee('name="elements[1][story_at]" value="2026-11-08T14:23"', false);
+        } finally {
+            $this->travelBack();
+        }
+    }
+
+    public function test_publish_expands_markers_and_returns_the_completed_composer_before_publication(): void
+    {
+        $this->setPermitStandard('createpoll', 2);
+        $this->actingAs(User::findOrFail($this->userId));
+        $url = route('draft.reply.update', $this->threadId);
+        $data = ['version' => 0, 'character' => $this->characterId, 'thread_page' => 2, 'intent' => 'publish',
+            'elements' => [['type' => 'message', 'message' => 'Eine Frage [poll/]']]];
+        $response = $this->post($url, $data, ['HX-Request' => 'true']);
+        $response->assertOk()->assertHeaderMissing('HX-Redirect')->assertDontSee('Bausteine wurden eingefügt')->assertSee('data-inserted', false)
+            ->assertSee('name="elements[1][question]"', false);
+        $draft = PostDraft::where('thread_id', $this->threadId)->firstOrFail();
+        $this->assertSame(['message', 'poll'], array_column($draft->payload, 'type'));
+        $this->assertSame(1, Post::where('thread_id', $this->threadId)->count());
+        $payload = $draft->payload;
+        $payload[1]['question'] = 'Alles gut?';
+        $payload[1]['options'] = ['Ja', 'Nein'];
+        $this->post($url, [...$data, 'version' => 1, 'elements' => $payload])
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame(2, Post::where('thread_id', $this->threadId)->count());
+        $this->assertDatabaseMissing('post_drafts', ['id' => $draft->id]);
+    }
+
+    public function test_topic_save_and_publish_expand_markers_without_creating_a_thread(): void
+    {
+        $this->setPermitStandard('createpoll', 2);
+        $this->actingAs(User::findOrFail($this->userId));
+        $data = ['version' => 0, 'character' => $this->characterId, 'board' => $this->childBoardId,
+            'title' => $this->prefix.'_pending_poll', 'intent' => 'publish',
+            'elements' => [['type' => 'message', 'message' => 'Frage [poll/]']]];
+        $response = $this->post(route('draft.topic.update', $this->childBoardId), $data);
+        $draft = PostDraft::where('user_id', $this->userId)->whereNull('thread_id')->firstOrFail();
+        $response->assertSessionHasNoErrors()->assertRedirect(route('draft.edit', $draft))
+            ->assertSessionHas('status', '')->assertSessionHas('composer_inserted_keys');
+        $this->get(route('draft.edit', $draft))->assertOk()->assertSee('data-inserted', false)->assertDontSee('Bausteine wurden eingefügt');
+        $this->get(route('draft.edit', $draft))->assertOk()->assertDontSee('data-inserted', false);
+        $this->assertDatabaseMissing('threads', ['name' => $data['title']]);
+        $this->post(route('draft.update', $draft), [...$data, 'version' => 1, 'intent' => 'save'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame(['message', 'poll'], array_column($draft->fresh()->payload, 'type'));
+        $this->post(route('draft.update', $draft), [...$data, 'version' => 2])
+            ->assertSessionHasNoErrors()->assertSessionHas('status', '');
+        $this->assertDatabaseMissing('threads', ['name' => $data['title']]);
+    }
+
+    public function test_composer_hides_smiley_controls_and_offers_one_shared_toolbar(): void
+    {
+        $this->setPermitStandard('setthreadscene', 2);
+        $this->setPermitStandard('endthreadscene', 2);
+        $user = User::findOrFail($this->userId);
+        $this->actingAs($user);
+        $payload = [
+            ['type' => 'scene_transition', 'scene_action' => 'start', 'scene_key' => 'first', 'location_id' => $this->locationId, 'story_at' => $this->postTime],
+            ['type' => 'message', 'message' => 'Ohne Smileys :)', 'smilies' => false],
+        ];
+        app(PostDraftService::class)->saveReply(ForumThread::findOrFail($this->threadId), $user, [
+            'character' => $this->characterId, 'elements' => $payload,
+        ], 0);
+        $response = $this->get(route('thread.view', $this->threadId));
+        $response->assertOk()->assertDontSee('Smileys anzeigen')
+            ->assertSee('name="elements[2][smilies]" value="0"', false)
+            ->assertSee('aria-label="Szene einfügen"', false)
+            ->assertDontSee('class="composer-insert"', false);
+        $this->assertSame(1, substr_count($response->getContent(), 'aria-label="Text und Bausteine"'));
+
+        $payload[1] = ['type' => 'poll', 'question' => 'Danach?', 'options' => ['Ja', 'Nein']];
+        // Before the poll, only ending the newly inserted scene is valid.
+        $this->assertSame(['add_scene_end'], app(PostDraftService::class)->validInsertions($payload, null)[1]);
+    }
+
+    public function test_composer_previews_only_complete_blocks_without_creating_poll_votes(): void
+    {
+        $this->actingAs($user = User::findOrFail($this->userId));
+        $thread = ForumThread::findOrFail($this->threadId);
+        $draft = app(PostDraftService::class)->saveReply($thread, $user, [
+            'character' => $this->characterId,
+            'elements' => [
+                ['type' => 'poll', 'question' => 'Wohin?', 'options' => ['Norden', 'Süden'], 'visibility' => 'anonymous', 'max_choices' => 1],
+                ['type' => 'poll', 'question' => '', 'options' => ['', '']],
+                ['type' => 'scene_transition', 'scene_action' => 'start', 'scene_key' => 'preview-scene', 'location_id' => $this->locationId, 'story_at' => 0],
+                ['type' => 'transfer'],
+            ],
+        ], 0);
+        $data = app(PostComposerViewData::class)->make($draft, $user, $thread);
+        $this->assertSame(['Norden', 'Süden'], $data['elementPreviews'][1]['options']);
+        $this->assertNull($data['elementPreviews'][3]);
+        $this->assertSame(0, $data['elementPreviews'][5]['time']);
+        $this->assertNull($data['elementPreviews'][7]);
+        $html = view('draft.edit', [...$data, 'errors' => new \Illuminate\Support\ViewErrorBag])->render();
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="UTF-8">'.$html);
+        $xpath = new \DOMXPath($dom);
+        $this->assertSame(2, $xpath->query('//details[@class="composer-element-editor" and not(@open)]')->length);
+        $this->assertSame(2, $xpath->query('//details[@class="composer-element-editor" and @open]')->length);
+        $this->assertSame(0, $xpath->query('//div[@class="composer-block-preview"]//input | //div[@class="composer-block-preview"]//form')->length);
+        $this->assertEquals($draft->payload, $draft->fresh()->payload);
+    }
+
+    public function test_composer_transfer_preview_uses_only_visible_stock_and_valid_quantities(): void
+    {
+        $previews = app(\App\Services\Board\PostComposerPreview::class);
+        $stock = new Inventory(['stack' => 5]);
+        $stock->id = 42;
+        $item = new \App\Models\Economy\Item;
+        $item->forceFill(['name' => 'Holz', 'stackable' => 1, 'unit' => '']);
+        $stock->setRelation('item', $item);
+        $context = ['characterInventories' => collect([$this->characterId => collect([$stock])])];
+        $picker = ['sourceValue' => 'character', 'recipientValue' => 'location:1',
+            'sourceOptions' => [['value' => 'character', 'label' => 'Absender']],
+            'recipientOptions' => [['value' => 'location:1', 'label' => 'Ort']]];
+        $element = ['type' => 'transfer', 'source' => 'character', 'inventory' => [42 => 42], 'inventorystack' => [42 => '2']];
+        $state = ['active' => true, 'story_at' => $this->postTime];
+        $preview = $previews->make($element, $state, $context, $picker, $this->characterId, collect());
+        $this->assertSame([['name' => 'Holz', 'quantity' => 2]], $preview['items']);
+        $this->assertNull($previews->make([...$element, 'inventory' => [99 => 99]], $state, $context, $picker, $this->characterId, collect()));
+        $this->assertNull($previews->make([...$element, 'inventorystack' => [42 => '6']], $state, $context, $picker, $this->characterId, collect()));
+        $picker['sourceOptions'][0]['disabled'] = true;
+        $this->assertNull($previews->make($element, $state, $context, $picker, $this->characterId, collect()));
+        $this->assertSame(5, $stock->stack);
+    }
+
+    public function test_composer_previews_leave_invalid_or_missing_dates_open(): void
+    {
+        $previews = app(\App\Services\Board\PostComposerPreview::class);
+        $poll = ['type' => 'poll', 'question' => 'Frage?', 'options' => ['Ja', 'Nein']];
+        $this->assertNotNull($previews->make($poll, [], [], [], null, collect()));
+        foreach (['kein Datum', now()->subMinute()->format('Y-m-d\TH:i')] as $deadline) {
+            $this->assertNull($previews->make([...$poll, 'closes_at' => $deadline], [], [], [], null, collect()));
+        }
+        $scene = ['type' => 'scene_transition', 'scene_action' => 'start', 'location_id' => $this->locationId];
+        $locations = collect([Location::findOrFail($this->locationId)]);
+        foreach ([null, '', 'kein Datum'] as $time) {
+            $this->assertNull($previews->make([...$scene, 'story_at' => $time], [], [], [], null, $locations));
+        }
+    }
+
+    public function test_composer_reuses_inventory_context_for_actions_at_the_same_place_and_time(): void
+    {
+        $this->actingAs(User::findOrFail($this->userId));
+        $this->mock(InventoryTimeline::class)
+            ->shouldReceive('transferableInventory')->times(3)->andReturn(collect());
+        $draft = new PostDraft([
+            'user_id' => $this->userId, 'thread_id' => $this->threadId, 'character_id' => $this->characterId,
+            'payload' => [
+                ['type' => 'scene_transition', 'scene_action' => 'start', 'scene_key' => 'first', 'location_id' => $this->locationId, 'story_at' => $this->postTime],
+                ['type' => 'transfer'], ['type' => 'transfer'],
+            ],
+        ]);
+        $viewData = app(PostComposerViewData::class)->make(
+            $draft, User::findOrFail($this->userId), ForumThread::findOrFail($this->threadId),
+        );
+        $this->assertTrue($viewData['boards']->isEmpty());
+        $this->assertSame($viewData['transferContexts'][3], $viewData['transferContexts'][5]);
+        $this->assertTrue(collect($viewData['transferPickers'][3]['sourceOptions'])->firstWhere('value', 'character')['disabled']);
+        $this->assertSame('', $viewData['transferPickers'][3]['sourceValue']);
+    }
+
+    public function test_composer_entity_pickers_use_native_radios_and_limit_location_pickup_to_the_actor(): void
+    {
+        $this->actingAs($user = User::findOrFail($this->userId));
+        $draft = app(PostDraftService::class)->saveReply(ForumThread::findOrFail($this->threadId), $user, [
+            'character' => $this->characterId,
+            'elements' => [
+                ['type' => 'scene_transition', 'scene_action' => 'start', 'scene_key' => 'first', 'location_id' => $this->locationId, 'story_at' => $this->postTime],
+                ['type' => 'transfer', 'scene_key' => 'first', 'source' => 'location:'.$this->locationId],
+            ],
+        ], 0);
+        $response = $this->get(route('thread.view', $this->threadId))->assertOk()
+            ->assertSee('class="composer-author-name"', false)
+            ->assertSee('class="composer-save"', false)->assertSee('class="composer-publish"', false)
+            ->assertSee('<legend>Von</legend>', false)->assertSee('<legend>An</legend>', false);
+        $document = new \DOMDocument;
+        @$document->loadHTML($response->getContent());
+        $xpath = new \DOMXPath($document);
+        $sources = $xpath->query('//input[@class="composer-transfer-source"]');
+        $this->assertSame(2, $sources->length);
+        foreach ($sources as $source) {
+            $this->assertSame('radio', $source->getAttribute('type'));
+        }
+        $recipients = $xpath->query('//label[contains(@class,"entity-picker-option")][not(@hidden)]/input[@class="composer-transfer-recipient"]');
+        $this->assertSame(1, $recipients->length);
+        $this->assertSame('character', $recipients->item(0)->getAttribute('value'));
+        $this->assertTrue($recipients->item(0)->hasAttribute('checked'));
+        $this->assertSame(1, $draft->fresh()->version);
+    }
+
+    public function test_composer_character_header_follows_saved_selection_and_keeps_the_message(): void
+    {
+        $this->actingAs($user = User::findOrFail($this->userId));
+        $draft = app(PostDraftService::class)->saveReply(ForumThread::findOrFail($this->threadId), $user, [
+            'character' => $this->characterId, 'elements' => [['type' => 'message', 'message' => 'Bleibt beim Charakterwechsel erhalten']],
+        ], 0);
+        $this->post(route('draft.reply.update', $this->threadId), [
+            'version' => 1, 'character' => $this->secondCharacterId, 'intent' => 'save',
+            'elements' => $draft->payload,
+        ], ['HX-Request' => 'true'])->assertOk()
+            ->assertSee('<h4 class="composer-author-name">'.e(Character::findOrFail($this->secondCharacterId)->name).'</h4>', false)
+            ->assertSee('Bleibt beim Charakterwechsel erhalten');
+        $this->assertSame($this->secondCharacterId, $draft->fresh()->character_id);
+        $this->assertSame('Bleibt beim Charakterwechsel erhalten', $draft->fresh()->payload[0]['message']);
+    }
+
+    public function test_htmx_topic_failure_keeps_the_saved_draft_url_and_can_be_retried(): void
+    {
+        $this->actingAs(User::findOrFail($this->userId));
+        $headers = ['HX-Request' => 'true'];
+        $data = [
+            'version' => 0, 'board' => $this->childBoardId, 'character' => $this->characterId,
+            'title' => $this->prefix.'_recoverable_topic', 'intent' => 'publish',
+            'elements' => [['type' => 'message', 'message' => '']],
+        ];
+        $failed = $this->post(route('draft.topic.update', $this->childBoardId), $data, $headers);
+        $draft = PostDraft::where('user_id', $this->userId)->whereNull('thread_id')->firstOrFail();
+        $failed->assertStatus(422)->assertHeader('X-Draft-Version', '1')
+            ->assertHeader('X-Draft-Action', route('draft.update', $draft))
+            ->assertHeader('X-Draft-Resume', route('draft.edit', $draft));
+        $this->assertDatabaseMissing('threads', ['name' => $data['title']]);
+        $this->post(route('draft.update', $draft), [
+            ...$data, 'version' => 1,
+            'elements' => [['type' => 'message', 'message' => 'Wiederhergestellter Text']],
+        ], $headers)->assertOk()->assertHeader('HX-Redirect');
+        $this->assertDatabaseMissing('post_drafts', ['id' => $draft->id]);
+        $this->assertDatabaseHas('threads', ['name' => $data['title']]);
+    }
+
+    public function test_autosave_scene_errors_return_the_saved_version_for_correction(): void
+    {
+        $this->actingAs(User::findOrFail($this->userId));
+        $url = route('draft.reply.update', $this->threadId);
+        $data = [
+            'version' => 0, 'character' => $this->characterId, 'intent' => 'autosave',
+            'elements' => [['type' => 'transfer', 'source' => 'character', 'recipient_party' => 'character']],
+        ];
+        $this->postJson($url, $data)->assertStatus(422)->assertJsonPath('version', 1)
+            ->assertJsonValidationErrors('elements.0');
+        $this->postJson($url, [
+            ...$data, 'version' => 1,
+            'elements' => [['type' => 'message', 'message' => 'Korrigierter Entwurf']],
+        ])->assertOk()->assertJsonPath('version', 2);
+    }
+
+    public function test_scene_location_search_is_paged_and_preserves_a_selection_outside_the_results(): void
+    {
+        $this->get(route('draft.locations', ['index' => 0]))->assertRedirect();
+        $this->actingAs(User::findOrFail($this->userId));
+        $ids = [];
+        try {
+            for ($i = 0; $i < 25; $i++) {
+                $ids[] = Location::factory()->create(['name' => $this->prefix.'_search_'.$i,
+                    'parent_type' => PermissionEntityType::TERRITORY, 'parent_id' => Territory::whereDoesntHave('children')->value('id')])->id;
+            }
+            $choices = app(\App\Repositories\Territory\LocationRepository::class)->composerChoices($this->prefix.'_search_', 1, $this->locationId);
+            $this->assertCount(21, $choices['options']);
+            $this->assertSame(25, $choices['matches']->total());
+            $this->assertSame((string) $this->locationId, $choices['options'][0]['value']);
+            $page = $this->get(route('draft.locations', ['index' => 2, 'q' => $this->prefix.'_search_', 'page' => 2]))->assertOk();
+            $this->assertSame(5, substr_count($page->getContent(), 'name="elements[2][location_id]"'));
+            $this->getJson(route('draft.locations', ['index' => -1]))->assertUnprocessable();
+            $this->post(route('draft.reply.update', $this->threadId), [
+                'version' => 0, 'character' => $this->characterId, 'intent' => 'location_search:1:2',
+                'elements' => [
+                    ['type' => 'message', 'message' => 'Ungespeicherter Text bleibt erhalten.'],
+                    ['type' => 'scene_transition', 'scene_action' => 'start', 'location_id' => $this->locationId,
+                        'location_query' => $this->prefix.'_search_', 'story_at' => now()->format('Y-m-d\TH:i')],
+                ],
+            ])->assertSessionHasNoErrors()->assertRedirect();
+            $draft = PostDraft::where('user_id', $this->userId)->where('thread_id', $this->threadId)->firstOrFail();
+            $this->assertSame('Ungespeicherter Text bleibt erhalten.', $draft->payload[0]['message']);
+            $this->assertSame(2, $draft->payload[1]['location_page']);
+            $this->assertSame($this->prefix.'_search_', $draft->payload[1]['location_query']);
+            $this->get(route('thread.view', $this->threadId))->assertOk()
+                ->assertSee('value="'.$this->locationId.'" class="composer-scene-place" checked', false);
+        } finally {
+            Location::whereKey($ids)->delete();
+        }
+    }
+
+    public function test_scene_inputs_and_display_use_the_same_timezone_in_winter_and_summer(): void
+    {
+        foreach (['2026-01-15T18:30', '2026-07-15T18:30'] as $local) {
+            $element = app(PostDraftService::class)->normalizePayload([['type' => 'scene_transition', 'story_at' => $local]])[0];
+            $display = new \App\View\Components\Datetime(\Illuminate\Support\Carbon::createFromTimestamp($element['story_at']));
+            $this->assertSame('18:30', $display->timeString);
+            $this->assertSame(config('app.timezone'), $display->time->timezoneName);
+        }
     }
 
     private function setPermitStandard(string $name, int $standard): void

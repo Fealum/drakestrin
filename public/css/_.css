@@ -47,7 +47,7 @@ body {
 	min-height: 100vh;
 }
 
-header {
+body > header {
 	background: #1a1a1a;
 	display: grid;
 	grid-template-columns: [leftmargin] 1fr [main] 41.25rem [main-overflow] 18.75rem [rightmargin] 1fr;
@@ -76,7 +76,7 @@ main {
 	order: 3;
 }
 
-footer {
+body > footer {
 	background: #1a1a1a;
 	color: white;
 	padding: 2em;
@@ -525,11 +525,11 @@ img {
 	padding: 0px;
 }
 
-footer a {
+body > footer a {
 	color: white;
 }
 
-footer a:hover, footer a:focus {
+body > footer a:hover, body > footer a:focus {
 	background: none;
 	border-bottom: 1px solid #36731b;
 	color: white;
@@ -709,7 +709,7 @@ nav>ul {
 		width: calc(100% - 2em);
 	}
 
-	header {
+	body > header {
 		grid-template-areas: "navbar navbar userbar userbar";
 	}
 
@@ -724,7 +724,7 @@ nav>ul {
 }
 
 @media screen and (max-width: 60em) {
-	header {
+	body > header {
 		display: flex;
 		flex-flow: row nowrap;
 		justify-content: space-between;

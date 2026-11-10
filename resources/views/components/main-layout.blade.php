@@ -3,12 +3,21 @@
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="csrf-token" content="{{ csrf_token() }}" />
 
 	<title>{{ $title }} | {{ config('app.name') }}</title>
 
 	<script>
 		document.documentElement.classList.remove('no-js');
 		document.documentElement.classList.add('js');
+	</script>
+	<script defer src="{{ asset('js/htmx.min.js') }}"></script>
+	<script defer src="{{ asset('js/post-composer.js') }}"></script>
+	<script defer src="{{ asset('js/alpine.min.js') }}"></script>
+	<script>
+		document.addEventListener('htmx:configRequest', function (event) {
+			event.detail.headers['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]').content;
+		});
 	</script>
 
 	<link rel="stylesheet" type="text/css" href="{{ asset('css/_header'.$headerImg.'.css') }}" />

@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Http\Middleware\RenderPostComposer;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -26,6 +27,10 @@ class Handler extends ExceptionHandler
     public function register(): void
     {
         $this->renderable(function (ValidationException $exception, Request $request) {
+            if (($request->header('HX-Request') === 'true' || $request->expectsJson())
+                && $request->routeIs('draft.reply.update', 'draft.topic.update', 'draft.update')) {
+                return app(RenderPostComposer::class)->validationResponse($request, $exception);
+            }
             $draft = $request->attributes->get('composer.draft');
             if ($draft?->exists && ! $draft->thread_id && ! array_key_exists('draft', $exception->errors())) {
                 $exception->redirectTo(route('draft.edit', $draft));

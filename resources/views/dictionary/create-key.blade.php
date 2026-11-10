@@ -35,7 +35,6 @@
             display: none !important;
         }
     </style>
-    <script defer src="{{ asset('js/alpine.min.js') }}"></script>
     <script>
     document.addEventListener('alpine:init', function () {
         Alpine.data('dictionaryKeySearch', function (searchUrl) {

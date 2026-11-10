@@ -19,7 +19,7 @@
                 <fieldset>
                     <legend>Text {{ $loop->iteration }}</legend>
                     <x-bbcode-textarea :name="'messages['.$index.'][message]'" :value="$element->message->message" />
-                    <label><input type="checkbox" name="messages[{{ $index }}][smilies]" value="1" @checked($element->message->smilies)> Smileys anzeigen</label>
+                    <input type="hidden" name="messages[{{ $index }}][smilies]" value="{{ $element->message->smilies ? 1 : 0 }}">
                 </fieldset>
                 @endif
             @endforeach
