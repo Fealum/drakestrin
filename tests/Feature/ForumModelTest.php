@@ -16,6 +16,7 @@ use App\Models\Territory\Territory;
 use App\Models\User;
 use App\Models\User\Character;
 use App\Services\Board\PostDraftService;
+use App\Services\Board\PostElementMigrationAuditor;
 use App\Services\Board\PostWriter;
 use App\Services\InventoryService;
 use App\Services\MarkdownArchiveExporter;
@@ -2769,6 +2770,15 @@ class ForumModelTest extends TestCase
         $failed->assertSessionHasErrors('elements.0');
         $this->assertDatabaseHas('post_drafts', ['user_id' => $user->id, 'thread_id' => $thread->id]);
         $this->assertDatabaseMissing('polls', ['question' => 'Innerhalb der Szene?']);
+    }
+
+    public function test_migration_audit_reports_a_message_that_was_not_preserved(): void
+    {
+        $elementId = DB::table('post_elements')->where('post_id', $this->postId)->where('type', 'message')->value('id');
+        DB::table('post_messages')->where('post_element_id', $elementId)->update(['message' => '']);
+        $report = app(PostElementMigrationAuditor::class)->audit();
+        $this->assertFalse($report['passed']);
+        $this->assertContains($this->postId, $report['issues']['message_body_mismatches']['sample_ids']);
     }
 
     private function setPermitStandard(string $name, int $standard): void
