@@ -25,7 +25,7 @@ class PermissionService
         $permitCacheKey = 'user_permits:' . ($userId ?? 'global');
 
         $this->permissions = Cache::get($permissionCacheKey, $this->defaultPermissions());
-        $this->permits = Cache::get($permitCacheKey, $this->defaultPermits());
+        $this->permits = Cache::get($permitCacheKey, fn () => $this->defaultPermits());
         $this->loadedUserId = $userId ?? 'global';
     }
 

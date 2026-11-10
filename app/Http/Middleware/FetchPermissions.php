@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use App\Models\Access\Permission;
 use App\Models\Access\Permit;
 use App\Models\User;
-use App\Services\PermissionService;
 use App\Support\PermissionEntityType;
 use Closure;
 use Illuminate\Http\Request;
@@ -26,17 +25,16 @@ class FetchPermissions
         $permissionCacheKey = 'user_permissions:' . ($userId ?? 'global');
         $permitCacheKey = 'user_permits:' . ($userId ?? 'global');
 
-        $this->calculateUserPermissions($userId);
-
-        $permissions = Cache::remember($permissionCacheKey, now()->addDay(), function () {
-            return $this->permissions;
-        });
+        $permissions = Cache::get($permissionCacheKey);
+        $permits = Cache::get($permitCacheKey);
+        if ($permissions === null || $permits === null) {
+            $this->permissions = $this->permissionDepth = $this->permits = [];
+            $this->calculateUserPermissions($userId);
+            Cache::put($permissionCacheKey, $permissions = $this->permissions, now()->addDay());
+            Cache::put($permitCacheKey, $permits = $this->permits, now()->addDay());
+        }
 
         $request->attributes->set('userPermissions', $permissions);
-
-        $permits = Cache::remember($permitCacheKey, now()->addDay(), function () {
-            return $this->permits;
-        });
 
         $request->attributes->set('userPermits', $permits);
 
@@ -49,14 +47,14 @@ class FetchPermissions
         foreach ($permits as $permit) {
             $this->permits[$permit->name] = $permit->standard;
         }
-        $globalPermissions = Permission::where('recipient_type', PermissionEntityType::USER->value)->where('recipient_id', 0)->get();
+        $globalPermissions = Permission::with('permit')->where('recipient_type', PermissionEntityType::USER->value)->where('recipient_id', 0)->get();
         if (count($globalPermissions) > 0) {
             foreach ($globalPermissions as $p) {
                 $this->permissions[$p->subject_type][$p->subject_id][$p->permit->name] = $p->value;
             }
         }
         if ($userId) {
-            $this->user = User::find($userId);
+            $this->user = User::with(['groups.permissions.permit', 'permissions.permit'])->find($userId);
             if (count($this->user->groups) > 0) {
                 foreach ($this->user->groups as $group) {
                     $this->fetchGroupPermissions($group);
@@ -70,7 +68,7 @@ class FetchPermissions
 
     private function fetchGroupPermissions($group, $depth = 2)
     {
-
+        $group->loadMissing(['parent', 'permissions.permit']);
         if (is_object($group->parent)) {
             $this->fetchGroupPermissions($group->parent, $depth + 1);
         }

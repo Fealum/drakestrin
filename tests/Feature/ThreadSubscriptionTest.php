@@ -72,6 +72,20 @@ class ThreadSubscriptionTest extends TestCase
         }
     }
 
+    public function test_draft_requests_skip_mail_catch_up_but_ordinary_visits_still_process_it(): void
+    {
+        $mailer = $this->mock(ThreadNotificationMailer::class);
+        $mailer->shouldReceive('processPending')->once();
+        $middleware = app(\App\Http\Middleware\ProcessThreadNotifications::class);
+        $draft = \Illuminate\Http\Request::create('/thread/1/draft', 'POST');
+        $route = (new \Illuminate\Routing\Route('POST', '/thread/1/draft', fn () => null))->name('draft.reply.update');
+        $draft->setRouteResolver(fn () => $route);
+        $middleware->handle($draft, fn () => response('ok'));
+        $this->assertFalse(Cache::has('forum:notification-request-processing'));
+        $middleware->handle(\Illuminate\Http\Request::create('/'), fn () => response('ok'));
+        $this->assertTrue(Cache::has('forum:notification-request-processing'));
+    }
+
     public function test_read_cursor_advances_only_through_displayed_posts(): void
     {
         $posts = collect();

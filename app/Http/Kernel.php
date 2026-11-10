@@ -64,10 +64,10 @@ class Kernel extends HttpKernel
             ShareErrorsFromSession::class,
             VerifyCsrfToken::class,
             SubstituteBindings::class,
+            FetchPermissions::class,
             ProcessDueLabour::class,
             ProcessThreadNotifications::class,
             TrackOnline::class,
-            FetchPermissions::class,
             CheckNewMessage::class,
         ],
 

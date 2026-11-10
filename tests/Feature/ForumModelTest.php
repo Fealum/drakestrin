@@ -3777,6 +3777,54 @@ class ForumModelTest extends TestCase
         }
     }
 
+    public function test_composer_query_indexes_cover_character_ordering_and_thread_cursors(): void
+    {
+        $indexes = collect(\Illuminate\Support\Facades\Schema::getIndexes('posts'))->keyBy('name');
+        $this->assertSame(['character_id', 'thread_id', 'time'], $indexes['posts_character_thread_time_index']['columns']);
+        $this->assertSame(['thread_id', 'id'], $indexes['posts_thread_cursor_index']['columns']);
+    }
+
+    public function test_subscribed_thread_keeps_reply_permissions_on_a_cold_permission_cache(): void
+    {
+        $this->actingAs(User::findOrFail($this->userId));
+        \App\Models\Board\ThreadSubscription::create([
+            'user_id' => $this->userId, 'thread_id' => $this->threadId,
+            'email_frequency' => \App\Support\ThreadEmailFrequency::NONE,
+            'last_emailed_post_id' => $this->postId,
+        ]);
+        Cache::forget('user_permissions:'.$this->userId);
+        Cache::forget('user_permits:'.$this->userId);
+        app()->forgetInstance(PermissionService::class);
+        $this->get(route('thread.view', $this->threadId))->assertOk()
+            ->assertSee('id="post-composer"', false);
+    }
+
+    public function test_permission_middleware_uses_its_cache_and_rebuilds_both_halves_when_invalidated(): void
+    {
+        $this->actingAs(User::findOrFail($this->userId));
+        $middleware = app(\App\Http\Middleware\FetchPermissions::class);
+        $request = \Illuminate\Http\Request::create('/');
+        $next = fn () => response('ok');
+        $middleware->handle($request, $next);
+        $permissions = $request->attributes->get('userPermissions');
+        $permits = $request->attributes->get('userPermits');
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        try {
+            $middleware->handle($request, $next);
+            $this->assertSame([], DB::getQueryLog());
+            $this->assertSame($permissions, $request->attributes->get('userPermissions'));
+            $this->assertSame($permits, $request->attributes->get('userPermits'));
+            Cache::forget('user_permits:'.$this->userId);
+            $middleware->handle($request, $next);
+            $this->assertNotEmpty(DB::getQueryLog());
+            $this->assertSame($permissions, $request->attributes->get('userPermissions'));
+            $this->assertSame($permits, $request->attributes->get('userPermits'));
+        } finally {
+            DB::disableQueryLog();
+        }
+    }
+
     private function setPermitStandard(string $name, int $standard): void
     {
         DB::table('permits')->where('name', $name)->update(['standard' => $standard]);

@@ -12,7 +12,7 @@ class CheckNewMessage
 {
     public function handle(Request $request, Closure $next)
     {
-        if (!$request->user()) {
+        if (!$request->user() || ($request->isMethod('post') && $request->routeIs('draft.*'))) {
             return $next($request);
         }
 

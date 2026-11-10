@@ -37,7 +37,9 @@ class TrackOnline
 
         Online::pruneStale((int) config('auth.user_timeout'));
 
-        View::share('online', Online::currentEntries());
+        if (! ($request->isMethod('post') && $request->routeIs('draft.*'))) {
+            View::share('online', Online::currentEntries());
+        }
 
         return $next($request);
     }

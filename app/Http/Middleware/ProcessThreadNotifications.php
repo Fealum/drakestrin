@@ -19,6 +19,11 @@ class ProcessThreadNotifications
 
     public function handle(Request $request, Closure $next): Response
     {
+        // Draft commands render no account bar; catch-up runs on ordinary page visits.
+        if ($request->isMethod('post') && $request->routeIs('draft.*')) {
+            return $next($request);
+        }
+
         try {
             if (Cache::add('forum:notification-request-processing', true, 60)) {
                 $this->mailer->processPending();
