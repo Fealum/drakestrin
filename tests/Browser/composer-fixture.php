@@ -62,15 +62,15 @@ $recipients = collect();
 for ($index = 1; $index <= 6; $index++) {
     $recipient = Character::factory()->create(['user_id' => $user->id, 'name' => 'Recipient '.$index]);
     $recipients->push($recipient);
-    $posts->push(Post::factory()->create([
+    $posts->push(Post::factory()->withMessage('Earlier conversation '.$index)->create([
         'thread_id' => $thread->id, 'board_id' => $board->id, 'user_id' => $user->id,
-        'character_id' => $recipient->id, 'time' => now()->subDays(2), 'message' => 'Earlier conversation '.$index,
+        'character_id' => $recipient->id, 'time' => now()->subDays(2),
     ]));
 }
 for ($index = 0; $index < 21; $index++) {
-    $posts->push(Post::factory()->create([
+    $posts->push(Post::factory()->withMessage('Browser fixture '.$index)->create([
         'thread_id' => $thread->id, 'board_id' => $board->id, 'user_id' => $user->id,
-        'character_id' => $character->id, 'time' => now()->subMinutes(21 - $index), 'message' => 'Browser fixture '.$index,
+        'character_id' => $character->id, 'time' => now()->subMinutes(21 - $index),
     ]));
 }
 $thread->update(['first_post_id' => $posts->first()->id, 'last_post_id' => $posts->last()->id, 'post_count' => $posts->count()]);

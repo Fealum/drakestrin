@@ -48,8 +48,6 @@ class ThreadWriter
                 'user_id' => $user->id,
                 'character_id' => $character->id,
                 'time' => $time,
-                'message' => $data->message,
-                'smilies' => (int) $data->smilies,
                 'ip' => $ip,
             ]);
 

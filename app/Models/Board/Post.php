@@ -22,8 +22,6 @@ class Post extends Model
         'user_id',
         'character_id',
         'time',
-        'message',
-        'smilies',
         'ip',
     ];
 
@@ -37,7 +35,6 @@ class Post extends Model
         'user_id' => 'integer',
         'character_id' => 'integer',
         'time' => 'datetime',
-        'smilies' => 'boolean',
     ];
 
     public function board(): BelongsTo
@@ -81,9 +78,7 @@ class Post extends Model
             ? $this->elements->pluck('message')->filter()->pluck('message')
             : $this->messages()->pluck('message');
 
-        $text = $messages->filter(fn ($message) => trim((string) $message) !== '')->implode($separator);
-
-        return $text !== '' ? $text : (string) $this->message;
+        return $messages->filter(fn ($message) => trim((string) $message) !== '')->implode($separator);
     }
 
     public function contentSummary(): string

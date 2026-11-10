@@ -60,8 +60,6 @@ class PostWriter
                 'user_id' => $user->id,
                 'character_id' => $character->id,
                 'time' => $time,
-                'message' => $data->message,
-                'smilies' => (int) $data->smilies,
                 'ip' => $ip,
             ]);
 
@@ -115,8 +113,6 @@ class PostWriter
                 'user_id' => $user->id,
                 'character_id' => $character->id,
                 'time' => now()->timestamp,
-                'message' => $messages->pluck('message')->filter()->implode("\n\n"),
-                'smilies' => (int) $messages->contains(fn (MessageElementData $message) => $message->smilies),
                 'ip' => $ip,
             ]);
 
@@ -188,11 +184,11 @@ class PostWriter
                 $row = $messageData[$index] ?? ['message' => '', 'smilies' => $message->smilies];
                 $message->update(['message' => trim((string) ($row['message'] ?? '')), 'smilies' => (bool) ($row['smilies'] ?? false)]);
             }
-            $shadowMessage = $post->messages()->orderBy('post_elements.position')->pluck('message')->filter()->implode("\n\n");
-            if ($shadowMessage === '' && ! $post->hasDurableElements()) {
+            $hasText = $post->messages()->pluck('message')->contains(fn ($message) => trim((string) $message) !== '');
+            if (! $hasText && ! $post->hasDurableElements()) {
                 throw ValidationException::withMessages(['messages' => 'Ein gewöhnlicher Beitrag darf nicht vollständig leer sein.']);
             }
-            $post->update(['character_id' => $character->id, 'message' => $shadowMessage]);
+            $post->update(['character_id' => $character->id]);
 
             if ($oldCharacterId !== $character->id) {
                 $this->counters->refreshCharacter($oldCharacterId);
@@ -209,7 +205,6 @@ class PostWriter
     {
         if ($post->hasDurableElements()) {
             $post->messages()->update(['message' => '']);
-            $post->update(['message' => '']);
 
             return false;
         }

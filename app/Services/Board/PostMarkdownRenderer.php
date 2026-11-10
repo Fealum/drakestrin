@@ -32,8 +32,8 @@ class PostMarkdownRenderer
             }
 
             return '';
-        })->filter()->implode("\n\n");
+        })->filter(fn (string $text) => $text !== '')->implode("\n\n");
 
-        return $markdown !== '' ? $markdown : (string) $post->message;
+        return $markdown;
     }
 }

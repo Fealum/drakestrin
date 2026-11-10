@@ -22,7 +22,9 @@ class PostElementMigrationAuditor
             $counts[$table] = DB::table($table)->count();
         }
 
-        DB::table('posts')->orderBy('id')->chunkById(500, function ($posts) use ($record) {
+        $legacyMessages = Schema::hasColumn('posts', 'message');
+        $legacySmilies = Schema::hasColumn('posts', 'smilies');
+        DB::table('posts')->orderBy('id')->chunkById(500, function ($posts) use ($record, $legacyMessages, $legacySmilies) {
             $messages = DB::table('post_elements')->join('post_messages', 'post_messages.post_element_id', '=', 'post_elements.id')
                 ->whereIn('post_id', $posts->pluck('id'))->orderBy('position')
                 ->get(['post_id', 'message', 'smilies'])->groupBy('post_id');
@@ -33,10 +35,10 @@ class PostElementMigrationAuditor
                 }
                 $rows = $messages->get($post->id, collect());
                 $text = $rows->pluck('message')->filter(fn ($message) => $message !== '')->implode("\n\n");
-                if ($text !== (string) $post->message) {
+                if ($legacyMessages && $text !== (string) $post->message) {
                     $record('message_body_mismatches', $post->id);
                 }
-                if ($rows->count() === 1 && (bool) $rows->first()->smilies !== (bool) $post->smilies) {
+                if ($legacySmilies && $rows->count() === 1 && (bool) $rows->first()->smilies !== (bool) $post->smilies) {
                     $record('message_smiley_mismatches', $post->id);
                 }
             }
@@ -118,6 +120,7 @@ class PostElementMigrationAuditor
                 });
         }
 
-        return ['database' => DB::connection()->getDatabaseName(), 'counts' => $counts, 'issues' => $issues, 'passed' => $issues === []];
+        return ['database' => DB::connection()->getDatabaseName(), 'legacy_message_checks' => $legacyMessages,
+            'counts' => $counts, 'issues' => $issues, 'passed' => $issues === []];
     }
 }

@@ -83,8 +83,6 @@ class TransferController extends Controller
                     'user_id' => $sender->user_id,
                     'character_id' => $sender->id,
                     'time' => $time,
-                    'message' => '',
-                    'smilies' => 0,
                     'ip' => $request->ip(),
                 ]);
 

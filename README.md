@@ -57,7 +57,11 @@ docker compose -f devop/docker-compose.yml exec -T app php artisan forum:verify-
 docker compose -f devop/docker-compose.yml exec -T app php artisan forum:verify-post-elements --json
 ```
 
-It checks message bodies and smileys, element subtypes, transfer links, scene boundaries, poll settings/options/votes/participation, and preserved character signatures. It also reports representative record IDs for discrepancies. Keep legacy message, scene-anchor, poll and signature storage through one verification deployment. Resolve reported discrepancies before a separate cleanup migration; do not drop legacy storage as part of ordinary composer changes.
+It checks element subtypes, transfer links, scene boundaries, and legacy poll settings/options/votes/participation. While the old columns exist, it also compares message bodies and smileys and verifies preserved character signatures. After cleanup, it explicitly reports that legacy message comparisons are no longer available. Discrepancies include representative record IDs.
+
+The separate `2026_11_11_090000_drop_legacy_post_content_and_signatures` migration runs this audit before any schema changes. It refuses cleanup on discrepancies, then drops `posts.message`, `posts.smilies`, `posts.signature`, `characters.signature`, `users.hide_signature`, and `bb3_config.ch_signature`. Message text and per-message smileys live exclusively in `post_messages`; former character signatures remain in profile text. `thread_scenes` is still active and is not removed. Legacy poll data and scene anchors remain for their existing verification checks.
+
+Deploy this cleanup in maintenance mode with a fresh, verified database backup. It is deliberately irreversible: `migrate:rollback` cannot reconstruct removed signature preferences. Older application releases still depend on the removed post columns, so a code-only Deployer rollback across this cleanup is not supported.
 
 ## Local email
 

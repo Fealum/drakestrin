@@ -82,9 +82,6 @@
                     @include('post-element.poll', ['element' => $element])
                 @endif
             @endforeach
-            @if($post->elements->isEmpty() && trim((string) $post->message) !== '')
-                {!! $forumFormatter->render($post->message, $post->smilies) !!}
-            @endif
         </div>
     </div>
     @empty

@@ -4,22 +4,28 @@ namespace Tests\Feature;
 
 use App\Data\Board\PostCompositionData;
 use App\Data\Economy\InventoryStateChange;
+use App\Http\Middleware\FetchPermissions;
 use App\Jobs\GenerateMarkdownExport;
 use App\Models\Board\Board;
 use App\Models\Board\Post;
 use App\Models\Board\PostDraft;
 use App\Models\Board\Thread as ForumThread;
 use App\Models\Board\ThreadScene;
+use App\Models\Board\ThreadSubscription;
 use App\Models\Economy\Inventory;
+use App\Models\Economy\Item;
 use App\Models\Territory\Location;
 use App\Models\Territory\Territory;
 use App\Models\User;
 use App\Models\User\Character;
 use App\Repositories\Board\ThreadParticipantRepository;
+use App\Repositories\Territory\LocationRepository;
 use App\Services\Board\ForumFormatter;
+use App\Services\Board\PostComposerPreview;
 use App\Services\Board\PostComposerViewData;
 use App\Services\Board\PostDraftService;
 use App\Services\Board\PostElementMigrationAuditor;
+use App\Services\Board\PostMarkdownRenderer;
 use App\Services\Board\PostMarkerParser;
 use App\Services\Board\PostWriter;
 use App\Services\Economy\InventoryTimeline;
@@ -28,11 +34,17 @@ use App\Services\MarkdownArchiveExporter;
 use App\Services\PermissionService;
 use App\Support\InventoryStockState;
 use App\Support\PermissionEntityType;
+use App\Support\ThreadEmailFrequency;
+use App\View\Components\Datetime;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\ViewErrorBag;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Tests\TestCase;
@@ -173,15 +185,12 @@ class ForumModelTest extends TestCase
         ]);
         $this->threadId = $thread->id;
 
-        $post = Post::factory()->create([
+        $post = Post::factory()->withMessage($this->prefix.'_message')->create([
             'board_id' => $this->childBoardId,
             'thread_id' => $this->threadId,
             'user_id' => $this->userId,
             'character_id' => $this->characterId,
             'time' => $this->postTime,
-            'message' => $this->prefix.'_message',
-            'smilies' => 1,
-            'signature' => 0,
             'ip' => '127.0.0.1',
         ]);
         $this->postId = $post->id;
@@ -211,8 +220,8 @@ class ForumModelTest extends TestCase
             ->orWhere('location_id', $this->locationId)
             ->delete();
 
-        $postIds = DB::table('posts')
-            ->where('message', 'like', $this->prefix.'%')
+        $postIds = Post::query()
+            ->whereRelation('messages', 'message', 'like', $this->prefix.'%')
             ->orWhere('thread_id', $this->threadId)
             ->pluck('id');
         $transferIds = DB::table('transfers')->whereIn('post_id', $postIds)->pluck('id');
@@ -424,7 +433,7 @@ class ForumModelTest extends TestCase
             'inventory' => [$futureInventoryId => $futureInventoryId],
             'inventorystack' => [$futureInventoryId => '1'],
         ])->assertSessionHasErrors('inventory');
-        $this->assertDatabaseMissing('posts', ['message' => $this->prefix.'_premature_company_withdrawal']);
+        $this->assertDatabaseMissing('post_messages', ['message' => $this->prefix.'_premature_company_withdrawal']);
 
         $deposit = $this->post('/post/create/'.$this->threadId, [
             'character' => $this->characterId,
@@ -434,7 +443,7 @@ class ForumModelTest extends TestCase
             'inventory' => [$characterInventoryId => $characterInventoryId],
             'inventorystack' => [$characterInventoryId => '2'],
         ]);
-        $depositPost = Post::where('message', $this->prefix.'_company_deposit')->firstOrFail();
+        $depositPost = Post::whereRelation('messages', 'message', $this->prefix.'_company_deposit')->firstOrFail();
 
         $deposit->assertRedirect('/thread/view/'.$this->threadId.'/last#post'.$depositPost->id);
         $this->assertDatabaseHas('transfers', [
@@ -467,7 +476,7 @@ class ForumModelTest extends TestCase
             'inventory' => [$companyInventoryId => $companyInventoryId],
             'inventorystack' => [$companyInventoryId => '1'],
         ])->assertSessionHasErrors('inventory');
-        $this->assertDatabaseMissing('posts', ['message' => $this->prefix.'_production_company_withdrawal']);
+        $this->assertDatabaseMissing('post_messages', ['message' => $this->prefix.'_production_company_withdrawal']);
 
         DB::table('inventories')->where('id', $companyInventoryId)->update([
             'wear' => InventoryStockState::RESERVED->value,
@@ -486,7 +495,7 @@ class ForumModelTest extends TestCase
             'inventory' => [$companyInventoryId => $companyInventoryId],
             'inventorystack' => [$companyInventoryId => '1'],
         ]);
-        $withdrawalPost = Post::where('message', $this->prefix.'_company_withdrawal')->firstOrFail();
+        $withdrawalPost = Post::whereRelation('messages', 'message', $this->prefix.'_company_withdrawal')->firstOrFail();
 
         $withdrawal->assertRedirect('/thread/view/'.$this->threadId.'/last#post'.$withdrawalPost->id);
         $this->assertDatabaseHas('transfers', [
@@ -532,7 +541,7 @@ class ForumModelTest extends TestCase
 
         $this->assertSame($this->childBoardId, $post->board->id);
         $this->assertSame($this->threadId, $post->thread->id);
-        $this->assertTrue($post->smilies);
+        $this->assertTrue($post->messages()->firstOrFail()->smilies);
         $this->assertSame($this->postTime, $post->time->timestamp);
     }
 
@@ -892,16 +901,6 @@ class ForumModelTest extends TestCase
     {
         $this->actingAs(User::findOrFail($this->userId));
 
-        DB::table('posts')
-            ->where('id', $this->postId)
-            ->update([
-                'message' => '[b]'.$this->prefix.'_bold[/b]'.PHP_EOL
-                    .'[h]'.$this->prefix.'_action[/h]'.PHP_EOL
-                    .'[q='.$this->prefix.'_character]'.$this->prefix.'_quote[/q]'.PHP_EOL
-                    .'Warten... "Hallo" - "Welt"'.PHP_EOL
-                    .':) <script>alert(1)</script>',
-                'smilies' => 1,
-            ]);
         DB::table('post_messages')
             ->whereIn('post_element_id', DB::table('post_elements')->where('post_id', $this->postId)->where('type', 'message')->select('id'))
             ->update([
@@ -928,12 +927,6 @@ class ForumModelTest extends TestCase
 
         $this->get('/img/emoticon/30.gif')->assertRedirect('/images/emoticon/30.gif');
 
-        DB::table('posts')
-            ->where('id', $this->postId)
-            ->update([
-                'message' => ':)',
-                'smilies' => 0,
-            ]);
         DB::table('post_messages')
             ->whereIn('post_element_id', DB::table('post_elements')->where('post_id', $this->postId)->where('type', 'message')->select('id'))
             ->update(['message' => ':)', 'smilies' => 0]);
@@ -1120,27 +1113,21 @@ class ForumModelTest extends TestCase
             'wohnort' => '',
         ]);
 
-        DB::table('posts')->insert([
+        Post::factory()->withMessage($this->prefix.'_other_ip_message')->create([
             'board_id' => $this->childBoardId,
             'thread_id' => $this->threadId,
             'user_id' => $this->userId,
             'character_id' => $this->characterId,
             'time' => $this->postTime + 1,
-            'message' => $this->prefix.'_other_ip_message',
-            'smilies' => 1,
-            'signature' => 0,
             'ip' => '192.0.2.44',
         ]);
 
-        DB::table('posts')->insert([
+        Post::factory()->withMessage($this->prefix.'_same_ip_message')->create([
             'board_id' => $this->childBoardId,
             'thread_id' => $this->threadId,
             'user_id' => $otherUserId,
             'character_id' => $this->characterId,
             'time' => $this->postTime + 2,
-            'message' => $this->prefix.'_same_ip_message',
-            'smilies' => 1,
-            'signature' => 0,
             'ip' => '127.0.0.1',
         ]);
 
@@ -1228,10 +1215,9 @@ class ForumModelTest extends TestCase
             'character' => $this->characterId,
             'message' => $this->prefix.'_created_post',
             'smilies' => '1',
-            'signature' => '1',
         ]);
 
-        $createdPost = Post::where('message', $this->prefix.'_created_post')->firstOrFail();
+        $createdPost = Post::whereRelation('messages', 'message', $this->prefix.'_created_post')->firstOrFail();
 
         $createResponse->assertRedirect('/thread/view/'.$this->threadId.'/last#post'.$createdPost->id);
         $this->assertDatabaseHas('threads', [
@@ -1272,8 +1258,8 @@ class ForumModelTest extends TestCase
         $this->assertDatabaseHas('posts', [
             'id' => $createdPost->id,
             'character_id' => $this->secondCharacterId,
-            'message' => $this->prefix.'_edited_post',
         ]);
+        $this->assertSame($this->prefix.'_edited_post', Post::findOrFail($createdPost->id)->messageText());
         $this->assertDatabaseHas('characters', [
             'id' => $this->characterId,
             'post_count' => 1,
@@ -1326,13 +1312,12 @@ class ForumModelTest extends TestCase
             'newcharname' => $this->prefix.'_inline_character',
             'message' => $this->prefix.'_inline_character_post',
             'smilies' => '1',
-            'signature' => '1',
         ]);
 
         $newCharacterId = DB::table('characters')
             ->where('name', $this->prefix.'_inline_character')
             ->value('id');
-        $createdPost = Post::where('message', $this->prefix.'_inline_character_post')->firstOrFail();
+        $createdPost = Post::whereRelation('messages', 'message', $this->prefix.'_inline_character_post')->firstOrFail();
 
         $createResponse->assertRedirect('/thread/view/'.$this->threadId.'/last#post'.$createdPost->id);
         $this->assertDatabaseHas('characters', [
@@ -1345,8 +1330,8 @@ class ForumModelTest extends TestCase
             'id' => $createdPost->id,
             'character_id' => $newCharacterId,
             'user_id' => $this->userId,
-            'message' => $this->prefix.'_inline_character_post',
         ]);
+        $this->assertSame($this->prefix.'_inline_character_post', Post::findOrFail($createdPost->id)->messageText());
         $this->assertDatabaseHas('threads', [
             'id' => $this->threadId,
             'post_count' => 2,
@@ -1452,7 +1437,6 @@ class ForumModelTest extends TestCase
             'scene_location' => $this->locationId,
             'scene_story_started_at' => $storyStartedAt->format('Y-m-d\TH:i'),
             'smilies' => '1',
-            'signature' => '1',
         ]);
 
         $thread = ForumThread::where('name', $this->prefix.'_scene_thread')->firstOrFail();
@@ -1668,10 +1652,10 @@ class ForumModelTest extends TestCase
             'recipient' => $this->secondCharacterId,
         ]);
 
-        $postId = (int) DB::table('posts')
+        $postId = (int) Post::query()
             ->where('thread_id', $this->threadId)
             ->where('character_id', $this->characterId)
-            ->where('message', $this->prefix.'_transfer_post')
+            ->whereRelation('messages', 'message', $this->prefix.'_transfer_post')
             ->value('id');
         $transferId = (int) DB::table('transfers')
             ->where('post_id', $postId)
@@ -1696,8 +1680,8 @@ class ForumModelTest extends TestCase
             'board_id' => $this->childBoardId,
             'user_id' => $this->userId,
             'character_id' => $this->characterId,
-            'message' => $this->prefix.'_transfer_post',
         ]);
+        $this->assertSame($this->prefix.'_transfer_post', Post::findOrFail($postId)->messageText());
         $this->assertDatabaseHas('transfers', [
             'id' => $transferId,
             'post_id' => $postId,
@@ -1781,7 +1765,7 @@ class ForumModelTest extends TestCase
             'inventorystack' => [$characterInventoryId => '2'],
         ]);
 
-        $dropPost = Post::where('message', $this->prefix.'_drop_post')->firstOrFail();
+        $dropPost = Post::whereRelation('messages', 'message', $this->prefix.'_drop_post')->firstOrFail();
         $dropTransferId = (int) DB::table('transfers')->where('post_id', $dropPost->id)->value('id');
         $locationInventory = DB::table('inventories')
             ->where('item_id', $itemId)
@@ -1812,7 +1796,7 @@ class ForumModelTest extends TestCase
             'inventorystack' => [$locationInventory->id => '1'],
         ]);
 
-        $pickupPost = Post::where('message', $this->prefix.'_pickup_post')->firstOrFail();
+        $pickupPost = Post::whereRelation('messages', 'message', $this->prefix.'_pickup_post')->firstOrFail();
         $pickupTransferId = (int) DB::table('transfers')->where('post_id', $pickupPost->id)->value('id');
 
         $pickupResponse->assertRedirect('/thread/view/'.$this->threadId.'/last#post'.$pickupPost->id);
@@ -1875,7 +1859,7 @@ class ForumModelTest extends TestCase
             'recipient' => $this->secondCharacterId,
         ])->assertSessionHasNoErrors();
 
-        $post = Post::where('message', $this->prefix.'_reversible_post')->firstOrFail();
+        $post = Post::whereRelation('messages', 'message', $this->prefix.'_reversible_post')->firstOrFail();
         $transferId = (int) $post->transfers()->value('id');
 
         $this->get('/thread/view/'.$this->threadId.'/last')
@@ -1941,7 +1925,7 @@ class ForumModelTest extends TestCase
             'recipient' => $this->secondCharacterId,
         ])->assertSessionHasNoErrors();
 
-        $post = Post::where('message', $this->prefix.'_unique_transfer')->firstOrFail();
+        $post = Post::whereRelation('messages', 'message', $this->prefix.'_unique_transfer')->firstOrFail();
         $transferId = (int) $post->transfers()->value('id');
         $this->assertDatabaseHas('transfer_items', [
             'transfer_id' => $transferId,
@@ -2019,7 +2003,7 @@ class ForumModelTest extends TestCase
             'inventory' => [$inventoryId => $inventoryId],
             'recipient' => $this->secondCharacterId,
         ])->assertSessionHasNoErrors();
-        $post = Post::where('message', $this->prefix.'_audit_transfer')->firstOrFail();
+        $post = Post::whereRelation('messages', 'message', $this->prefix.'_audit_transfer')->firstOrFail();
         $transferId = (int) $post->transfers()->value('id');
 
         $this->artisan('economy:audit-inventory --transfer='.$transferId)
@@ -2090,7 +2074,7 @@ class ForumModelTest extends TestCase
             'inventory' => [$inventoryId => $inventoryId],
             'recipient' => $this->secondCharacterId,
         ])->assertSessionHasNoErrors();
-        $transferPost = Post::where('message', $this->prefix.'_committed_exchange_transfer')->firstOrFail();
+        $transferPost = Post::whereRelation('messages', 'message', $this->prefix.'_committed_exchange_transfer')->firstOrFail();
         $transferId = (int) $transferPost->transfers()->value('id');
 
         $this->post('/post/create/'.$this->threadId, [
@@ -2119,7 +2103,7 @@ class ForumModelTest extends TestCase
             'inventory' => [$inventoryId => $inventoryId],
             'recipient' => $this->secondCharacterId,
         ])->assertSessionHasNoErrors();
-        $post = Post::where('message', $this->prefix.'_expired_reversal_post')->firstOrFail();
+        $post = Post::whereRelation('messages', 'message', $this->prefix.'_expired_reversal_post')->firstOrFail();
         $transferId = (int) $post->transfers()->value('id');
 
         DB::table('transfers')->where('id', $transferId)->update([
@@ -2148,7 +2132,7 @@ class ForumModelTest extends TestCase
             'inventory' => [$inventoryId => $inventoryId],
             'recipient' => $this->secondCharacterId,
         ])->assertSessionHasNoErrors();
-        $transferPost = Post::where('message', $this->prefix.'_spent_reversal_transfer')->firstOrFail();
+        $transferPost = Post::whereRelation('messages', 'message', $this->prefix.'_spent_reversal_transfer')->firstOrFail();
         $transferId = (int) $transferPost->transfers()->value('id');
 
         $otherThread = ForumThread::factory()->create([
@@ -2157,13 +2141,12 @@ class ForumModelTest extends TestCase
             'first_post_at' => $this->postTime,
             'last_post_at' => $this->postTime,
         ]);
-        $otherPost = Post::factory()->create([
+        $otherPost = Post::factory()->withMessage($this->prefix.'_spending_thread_start')->create([
             'board_id' => $this->childBoardId,
             'thread_id' => $otherThread->id,
             'user_id' => $this->userId,
             'character_id' => $this->secondCharacterId,
             'time' => $this->postTime,
-            'message' => $this->prefix.'_spending_thread_start',
         ]);
         $otherThread->update([
             'first_post_id' => $otherPost->id,
@@ -2239,7 +2222,7 @@ class ForumModelTest extends TestCase
         ]);
 
         $pickupResponse->assertSessionHasErrors('inventory');
-        $this->assertDatabaseMissing('posts', ['message' => $this->prefix.'_impossible_early_pickup']);
+        $this->assertDatabaseMissing('post_messages', ['message' => $this->prefix.'_impossible_early_pickup']);
         $this->assertDatabaseHas('inventories', ['id' => $locationInventoryId, 'stack' => 2]);
     }
 
@@ -2292,7 +2275,7 @@ class ForumModelTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('inventory');
-        $this->assertDatabaseMissing('posts', ['message' => $this->prefix.'_impossible_earlier_give']);
+        $this->assertDatabaseMissing('post_messages', ['message' => $this->prefix.'_impossible_earlier_give']);
         $this->assertSame($transferCount, DB::table('transfers')->count());
         $this->assertDatabaseHas('inventories', [
             'id' => $inventoryId,
@@ -2317,7 +2300,7 @@ class ForumModelTest extends TestCase
             'recipient' => $this->secondCharacterId,
         ])->assertSessionHasNoErrors();
 
-        $post = Post::where('message', $this->prefix.'_protected_transfer_post')->firstOrFail();
+        $post = Post::whereRelation('messages', 'message', $this->prefix.'_protected_transfer_post')->firstOrFail();
         $transferId = (int) $post->transfers()->value('id');
 
         $this->get('/post/delete/'.$post->id)
@@ -2328,7 +2311,8 @@ class ForumModelTest extends TestCase
         $this->post('/post/delete/'.$post->id, ['delete' => '1'])
             ->assertRedirect('/thread/view/'.$this->threadId);
 
-        $this->assertDatabaseHas('posts', ['id' => $post->id, 'message' => '']);
+        $this->assertDatabaseHas('posts', ['id' => $post->id]);
+        $this->assertSame('', $post->fresh()->messageText());
         $this->assertDatabaseHas('transfers', ['id' => $transferId, 'post_id' => $post->id]);
         $this->get('/thread/delete/'.$this->threadId)->assertForbidden();
     }
@@ -2391,7 +2375,6 @@ class ForumModelTest extends TestCase
             'message' => $this->prefix.'_created_thread_message',
             'important' => '1',
             'smilies' => '1',
-            'signature' => '1',
         ]);
 
         $createdThread = ForumThread::where('name', $this->prefix.'_created_thread')->firstOrFail();
@@ -2412,8 +2395,8 @@ class ForumModelTest extends TestCase
             'thread_id' => $createdThread->id,
             'user_id' => $this->userId,
             'character_id' => $this->characterId,
-            'message' => $this->prefix.'_created_thread_message',
         ]);
+        $this->assertSame($this->prefix.'_created_thread_message', Post::findOrFail($createdPost->id)->messageText());
         $this->assertDatabaseHas('boards', [
             'id' => $this->childBoardId,
             'thread_count' => 2,
@@ -2601,17 +2584,14 @@ class ForumModelTest extends TestCase
         $lastPostId = $this->postId;
 
         for ($i = 1; $i <= $count; $i++) {
-            $lastPostId = DB::table('posts')->insertGetId([
+            $lastPostId = Post::factory()->withMessage($this->prefix.'_extra_message_'.$i)->create([
                 'board_id' => $this->childBoardId,
                 'thread_id' => $this->threadId,
                 'user_id' => $this->userId,
                 'character_id' => $this->characterId,
                 'time' => $this->postTime + $i,
-                'message' => $this->prefix.'_extra_message_'.$i,
-                'smilies' => 1,
-                'signature' => 0,
                 'ip' => '127.0.0.1',
-            ]);
+            ])->id;
         }
 
         DB::table('threads')
@@ -2742,21 +2722,19 @@ class ForumModelTest extends TestCase
             'first_post_at' => $this->postTime + 30,
             'last_post_at' => $this->postTime + 30,
         ]);
-        Post::factory()->create([
+        Post::factory()->withMessage($this->prefix.'_global_activity')->create([
             'board_id' => $this->childBoardId,
             'thread_id' => $otherThread->id,
             'user_id' => $user->id,
             'character_id' => $globalCharacter->id,
             'time' => $this->postTime + 30,
-            'message' => $this->prefix.'_global_activity',
         ]);
-        Post::factory()->create([
+        Post::factory()->withMessage($this->prefix.'_latest_thread_character')->create([
             'board_id' => $this->childBoardId,
             'thread_id' => $thread->id,
             'user_id' => $user->id,
             'character_id' => $this->secondCharacterId,
             'time' => $this->postTime + 20,
-            'message' => $this->prefix.'_latest_thread_character',
         ]);
 
         $characters = app(ThreadParticipantRepository::class)
@@ -3235,7 +3213,7 @@ class ForumModelTest extends TestCase
         $this->assertNull($data['elementPreviews'][3]);
         $this->assertSame(0, $data['elementPreviews'][5]['time']);
         $this->assertNull($data['elementPreviews'][7]);
-        $html = view('draft.edit', [...$data, 'errors' => new \Illuminate\Support\ViewErrorBag])->render();
+        $html = view('draft.edit', [...$data, 'errors' => new ViewErrorBag])->render();
         $dom = new \DOMDocument;
         @$dom->loadHTML('<?xml encoding="UTF-8">'.$html);
         $xpath = new \DOMXPath($dom);
@@ -3247,10 +3225,10 @@ class ForumModelTest extends TestCase
 
     public function test_composer_transfer_preview_uses_only_visible_stock_and_valid_quantities(): void
     {
-        $previews = app(\App\Services\Board\PostComposerPreview::class);
+        $previews = app(PostComposerPreview::class);
         $stock = new Inventory(['stack' => 5]);
         $stock->id = 42;
-        $item = new \App\Models\Economy\Item;
+        $item = new Item;
         $item->forceFill(['name' => 'Holz', 'stackable' => 1, 'unit' => '']);
         $stock->setRelation('item', $item);
         $context = ['characterInventories' => collect([$this->characterId => collect([$stock])])];
@@ -3270,7 +3248,7 @@ class ForumModelTest extends TestCase
 
     public function test_composer_previews_leave_invalid_or_missing_dates_open(): void
     {
-        $previews = app(\App\Services\Board\PostComposerPreview::class);
+        $previews = app(PostComposerPreview::class);
         $poll = ['type' => 'poll', 'question' => 'Frage?', 'options' => ['Ja', 'Nein']];
         $this->assertNotNull($previews->make($poll, [], [], [], null, collect()));
         foreach (['kein Datum', now()->subMinute()->format('Y-m-d\TH:i')] as $deadline) {
@@ -3406,13 +3384,87 @@ class ForumModelTest extends TestCase
         ])->assertOk()->assertJsonPath('version', 2);
     }
 
-    public function test_migration_audit_reports_a_message_that_was_not_preserved(): void
+    public function test_migration_audit_reports_a_missing_message_subtype_after_cleanup(): void
     {
         $elementId = DB::table('post_elements')->where('post_id', $this->postId)->where('type', 'message')->value('id');
-        DB::table('post_messages')->where('post_element_id', $elementId)->update(['message' => '']);
+        DB::table('post_messages')->where('post_element_id', $elementId)->delete();
         $report = app(PostElementMigrationAuditor::class)->audit();
         $this->assertFalse($report['passed']);
-        $this->assertContains($this->postId, $report['issues']['message_body_mismatches']['sample_ids']);
+        $this->assertFalse($report['legacy_message_checks']);
+        $this->assertContains($elementId, $report['issues']['elements_missing_subtype']['sample_ids']);
+    }
+
+    public function test_cleanup_removed_only_obsolete_content_and_signature_columns(): void
+    {
+        foreach ([
+            'posts' => ['message', 'smilies', 'signature'],
+            'characters' => ['signature'],
+            'users' => ['hide_signature'],
+            'bb3_config' => ['ch_signature'],
+        ] as $table => $columns) {
+            foreach ($columns as $column) {
+                $this->assertFalse(Schema::hasColumn($table, $column));
+            }
+        }
+        $this->assertTrue(Schema::hasTable('thread_scenes'));
+        $this->assertTrue(Schema::hasColumn('post_messages', 'smilies'));
+        $this->assertSame($this->prefix.'_message', Post::findOrFail($this->postId)->messageText());
+    }
+
+    public function test_cleanup_refuses_missing_elements_before_altering_the_schema(): void
+    {
+        DB::table('post_elements')->where('post_id', $this->postId)->delete();
+        $migration = require database_path('migrations/2026_11_11_090000_drop_legacy_post_content_and_signatures.php');
+
+        try {
+            $migration->up();
+            $this->fail('Cleanup must not proceed with missing post content.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('posts_without_elements', $exception->getMessage());
+        }
+        $this->assertDatabaseHas('posts', ['id' => $this->postId]);
+    }
+
+    public function test_cleanup_preserves_signatures_and_refuses_to_drop_an_unmerged_one(): void
+    {
+        $schema = Schema::getFacadeRoot();
+        $schema->table('characters', fn ($table) => $table->text('signature')->nullable());
+        $signature = $this->prefix.'_preserved_signature';
+        DB::table('characters')->where('id', $this->characterId)->update(['signature' => $signature]);
+        $migration = require database_path('migrations/2026_11_11_090000_drop_legacy_post_content_and_signatures.php');
+
+        try {
+            try {
+                $migration->up();
+                $this->fail('Cleanup discarded an unmerged signature.');
+            } catch (\RuntimeException $exception) {
+                $this->assertStringContainsString('legacy_signature_loss', $exception->getMessage());
+                $this->assertTrue($schema->hasColumn('characters', 'signature'));
+            }
+            $text = '[B]Ehemalige Signatur[/B]'."\n".$signature;
+            DB::table('characters')->where('id', $this->characterId)->update(['usertext' => $text]);
+            $migration->up();
+            $this->assertFalse($schema->hasColumn('characters', 'signature'));
+            $this->assertSame($text, Character::findOrFail($this->characterId)->usertext);
+        } finally {
+            if ($schema->hasColumn('characters', 'signature')) {
+                $schema->table('characters', fn ($table) => $table->dropColumn('signature'));
+            }
+        }
+    }
+
+    public function test_message_text_and_exports_use_only_element_content(): void
+    {
+        $post = Post::findOrFail($this->postId);
+        $post->messages()->update(['message' => '']);
+        $post->setRawAttributes([...$post->getAttributes(), 'message' => 'Obsolete fallback text']);
+        $this->assertSame('', $post->messageText());
+        $this->assertSame('', app(PostMarkdownRenderer::class)->render($post));
+
+        $post->messages()->update(['message' => '0']);
+        $post = $post->fresh();
+        $this->assertSame('0', $post->messageText());
+        $this->assertSame('0', app(PostMarkdownRenderer::class)->render($post));
     }
 
     public function test_generalized_action_can_pick_up_from_scene_location_only_for_posting_character(): void
@@ -3662,7 +3714,7 @@ class ForumModelTest extends TestCase
             'intent' => 'publish',
             'elements' => [['type' => 'message', 'message' => $this->prefix.'_draft_publication', 'smilies' => '1']],
         ]);
-        $post = Post::query()->where('message', $this->prefix.'_draft_publication')->firstOrFail();
+        $post = Post::query()->whereRelation('messages', 'message', $this->prefix.'_draft_publication')->firstOrFail();
         $published->assertRedirect(route('post.view', $post));
         $this->assertDatabaseMissing('post_drafts', ['user_id' => $user->id, 'thread_id' => $thread->id]);
 
@@ -3687,7 +3739,7 @@ class ForumModelTest extends TestCase
 
     public function test_composer_query_indexes_cover_character_ordering_and_thread_cursors(): void
     {
-        $indexes = collect(\Illuminate\Support\Facades\Schema::getIndexes('posts'))->keyBy('name');
+        $indexes = collect(Schema::getIndexes('posts'))->keyBy('name');
         $this->assertSame(['character_id', 'thread_id', 'time'], $indexes['posts_character_thread_time_index']['columns']);
         $this->assertSame(['thread_id', 'id'], $indexes['posts_thread_cursor_index']['columns']);
     }
@@ -3748,7 +3800,7 @@ class ForumModelTest extends TestCase
                 $ids[] = Location::factory()->create(['name' => $this->prefix.'_search_'.$i,
                     'parent_type' => PermissionEntityType::TERRITORY, 'parent_id' => Territory::whereDoesntHave('children')->value('id')])->id;
             }
-            $choices = app(\App\Repositories\Territory\LocationRepository::class)->composerChoices($this->prefix.'_search_', 1, $this->locationId);
+            $choices = app(LocationRepository::class)->composerChoices($this->prefix.'_search_', 1, $this->locationId);
             $this->assertCount(21, $choices['options']);
             $this->assertSame(25, $choices['matches']->total());
             $this->assertSame((string) $this->locationId, $choices['options'][0]['value']);
@@ -3778,7 +3830,7 @@ class ForumModelTest extends TestCase
     {
         foreach (['2026-01-15T18:30', '2026-07-15T18:30'] as $local) {
             $element = app(PostDraftService::class)->normalizePayload([['type' => 'scene_transition', 'story_at' => $local]])[0];
-            $display = new \App\View\Components\Datetime(\Illuminate\Support\Carbon::createFromTimestamp($element['story_at']));
+            $display = new Datetime(Carbon::createFromTimestamp($element['story_at']));
             $this->assertSame('18:30', $display->timeString);
             $this->assertSame(config('app.timezone'), $display->time->timezoneName);
         }
@@ -3787,9 +3839,9 @@ class ForumModelTest extends TestCase
     public function test_subscribed_thread_keeps_reply_permissions_on_a_cold_permission_cache(): void
     {
         $this->actingAs(User::findOrFail($this->userId));
-        \App\Models\Board\ThreadSubscription::create([
+        ThreadSubscription::create([
             'user_id' => $this->userId, 'thread_id' => $this->threadId,
-            'email_frequency' => \App\Support\ThreadEmailFrequency::NONE,
+            'email_frequency' => ThreadEmailFrequency::NONE,
             'last_emailed_post_id' => $this->postId,
         ]);
         Cache::forget('user_permissions:'.$this->userId);
@@ -3802,8 +3854,8 @@ class ForumModelTest extends TestCase
     public function test_permission_middleware_uses_its_cache_and_rebuilds_both_halves_when_invalidated(): void
     {
         $this->actingAs(User::findOrFail($this->userId));
-        $middleware = app(\App\Http\Middleware\FetchPermissions::class);
-        $request = \Illuminate\Http\Request::create('/');
+        $middleware = app(FetchPermissions::class);
+        $request = Request::create('/');
         $next = fn () => response('ok');
         $middleware->handle($request, $next);
         $permissions = $request->attributes->get('userPermissions');

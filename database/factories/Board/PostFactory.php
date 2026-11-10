@@ -22,8 +22,16 @@ class PostFactory extends Factory
                 return;
             }
             $element = $post->elements()->create(['position' => 100, 'type' => PostElementType::MESSAGE]);
-            $element->message()->create(['message' => (string) $post->message, 'smilies' => (bool) $post->smilies]);
+            $element->message()->create(['message' => fake()->paragraph(), 'smilies' => true]);
         });
+    }
+
+    public function withMessage(string $message, bool $smilies = true): static
+    {
+        return $this->afterCreating(fn (Post $post) => $post->messages()->update([
+            'message' => $message,
+            'smilies' => $smilies,
+        ]));
     }
 
     public function definition(): array
@@ -34,9 +42,6 @@ class PostFactory extends Factory
             'user_id' => User::factory(),
             'character_id' => Character::factory(),
             'time' => now(),
-            'message' => fake()->paragraph(),
-            'smilies' => true,
-            'signature' => false,
             'ip' => fake()->ipv4(),
         ];
     }

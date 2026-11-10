@@ -9,7 +9,7 @@ class VerifyPostElements extends Command
 {
     protected $signature = 'forum:verify-post-elements {--json : Print the full audit as JSON}';
 
-    protected $description = 'Read-only verification of messages, transfers, scene boundaries, legacy polls, votes and preserved signatures.';
+    protected $description = 'Read-only post-element integrity checks, plus legacy comparisons while their source columns remain.';
 
     public function handle(PostElementMigrationAuditor $auditor): int
     {
@@ -18,6 +18,9 @@ class VerifyPostElements extends Command
             $this->line(json_encode($report, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
         } else {
             $this->info('Database: '.$report['database']);
+            if (! $report['legacy_message_checks']) {
+                $this->line('Legacy post content has been removed; checking element integrity without legacy message comparisons.');
+            }
             $this->table(['Record', 'Count'], collect($report['counts'])->map(fn ($count, $name) => [$name, $count]));
             foreach ($report['issues'] as $kind => $issue) {
                 $this->error($kind.': '.$issue['count'].'; sample IDs: '.implode(', ', $issue['sample_ids']));

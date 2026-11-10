@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\ProcessThreadNotifications;
 use App\Mail\ThreadDigestMail;
 use App\Mail\ThreadReplyMail;
 use App\Models\Board\Board;
@@ -18,6 +19,8 @@ use App\Support\PermissionEntityType;
 use App\Support\ThreadEmailFrequency;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -76,13 +79,13 @@ class ThreadSubscriptionTest extends TestCase
     {
         $mailer = $this->mock(ThreadNotificationMailer::class);
         $mailer->shouldReceive('processPending')->once();
-        $middleware = app(\App\Http\Middleware\ProcessThreadNotifications::class);
-        $draft = \Illuminate\Http\Request::create('/thread/1/draft', 'POST');
-        $route = (new \Illuminate\Routing\Route('POST', '/thread/1/draft', fn () => null))->name('draft.reply.update');
+        $middleware = app(ProcessThreadNotifications::class);
+        $draft = Request::create('/thread/1/draft', 'POST');
+        $route = (new Route('POST', '/thread/1/draft', fn () => null))->name('draft.reply.update');
         $draft->setRouteResolver(fn () => $route);
         $middleware->handle($draft, fn () => response('ok'));
         $this->assertFalse(Cache::has('forum:notification-request-processing'));
-        $middleware->handle(\Illuminate\Http\Request::create('/'), fn () => response('ok'));
+        $middleware->handle(Request::create('/'), fn () => response('ok'));
         $this->assertTrue(Cache::has('forum:notification-request-processing'));
     }
 
@@ -248,13 +251,12 @@ class ThreadSubscriptionTest extends TestCase
 
     private function makePost(User $user, Character $character, int $time, string $message): Post
     {
-        return Post::factory()->create([
+        return Post::factory()->withMessage($message)->create([
             'board_id' => $this->board->id,
             'thread_id' => $this->thread->id,
             'user_id' => $user->id,
             'character_id' => $character->id,
             'time' => $time,
-            'message' => $message,
         ]);
     }
 }
