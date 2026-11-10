@@ -27,6 +27,8 @@ class PostComposerViewData
 
     public function make(PostDraft $draft, User $user, ?Thread $thread): array
     {
+        $draft = clone $draft;
+        $draft->payload = $this->drafts->withTextSlots((array) request()->old('elements', $draft->payload));
         $characters = $user->characters()->with('inventory.item')->orderBy('name')->get();
         $permissionTarget = $thread ?? new Thread(['board_id' => $draft->board_id ?? 0]);
 

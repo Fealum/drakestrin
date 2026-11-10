@@ -18,7 +18,7 @@ class PostCompositionData
             return match ($type) {
                 PostElementType::MESSAGE => MessageElementData::fromArray($row),
                 PostElementType::TRANSFER => TransferElementData::fromArray($row)
-                    ?? throw new InvalidArgumentException('Eine Handlung benötigt eine Art und mindestens einen Gegenstand.'),
+                    ?? throw new InvalidArgumentException('Eine Übergabe benötigt eine Quelle, einen Empfänger und mindestens einen Gegenstand.'),
                 PostElementType::SCENE_TRANSITION => SceneTransitionElementData::fromArray($row),
                 PostElementType::POLL => PollElementData::fromArray($row),
                 default => throw new InvalidArgumentException('Unknown post element type.'),

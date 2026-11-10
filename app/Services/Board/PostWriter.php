@@ -24,6 +24,7 @@ use App\Models\Economy\CompanySite;
 use App\Models\Economy\Inventory;
 use App\Models\User;
 use App\Models\User\Character;
+use App\Repositories\Board\ThreadParticipantRepository;
 use App\Repositories\Territory\LocationRepository;
 use App\Services\Economy\TransferService;
 use App\Services\PermissionService;
@@ -43,6 +44,7 @@ class PostWriter
         private TransferService $transfers,
         private LocationRepository $locations,
         private ThreadSubscriptionService $subscriptions,
+        private ThreadParticipantRepository $participants,
     ) {}
 
     public function create(ForumThread $thread, User $user, CreatePostData $data, string $ip): Post
@@ -87,11 +89,17 @@ class PostWriter
         return $post;
     }
 
-    public function createComposition(ForumThread $thread, User $user, int $characterId, PostCompositionData $composition, string $ip): Post
-    {
-        $post = DB::transaction(function () use ($thread, $user, $characterId, $composition, $ip) {
+    public function createComposition(
+        ForumThread $thread,
+        User $user,
+        int|string|null $characterSelection,
+        PostCompositionData $composition,
+        string $ip,
+        ?string $newCharacterName = null,
+    ): Post {
+        $post = DB::transaction(function () use ($thread, $user, $characterSelection, $newCharacterName, $composition, $ip) {
             $thread = ForumThread::query()->whereKey($thread->id)->lockForUpdate()->firstOrFail();
-            $character = $this->userCharacter($user, $characterId);
+            $character = $this->resolveCompositionCharacter($thread, $user, $characterSelection, $newCharacterName);
             $activeScene = ThreadScene::query()->with('location')->where('thread_id', $thread->id)->whereNull('ended_at')->latest('id')->first();
             $activeSceneKey = $activeScene ? 'scene:'.$activeScene->id : null;
             $messages = collect($composition->elements)->filter(fn ($element) => $element instanceof MessageElementData);
@@ -141,10 +149,10 @@ class PostWriter
 
                 if ($data instanceof TransferElementData) {
                     if (! $activeScene || $activeScene->story_started_at === null) {
-                        throw ValidationException::withMessages(['elements.'.$index => 'Handlungen benötigen an dieser Position eine Szene mit Spielzeit.']);
+                        throw ValidationException::withMessages(['elements.'.$index => 'Übergaben benötigen an dieser Position eine Szene mit Spielzeit.']);
                     }
                     if ($data->sceneKey && $data->sceneKey !== $activeSceneKey) {
-                        throw ValidationException::withMessages(['elements.'.$index => 'Die Handlung kann ihre zugeordnete Szene nicht verlassen.']);
+                        throw ValidationException::withMessages(['elements.'.$index => 'Die Übergabe kann ihre zugeordnete Szene nicht verlassen.']);
                     }
                     $element = $this->createElement($post, $position, PostElementType::TRANSFER);
                     $this->attachTransfer($thread, $user, $character, $post, $data->transfer, $activeScene, $element);
@@ -171,7 +179,7 @@ class PostWriter
 
         DB::transaction(function () use ($post, $character, $data, $oldCharacterId) {
             if ($post->hasCharacterBoundAction() && $post->character_id !== $character->id) {
-                throw ValidationException::withMessages(['character' => 'Der Charakter einer veröffentlichten Handlung kann nicht geändert werden.']);
+                throw ValidationException::withMessages(['character' => 'Der Charakter einer veröffentlichten Übergabe kann nicht geändert werden.']);
             }
 
             $messages = $post->messages()->orderBy('post_elements.position')->get();
@@ -259,6 +267,33 @@ class PostWriter
         ]);
     }
 
+    private function resolveCompositionCharacter(
+        ForumThread $thread,
+        User $user,
+        int|string|null $selection,
+        ?string $newCharacterName,
+    ): Character {
+        if ((string) $selection !== 'new') {
+            if (! is_numeric($selection)) {
+                throw ValidationException::withMessages(['character' => 'Bitte wähle einen Charakter aus.']);
+            }
+
+            return $this->userCharacter($user, (int) $selection);
+        }
+
+        abort_unless($this->permissions->allows('createcharacter', $thread, $user), 403);
+        if (blank($newCharacterName)) {
+            throw ValidationException::withMessages(['newcharname' => 'Bitte gib einen Namen für den neuen Charakter ein.']);
+        }
+
+        return Character::create([
+            'name' => trim($newCharacterName),
+            'regdate' => now()->timestamp,
+            'user_id' => $user->id,
+            'usertext' => '',
+        ]);
+    }
+
     private function attachTransfer(ForumThread $thread, User $user, Character $sender, Post $post, PostTransferData $transferData, ?ThreadScene $scene, PostElement $element): void
     {
         abort_unless($this->permissions->allows('transfer', $thread, $user), 403);
@@ -266,98 +301,72 @@ class PostWriter
 
         if ($scene->story_started_at === null) {
             throw ValidationException::withMessages([
-                'transfer_action' => 'Für eine Handlung benötigt die aktive Szene eine Spielzeit.',
+                'transfer_action' => 'Für eine Übergabe benötigt die aktive Szene eine Spielzeit.',
             ]);
         }
 
-        $characterOwner = new InventoryOwner(PermissionEntityType::CHARACTER, $sender->id);
-        $locationOwner = new InventoryOwner(PermissionEntityType::LOCATION, $scene->location->id);
+        [$sourceType, $sourceId, $recipientType, $recipientId, $generalized] = $this->resolveTransferParties(
+            $transferData, $sender, $scene,
+        );
+        if (! $sourceId || ! $recipientId) {
+            throw ValidationException::withMessages(['recipient_party' => 'Bitte wähle Quelle und Empfänger aus.']);
+        }
+        if ($sourceType === $recipientType && $sourceId === $recipientId) {
+            throw ValidationException::withMessages(['recipient_party' => 'Quelle und Empfänger müssen verschieden sein.']);
+        }
+        if ($sourceType === PermissionEntityType::LOCATION
+            && ($recipientType !== PermissionEntityType::CHARACTER || $recipientId !== $sender->id)) {
+            throw ValidationException::withMessages(['recipient_party' => 'Vom Ort kann nur der beitragende Charakter etwas aufnehmen.']);
+        }
+        if ($generalized && $recipientType === PermissionEntityType::CHARACTER
+            && ! $this->participants->isEligibleRecipient($thread, $recipientId, $sender->id)) {
+            throw ValidationException::withMessages(['recipient_party' => 'Dieser Charakter gehört nicht zu den aktuellen Beteiligten des Themas.']);
+        }
 
-        if ($transferData->action === PostTransferAction::GIVE) {
-            if ($transferData->recipientCharacterId === null) {
+        $localLocationIds = $this->locations->ancestorLocationIds($scene->location);
+        $sourceSite = $sourceType === PermissionEntityType::COMPANY_SITE
+            ? CompanySite::query()->with('company')->whereKey($sourceId)->whereIn('location_id', $localLocationIds)->firstOrFail()
+            : null;
+        if ($sourceSite && ! $user->can('transfer', [$sourceSite, $sender])) {
+            abort(403);
+        }
+        if ($recipientType === PermissionEntityType::COMPANY_SITE) {
+            CompanySite::query()->whereKey($recipientId)->whereIn('location_id', $localLocationIds)->firstOrFail();
+        }
+
+        $source = new InventoryOwner($sourceType, $sourceId);
+        $target = new InventoryOwner(
+            $recipientType,
+            $recipientId,
+            $recipientType === PermissionEntityType::COMPANY_SITE ? InventoryStockState::PRODUCTION->value : 0,
+        );
+        $transferSender = new TransferParticipant($sourceType, $sourceId);
+        $transferRecipient = new TransferParticipant($recipientType, $recipientId);
+        $selectedInventoryIds = collect($transferData->items)->pluck('inventoryId');
+
+        if ($sourceSite) {
+            $eligibleInventoryCount = Inventory::query()
+                ->whereIn('id', $selectedInventoryIds)
+                ->ownedBy(PermissionEntityType::COMPANY_SITE, $sourceSite->id)
+                ->where('wear', '>=', InventoryStockState::RESERVED->value)
+                ->count();
+            if ($eligibleInventoryCount !== $selectedInventoryIds->count()) {
                 throw ValidationException::withMessages([
-                    'recipient' => 'Bitte wähle einen Empfänger aus.',
+                    'inventory' => 'Ausgehändigt werden können nur Vorbehalts- und Verkaufsgüter.',
                 ]);
             }
+        }
 
-            if ($transferData->recipientCharacterId === $sender->id) {
-                throw ValidationException::withMessages([
-                    'recipient' => 'Sender und Empfänger müssen verschieden sein.',
-                ]);
-            }
-
-            $source = $characterOwner;
-            $target = new InventoryOwner(PermissionEntityType::CHARACTER, $transferData->recipientCharacterId);
-            $transferSender = TransferParticipant::character($sender->id);
-            $transferRecipient = TransferParticipant::character($transferData->recipientCharacterId);
-        } elseif ($transferData->action === PostTransferAction::DROP) {
-            $source = $characterOwner;
-            $target = $locationOwner;
-            $transferSender = TransferParticipant::character($sender->id);
-            $transferRecipient = TransferParticipant::location($scene->location->id);
-        } elseif ($transferData->action === PostTransferAction::PICKUP) {
-            $source = $locationOwner;
-            $target = $characterOwner;
-            $transferSender = TransferParticipant::location($scene->location->id);
-            $transferRecipient = TransferParticipant::character($sender->id);
-        } else {
-            if ($transferData->companySiteId === null) {
-                throw ValidationException::withMessages(['company_site' => 'Bitte wähle einen Betriebsstandort aus.']);
-            }
-
-            $site = CompanySite::query()
-                ->with('company')
-                ->whereKey($transferData->companySiteId)
-                ->whereIn('location_id', $this->locations->ancestorLocationIds($scene->location))
-                ->firstOrFail();
-            $company = $site->company;
-            abort_unless($company, 404);
-
-            if ($transferData->action === PostTransferAction::COMPANY_DEPOSIT) {
-                $source = $characterOwner;
-                $target = new InventoryOwner(PermissionEntityType::COMPANY_SITE, $site->id, InventoryStockState::PRODUCTION->value);
-                $transferSender = TransferParticipant::character($sender->id);
-                $transferRecipient = TransferParticipant::companySite($site->id);
-                $inventoryItemIds = Inventory::query()
-                    ->whereIn('id', collect($transferData->items)->pluck('inventoryId'))
-                    ->ownedBy(PermissionEntityType::CHARACTER, $sender->id)
-                    ->pluck('item_id', 'id');
-                $transferDataItems = collect($transferData->items)
-                    ->map(fn ($item) => new TransferInventoryItem(
-                        inventoryId: $item->inventoryId,
-                        requestedStack: $item->requestedStack,
-                        targetWear: (int) $inventoryItemIds->get($item->inventoryId) === 1
-                            ? InventoryStockState::RESERVED->value
-                            : InventoryStockState::PRODUCTION->value,
-                    ))
-                    ->all();
-            } else {
-                if (! $user->can('transfer', [$site, $sender])) {
-                    abort(403);
-                }
-
-                $selectedInventoryIds = collect($transferData->items)->pluck('inventoryId');
-                $eligibleInventoryCount = Inventory::query()
-                    ->whereIn('id', $selectedInventoryIds)
-                    ->ownedBy(PermissionEntityType::COMPANY_SITE, $site->id)
-                    ->where('wear', '>=', InventoryStockState::RESERVED->value)
-                    ->count();
-
-                if ($eligibleInventoryCount !== $selectedInventoryIds->count()) {
-                    throw ValidationException::withMessages([
-                        'inventory' => 'Ausgehändigt werden können nur Vorbehalts- und Verkaufsgüter.',
-                    ]);
-                }
-
-                if ($transferData->recipientCharacterId === null) {
-                    throw ValidationException::withMessages(['recipient' => 'Bitte wähle einen Empfänger aus.']);
-                }
-
-                $source = new InventoryOwner(PermissionEntityType::COMPANY_SITE, $site->id);
-                $target = new InventoryOwner(PermissionEntityType::CHARACTER, $transferData->recipientCharacterId);
-                $transferSender = TransferParticipant::companySite($site->id);
-                $transferRecipient = TransferParticipant::character($transferData->recipientCharacterId);
-            }
+        if ($recipientType === PermissionEntityType::COMPANY_SITE) {
+            $inventoryItemIds = Inventory::query()->whereIn('id', $selectedInventoryIds)
+                ->ownedBy($sourceType, $sourceId)->pluck('item_id', 'id');
+            $transferDataItems = collect($transferData->items)->map(fn ($item) => new TransferInventoryItem(
+                inventoryId: $item->inventoryId,
+                requestedStack: $item->requestedStack,
+                targetWear: (int) $inventoryItemIds->get($item->inventoryId) === 1
+                    ? InventoryStockState::RESERVED->value
+                    : InventoryStockState::PRODUCTION->value,
+            ))->all();
         }
 
         try {
@@ -378,13 +387,48 @@ class PostWriter
             );
         } catch (InventoryUnavailableAtStoryTime) {
             throw ValidationException::withMessages([
-                'inventory' => 'Die gewählte Menge ist zu dieser Spielzeit nicht verfügbar oder wird für eine spätere Handlung benötigt.',
+                'inventory' => 'Die gewählte Menge ist zu dieser Spielzeit nicht verfügbar oder wird für eine spätere Übergabe benötigt.',
             ]);
         } catch (InvalidArgumentException) {
             throw ValidationException::withMessages([
                 'inventory' => 'Keine übertragbaren Gegenstände ausgewählt.',
             ]);
         }
+    }
+
+    private function resolveTransferParties(
+        PostTransferData $data,
+        Character $sender,
+        ThreadScene $scene,
+    ): array {
+        if ($data->sourceType && $data->recipientType) {
+            $sourceId = match ($data->sourceType) {
+                PermissionEntityType::CHARACTER => $sender->id,
+                PermissionEntityType::LOCATION => $scene->location_id,
+                PermissionEntityType::COMPANY_SITE => $data->sourceId,
+                default => null,
+            };
+            $recipientId = match ($data->recipientType) {
+                PermissionEntityType::CHARACTER => $data->recipientId ?? $sender->id,
+                PermissionEntityType::LOCATION => $scene->location_id,
+                PermissionEntityType::COMPANY_SITE => $data->recipientId,
+                default => null,
+            };
+            if (! $sourceId || ! $recipientId) {
+                throw ValidationException::withMessages(['recipient_party' => 'Bitte wähle Quelle und Empfänger aus.']);
+            }
+
+            return [$data->sourceType, $sourceId, $data->recipientType, $recipientId, true];
+        }
+
+        return match ($data->action) {
+            PostTransferAction::GIVE => [PermissionEntityType::CHARACTER, $sender->id, PermissionEntityType::CHARACTER, $data->recipientCharacterId, false],
+            PostTransferAction::DROP => [PermissionEntityType::CHARACTER, $sender->id, PermissionEntityType::LOCATION, $scene->location_id, false],
+            PostTransferAction::PICKUP => [PermissionEntityType::LOCATION, $scene->location_id, PermissionEntityType::CHARACTER, $sender->id, false],
+            PostTransferAction::COMPANY_DEPOSIT => [PermissionEntityType::CHARACTER, $sender->id, PermissionEntityType::COMPANY_SITE, $data->companySiteId, false],
+            PostTransferAction::COMPANY_WITHDRAWAL => [PermissionEntityType::COMPANY_SITE, $data->companySiteId, PermissionEntityType::CHARACTER, $data->recipientCharacterId, false],
+            default => throw ValidationException::withMessages(['transfer_action' => 'Bitte wähle Quelle und Empfänger aus.']),
+        };
     }
 
     private function createElement(Post $post, int $position, PostElementType $type): PostElement
@@ -450,6 +494,12 @@ class PostWriter
             }
         } else {
             throw ValidationException::withMessages(['elements.'.$index => 'Unbekannter Szenenwechsel.']);
+        }
+
+        if ($data->storyAt === null) {
+            throw ValidationException::withMessages([
+                'elements.'.$index.'.story_at' => 'Bitte gib die Spielzeit für den Szenenwechsel an.',
+            ]);
         }
 
         if ($activeScene) {

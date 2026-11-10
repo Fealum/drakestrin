@@ -105,7 +105,14 @@ class ThreadWriter
                 'important' => 0,
             ]);
 
-            $post = $this->posts->createComposition($thread, $user, $draft->character_id, $composition, $ip);
+            $post = $this->posts->createComposition(
+                $thread,
+                $user,
+                $draft->characterSelection(),
+                $composition,
+                $ip,
+                $draft->new_character_name,
+            );
             $thread->update(['first_post_id' => $post->id, 'last_post_id' => $post->id]);
 
             return $thread->refresh();

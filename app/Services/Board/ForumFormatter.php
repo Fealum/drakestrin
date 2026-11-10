@@ -82,6 +82,11 @@ class ForumFormatter
         return $smilies ? $this->replaceEmoticons($html) : $html;
     }
 
+    public function parse(string $text): string
+    {
+        return self::parser()->parse($text);
+    }
+
     private static function parser(): Parser
     {
         self::boot();
@@ -102,7 +107,7 @@ class ForumFormatter
             return;
         }
 
-        $configurator = new Configurator();
+        $configurator = new Configurator;
         $configurator->rendering->setEngine('PHP', self::cacheDirectory());
         $configurator->FancyPants->disablePass('Quotes');
         $configurator->FancyPants->disablePass('Guillemets');
@@ -123,10 +128,8 @@ class ForumFormatter
         $configurator->BBCodes->addCustom('[SIMOFF]{TEXT}[/SIMOFF]', '<div class="simoff post">{TEXT}</div>');
         $configurator->BBCodes->addCustom('[SL]{TEXT}[/SL]', '<div class="sl post">{TEXT}</div>');
 
-        $configurator->BBCodes->addCustom('[Q]{TEXT}[/Q]', '<blockquote>{TEXT}</blockquote>');
-        $configurator->BBCodes->addCustom('[Q={TEXT1}]{TEXT2}[/Q]', '<blockquote><cite>{TEXT1}</cite>{TEXT2}</blockquote>');
-        $configurator->BBCodes->addCustom('[QUOTE]{TEXT}[/QUOTE]', '<blockquote>{TEXT}</blockquote>');
-        $configurator->BBCodes->addCustom('[QUOTE={TEXT1}]{TEXT2}[/QUOTE]', '<blockquote><cite>{TEXT1}</cite>{TEXT2}</blockquote>');
+        $configurator->BBCodes->addCustom('[Q={TEXT1?}]{TEXT2}[/Q]', '<blockquote><xsl:if test="@q"><cite>{TEXT1}</cite></xsl:if>{TEXT2}</blockquote>');
+        $configurator->BBCodes->addCustom('[QUOTE={TEXT1?}]{TEXT2}[/QUOTE]', '<blockquote><xsl:if test="@quote"><cite>{TEXT1}</cite></xsl:if>{TEXT2}</blockquote>');
 
         $configurator->BBCodes->addCustom('[LEFT]{TEXT}[/LEFT]', '<p style="text-align:left;">{TEXT}</p>');
         $configurator->BBCodes->addCustom('[CENTER]{TEXT}[/CENTER]', '<p style="text-align:center;">{TEXT}</p>');
@@ -169,6 +172,6 @@ class ForumFormatter
         $titleAttribute = e($title);
         $altAttribute = e($code);
 
-        return '<img src="' . asset('images/emoticon/' . $file) . '" title="' . $titleAttribute . '" alt="' . $altAttribute . '">';
+        return '<img src="'.asset('images/emoticon/'.$file).'" title="'.$titleAttribute.'" alt="'.$altAttribute.'">';
     }
 }

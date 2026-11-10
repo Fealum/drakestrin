@@ -3,6 +3,7 @@
 namespace App\Data\Board;
 
 use App\Data\Economy\PostTransferData;
+use App\Support\PermissionEntityType;
 use App\Support\PostElementType;
 
 class TransferElementData implements PostElementData
@@ -18,7 +19,9 @@ class TransferElementData implements PostElementData
     {
         return [
             'type' => $this->type()->value,
-            'transfer_action' => $this->transfer->action->value,
+            'transfer_action' => $this->transfer->action?->value,
+            'source' => $this->party($this->transfer->sourceType, $this->transfer->sourceId),
+            'recipient_party' => $this->party($this->transfer->recipientType, $this->transfer->recipientId),
             'inventory' => collect($this->transfer->items)->mapWithKeys(fn ($item) => [$item->inventoryId => $item->inventoryId])->all(),
             'inventorystack' => collect($this->transfer->items)->mapWithKeys(fn ($item) => [$item->inventoryId => $item->requestedStack])->all(),
             'recipient' => $this->transfer->recipientCharacterId,
@@ -32,5 +35,21 @@ class TransferElementData implements PostElementData
         $transfer = PostTransferData::fromArray($data);
 
         return $transfer ? new self($transfer, filled($data['scene_key'] ?? null) ? (string) $data['scene_key'] : null) : null;
+    }
+
+    private function party($type, ?int $id): ?string
+    {
+        if (! $type) {
+            return null;
+        }
+
+        $name = match ($type) {
+            PermissionEntityType::CHARACTER => 'character',
+            PermissionEntityType::COMPANY_SITE => 'company_site',
+            PermissionEntityType::LOCATION => 'location',
+            default => null,
+        };
+
+        return $name ? $name.($id ? ':'.$id : '') : null;
     }
 }

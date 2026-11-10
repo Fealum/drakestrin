@@ -9,13 +9,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PostDraft extends Model
 {
-    protected $fillable = ['user_id', 'thread_id', 'board_id', 'title', 'character_id', 'payload', 'version'];
+    protected $fillable = ['user_id', 'thread_id', 'board_id', 'title', 'character_id', 'creates_character', 'new_character_name', 'payload', 'version'];
 
     protected $casts = [
         'user_id' => 'integer',
         'thread_id' => 'integer',
         'board_id' => 'integer',
         'character_id' => 'integer',
+        'creates_character' => 'boolean',
         'payload' => 'array',
         'version' => 'integer',
     ];
@@ -38,5 +39,10 @@ class PostDraft extends Model
     public function character(): BelongsTo
     {
         return $this->belongsTo(Character::class);
+    }
+
+    public function characterSelection(): int|string|null
+    {
+        return $this->creates_character ? 'new' : $this->character_id;
     }
 }
