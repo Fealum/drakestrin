@@ -62,3 +62,40 @@ It checks message bodies and smileys, element subtypes, transfer links, scene bo
 ## Local email
 
 The development Docker Compose stack captures all SMTP mail with Mailpit. Its inbox is available at http://localhost:8025; SMTP remains internal at `mailpit:1025` and does not deliver messages externally.
+
+## Deployment
+
+Deployer runs inside the application container, which has the deployment SSH key mounted as a Docker secret. The recipe in `deploy.php` deploys `master` to `zeus06.de:2222` under `~/html/drakestrin`.
+
+Set `SSH_KEY` in `devop/.env` to the absolute path of the private key authorized by the deployment host, for example `SSH_KEY=/home/username/.ssh/hosting_key`. The placeholder file cannot authenticate. Passphrase-protected keys must also be loaded into the host SSH agent with `ssh-add`; Compose forwards the agent into the application container.
+
+Before deploying, commit and push everything Deployer should publish. It fetches the repository from GitHub and cannot see uncommitted local files.
+
+```bash
+git status
+git push origin master
+docker compose -f devop/docker-compose.yml up -d app
+docker exec -it drakestrin_app vendor/bin/dep deploy --branch=master zeus06.de
+```
+
+The deployment creates a release, installs production Composer dependencies, links the shared `.env`, `storage`, and `public/img`, caches Laravel configuration, routes, views, and events, runs `php artisan migrate --force`, and atomically switches the `current` symlink. Three releases are retained.
+
+The web server's document root must point to `~/html/drakestrin/current/public`. On the first deployment, configure `~/html/drakestrin/shared/.env` with the production application, database, and SMTP settings. In particular, use `APP_ENV=production`, `APP_DEBUG=false`, the public `APP_URL`, and the real production mail server rather than Mailpit.
+
+Useful commands:
+
+```bash
+# Show deployed releases
+docker exec -it drakestrin_app vendor/bin/dep releases zeus06.de
+
+# Show production migration status
+docker exec -it drakestrin_app vendor/bin/dep artisan:migrate:status zeus06.de
+
+# Roll the current symlink back to the preceding release
+docker exec -it drakestrin_app vendor/bin/dep rollback zeus06.de
+
+# Clear a stale deployment lock after an interrupted deployment
+docker exec -it drakestrin_app vendor/bin/dep deploy:unlock zeus06.de
+```
+
+A rollback changes the deployed code and symlink only. It does not reverse database migrations; incompatible migrations must be handled separately and deliberately.

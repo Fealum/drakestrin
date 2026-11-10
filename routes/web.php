@@ -57,7 +57,7 @@ Route::controller(MarkdownExportController::class)->group(function () {
 Route::controller(BoardController::class)->group(function () {
     Route::get('/board', 'index')->name('board');
     Route::get('/board/view/{board}/{page?}', function (int|string $board, int|string|null $page = null) {
-        return redirect('/board/filter/board:'.$board.($page && (int) $page > 1 ? '/'.$page : ''), 301);
+        return redirect('/board/filter/board:' . $board . ($page && (int) $page > 1 ? '/' . $page : ''), 301);
     })->name('board.view.legacy');
     Route::get('/board/permissions/{board}', 'permissions')->name('board.permissions');
     Route::get('/board/filter/board:{board}/{page?}', 'filterBoard')->name('board.view');
@@ -119,27 +119,27 @@ Route::post('/transfer/{transfer}/reverse', [TransferController::class, 'reverse
 Route::post('/poll/{poll}/vote', [PollController::class, 'vote'])->name('poll.vote');
 
 Route::get('/img/avatarCharacter.id/thumb/{path}.jpg', function (string $path) {
-    return redirect(Storage::disk('public')->url('character-avatars/thumb/'.$path.'.jpg'), 301);
+    return redirect(Storage::disk('public')->url('character-avatars/thumb/' . $path . '.jpg'), 301);
 })->where('path', '.*')->name('avatarCharacter.legacy_thumb');
 
 Route::get('/img/avatarCharacter.id/{path}.jpg', function (string $path) {
-    return redirect(Storage::disk('public')->url('character-avatars/'.$path.'.jpg'), 301);
+    return redirect(Storage::disk('public')->url('character-avatars/' . $path . '.jpg'), 301);
 })->where('path', '.*')->name('avatarCharacter.legacy_full');
 
 Route::get('/img/emoticon/{file}', function (string $file) {
-    return redirect(asset('images/emoticon/'.$file), 301);
+    return redirect(asset('images/emoticon/' . $file), 301);
 })->where('file', '[0-9]+\.gif');
 
 Route::get('/img/territory.id/{file}', function (string $file) {
-    return redirect(asset('images/territory/'.$file), 301);
+    return redirect(asset('images/territory/' . $file), 301);
 })->where('file', '[0-9]+\.png')->name('territory.legacy_coat_of_arms');
 
 Route::get('/img/company_worker.type/{file}', function (string $file) {
-    return redirect(asset('images/company-worker/'.$file), 301);
+    return redirect(asset('images/company-worker/' . $file), 301);
 })->where('file', '[0-9]+\.png')->name('company.legacy_worker_type');
 
 Route::get('/img/item.img/{file}', function (string $file) {
-    return redirect(asset('images/item/'.$file), 301);
+    return redirect(asset('images/item/' . $file), 301);
 })->where('file', '[0-9]+\.png')->name('item.legacy_image');
 
 Route::controller(ConversationController::class)->group(function () {
@@ -165,7 +165,7 @@ Route::controller(GroupController::class)->group(function () {
     Route::get('/group', 'index')->name('group');
     Route::get('/group/view/{group}/{page?}', 'view')->name('group.view');
 });
-Route::any('/group/{legacyPath}', fn () => abort(404))->where('legacyPath', '.*');
+Route::any('/group/{legacyPath}', fn() => abort(404))->where('legacyPath', '.*');
 
 Route::controller(CompanyController::class)->group(function () {
     Route::get('/company', 'index')->name('company');
@@ -229,7 +229,7 @@ Route::controller(TerritoryController::class)->group(function () {
     Route::get('/territory/{territory}/children.geojson', 'childrenGeoJson')->name('territory.children_geojson');
     Route::get('/territory/{territory}/settlements.geojson', 'settlementsGeoJson')->name('territory.settlements_geojson');
 });
-Route::any('/territory/{legacyPath}', fn () => abort(404))->where('legacyPath', '.*');
+Route::any('/territory/{legacyPath}', fn() => abort(404))->where('legacyPath', '.*');
 
 Route::controller(LocationController::class)->group(function () {
     Route::match(['get', 'post'], '/location/create/{parentType}/{parentId}', 'create')->name('location.create');

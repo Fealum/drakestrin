@@ -135,7 +135,7 @@
         <div class="newthread">
             <form method="post" action="{{ route('board.mark_all_read') }}">
                 @csrf
-                <button type="submit" class="fa-check"> Alle Themen als gelesen markieren</button>
+                <button type="submit" class="fa-check">alle Themen gelesen</button>
             </form>
             <a href="{{ route('thread.create') }}" class="fa-comments">neues Thema</a>
         </div>
