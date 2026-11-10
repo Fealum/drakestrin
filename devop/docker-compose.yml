@@ -72,6 +72,42 @@ services:
       interval: 5s
       timeout: 5s
       retries: 120
+  test-web:
+    image: devop-app
+    profiles: [browser-testing]
+    working_dir: /var/www/html
+    command: php artisan serve --env=testing --host=0.0.0.0 --port=8001 --no-reload
+    environment:
+      APP_ENV: testing
+      APP_URL: http://test-web:8001
+      SESSION_DRIVER: file
+      MAIL_MAILER: array
+    volumes:
+      - ../:/var/www/html
+    depends_on:
+      db-test:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, 'http://localhost:8001/css/thread.css']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  browser-tests:
+    image: node:22-alpine
+    profiles: [browser-testing]
+    working_dir: /work
+    init: true
+    command: sh -c 'apk add --no-cache chromium >/dev/null && npm install --prefix /tmp/composer-browser playwright@1.56.1 --no-audit --no-fund >/dev/null && node tests/Browser/composer.mjs'
+    environment:
+      PLAYWRIGHT_MODULE: /tmp/composer-browser/node_modules/playwright/index.mjs
+      CHROMIUM_PATH: /usr/bin/chromium
+      BROWSER_BASE_URL: http://test-web:8001
+    volumes:
+      - ../:/work:ro
+      - ../storage/app/testing:/artifacts
+    depends_on:
+      test-web:
+        condition: service_healthy
   mailpit:
     image: axllent/mailpit:latest
     restart: unless-stopped

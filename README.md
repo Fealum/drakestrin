@@ -1,5 +1,32 @@
 # Drakestrin
 
+## Testing
+
+Feature tests use a separate MySQL service (`db-test`), account, and volume. There is no published port or access to the development database. The initial database is built from `devop/database/usr_l3s658_1.sql` and the application migrations, because the migrations extend the imported legacy schema.
+
+Prepare it once, and again after adding migrations:
+
+```bash
+sh devop/prepare-tests.sh
+```
+
+Then run tests from the application container:
+
+```bash
+cd devop
+docker compose exec -T app php artisan test
+```
+
+PHPUnit forces the dedicated test credentials. The test bootstrap rejects cached Laravel configuration and any database host, name, or account other than the dedicated test connection. Run `php artisan config:clear` in the app container before tests if configuration was cached. Test mail uses the array mailer.
+
+The browser regression creates a disposable user/thread in the test database and runs Chromium with and without JavaScript:
+
+```bash
+sh devop/run-browser-tests.sh
+```
+
+It installs Playwright and Chromium inside a temporary Docker container, checks autosave/commands/quoting/source selection/errors/conflicts and ordinary form publication, and writes desktop/mobile screenshots under `storage/app/testing`. The script removes its database fixture and stops the test web server afterwards. Avoid running this browser script concurrently with the feature suite, which changes global permission defaults in some tests.
+
 ## Composer And Post Elements
 
 The composer uses ordinary POST forms with Alpine and HTMX enhancement. HTMX commands return composer HTML, validation failures return an error fragment, and successful publication redirects to the published post. Autosave waits for the previous save; explicit commands wait for autosave. Cross-device conflicts preserve the local form and require opening the newer draft before further writes.
@@ -17,6 +44,8 @@ Scene controls offer only context-valid start/end/change choices. Location radio
 JavaScript commands keep the form locked while its response may replace it. Insertion shows a temporary text split and loading placeholder at the cursor; removal hides the block immediately; movement applies the server-provided destination through CSS order without reordering indexed form fields. All visual changes are restored after rejection, server errors, or network failure. Hidden pending fields remain in the submitted form. Ordinary HTML submissions remain authoritative without JavaScript.
 
 Composer POST requests do not prepare account-bar/sidebar queries or run subscription-mail catch-up. Online activity is still updated, publication still invokes its normal notification handler, and ordinary page visits retain globally throttled mail catch-up for installations without cron. Permission fetching uses its existing invalidated caches and eager-loads permit definitions on cache misses. Post indexes cover character/thread history and thread post cursors; stock and scene checks are never cached across requests.
+
+Run `sh devop/profile-composer.sh` for an isolated, repeatable composer profile against the testing database. It creates and removes its own browser fixture, reports SQL counts, middleware timings and slow queries for cold/warm text saves and action insertion. This is an in-process server diagnostic, not a browser/network benchmark. Do not run it concurrently with other tests or browser fixtures.
 
 Action sources and recipients use the reusable `entity-picker` Blade component: native radio choices with portraits or icons, plus local JavaScript filtering when there are more than six eligible recipients. Filtering never changes eligibility or clears a selected recipient. JavaScript source changes immediately switch the preloaded inventory; character changes refresh the composer while preserving message text. Without JavaScript, use the source/character confirmation buttons or save the draft to refresh its context. The author header shows the selected portrait and name alongside the character choices and creation tile; on small screens the editor uses the full available width.
 
